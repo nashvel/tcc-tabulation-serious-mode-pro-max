@@ -1,0 +1,169 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "TCC Tabulation API",
+        "description": "API for TCC Tabulation System - Pageant Scoring Application",
+        "contact": {
+            "email": "support@tcc-tabulation.com"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8000",
+            "description": "Local Development Server"
+        }
+    ],
+    "paths": {
+        "/api/candidates": {
+            "get": {
+                "tags": [
+                    "Candidates"
+                ],
+                "summary": "Get all candidates",
+                "operationId": "1c393d77145726af055d530602413ef0",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Candidates"
+                ],
+                "summary": "Create a new candidate",
+                "operationId": "97fe3eebe73f29b4546d3e7e8e61b487",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "number",
+                                    "name",
+                                    "gender"
+                                ],
+                                "properties": {
+                                    "number": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "example": "BSBA"
+                                    },
+                                    "gender": {
+                                        "type": "string",
+                                        "example": "Female"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Candidate created successfully"
+                    }
+                }
+            }
+        },
+        "/api/candidates/{id}": {
+            "get": {
+                "tags": [
+                    "Candidates"
+                ],
+                "summary": "Get a specific candidate",
+                "operationId": "23782bd44d3bd9395d491cea7dbbfb83",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Candidates"
+                ],
+                "summary": "Update a candidate",
+                "operationId": "6ce13e86c2d90c2b4199e0d1c7ad451a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "number": {
+                                        "type": "integer"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "gender": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Candidate updated successfully"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Candidates"
+                ],
+                "summary": "Delete a candidate",
+                "operationId": "ad4e0de86bdc18c19b429d687d454ee8",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Candidate deleted successfully"
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Candidates",
+            "description": "API Endpoints for managing candidates"
+        }
+    ]
+}
