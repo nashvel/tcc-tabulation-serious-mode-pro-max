@@ -3,7 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
 import JudgeLayout from './components/JudgeLayout';
 import ProtectedRoute from './components/ProtectedRoute';
-import Judge from './pages/judge/JudgeRefactored';
+import Judge from './pages/judge/Judge';
 import AdminTools from './pages/admin/AdminTools';
 import AdminLogin from './pages/admin/AdminLogin';
 import Setup from './pages/admin/Setup';
