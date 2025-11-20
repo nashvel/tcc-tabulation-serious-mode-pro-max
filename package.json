@@ -1,0 +1,16 @@
+{
+  "name": "tcc-tabulation-system",
+  "version": "2.0.0",
+  "description": "TCC Tabulation System - Serious Mode Pro Max",
+  "scripts": {
+    "update-contributors": "node scripts/update-contributors.js"
+  },
+  "keywords": [
+    "tabulation",
+    "pageant",
+    "scoring",
+    "judging"
+  ],
+  "author": "nashvel",
+  "license": "Proprietary"
+}

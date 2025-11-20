@@ -18,20 +18,20 @@ A comprehensive real-time event tabulation and judging system built for managing
         <sub><b>nashvel</b></sub>
       </a>
       <br />
-      <sub>9 commits (90%)</sub>
+      <sub>11 commits (92%)</sub>
       <br />
       💻 🎨 📖 🏗️
     </td>
     <td align="center">
-      <a href="https://github.com/Brandon">
-        <img src="https://github.com/Brandon.png" width="100px;" alt="Brandon"/>
+      <a href="https://github.com/brandonnagangga">
+        <img src="https://github.com/brandonnagangga.png" width="100px;" alt="brandonnagangga"/>
         <br />
-        <sub><b>Brandon</b></sub>
+        <sub><b>brandonnagangga</b></sub>
       </a>
       <br />
-      <sub>1 commit (10%)</sub>
+      <sub>1 commits (8%)</sub>
       <br />
-      🚀
+      💻
     </td>
   </tr>
 </table>
@@ -40,6 +40,14 @@ A comprehensive real-time event tabulation and judging system built for managing
 ### Contribution Stats
 
 ![GitHub Contributors Image](https://contrib.rocks/image?repo=nashvel/tcc-tabulation-serious-mode-pro-max)
+
+**Note:** The contributor table above is dynamically generated from GitHub. To update it locally, run:
+
+```bash
+npm run update-contributors
+```
+
+This script fetches the latest contributor data from the GitHub API and automatically updates the README.
 
 ---
 
