@@ -9,6 +9,8 @@ import WaitingScreen from '../../components/judge/WaitingScreen';
 import ScoringHeader from '../../components/judge/ScoringHeader';
 import ScoringTable from '../../components/judge/ScoringTable';
 
+const FORCE_SHOW_SCORING_INTERFACE = true;
+
 export default function Judge() {
   const navigate = useNavigate();
   
@@ -132,16 +134,19 @@ export default function Judge() {
     );
   }
 
+  const shouldShowWaitingScreen = !isLocked && !showScoringInterface && !FORCE_SHOW_SCORING_INTERFACE;
+  const shouldShowScoringInterface = !isLocked && (showScoringInterface || FORCE_SHOW_SCORING_INTERFACE);
+
   return (
     <div>
       {/* Lock Screen Overlay */}
       {isLocked && <LockScreen />}
       
       {/* Waiting Screen */}
-      {!isLocked && !showScoringInterface && <WaitingScreen />}
+      {shouldShowWaitingScreen && <WaitingScreen />}
       
       {/* Scoring Interface */}
-      {!isLocked && showScoringInterface && (
+      {shouldShowScoringInterface && (
         <>
           <ScoringHeader
             scoresHidden={scoresHidden}
