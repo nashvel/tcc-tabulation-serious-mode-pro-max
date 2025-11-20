@@ -1,55 +1,44 @@
 import { useNavigate } from 'react-router-dom';
+import { Home, Edit, FileText, Gavel, Award } from 'lucide-react';
 
 export default function AdminHeaderButtons({ onEditClick, onCertificatesClick, activeCategory }) {
   const navigate = useNavigate();
   const buttonStyle = {
     backgroundColor: 'transparent',
-    color: '#fff',
+    color: '#1e293b',
     border: 'none',
-    borderRadius: '4px',
+    borderRadius: '6px',
     padding: '6px 12px',
     fontSize: '12px',
     cursor: 'pointer',
+    fontWeight: '600',
+    transition: 'all 0.2s ease',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
     textTransform: 'uppercase',
-    letterSpacing: '1px',
-    fontWeight: '500'
+    letterSpacing: '0.5px'
   };
 
   const handleMouseOver = (e) => {
-    e.target.style.textDecoration = 'underline';
+    e.currentTarget.style.backgroundColor = '#f1f5f9';
+    e.currentTarget.style.color = '#0f172a';
   };
 
   const handleMouseOut = (e) => {
-    e.target.style.textDecoration = 'none';
+    e.currentTarget.style.backgroundColor = 'transparent';
+    e.currentTarget.style.color = '#1e293b';
   };
 
   return (
-    <>
-      {activeCategory && (
-        <div style={{
-          backgroundColor: '#f97316',
-          color: '#fff',
-          padding: '8px 16px',
-          borderRadius: '6px',
-          fontSize: '13px',
-          fontWeight: 'bold',
-          letterSpacing: '1px',
-          textTransform: 'uppercase',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginRight: '15px'
-        }}>
-          <span className="material-icons" style={{ fontSize: '16px' }}>star</span>
-          Active: {activeCategory.name}
-        </div>
-      )}
+    <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
       <button
         style={buttonStyle}
         onMouseOver={handleMouseOver}
         onMouseOut={handleMouseOut}
         onClick={() => navigate('/admin')}
       >
+        <Home size={16} />
         Home
       </button>
       <button
@@ -58,6 +47,7 @@ export default function AdminHeaderButtons({ onEditClick, onCertificatesClick, a
         onMouseOut={handleMouseOut}
         onClick={onEditClick}
       >
+        <Edit size={16} />
         Edit
       </button>
       <button
@@ -66,6 +56,7 @@ export default function AdminHeaderButtons({ onEditClick, onCertificatesClick, a
         onMouseOut={handleMouseOut}
         onClick={() => navigate('/admin/documentation')}
       >
+        <FileText size={16} />
         Documentation
       </button>
       <button
@@ -73,6 +64,7 @@ export default function AdminHeaderButtons({ onEditClick, onCertificatesClick, a
         onMouseOver={handleMouseOver}
         onMouseOut={handleMouseOut}
       >
+        <Gavel size={16} />
         Judges
       </button>
       <button
@@ -81,8 +73,9 @@ export default function AdminHeaderButtons({ onEditClick, onCertificatesClick, a
         onMouseOut={handleMouseOut}
         onClick={() => navigate('/admin/certificates')}
       >
+        <Award size={16} />
         Certificates
       </button>
-    </>
+    </div>
   );
 }

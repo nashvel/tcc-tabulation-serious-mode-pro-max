@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Circles } from 'react-loader-spinner';
 import TimeDisplay from './TimeDisplay';
+import AdminPreloader from '../admin/AdminPreloader';
 
-export default function WaitingScreen() {
+export default function WaitingScreen({ judgeId }) {
   const [loadingImage, setLoadingImage] = useState(null);
   const [hasImage, setHasImage] = useState(false);
   const [headerImages, setHeaderImages] = useState([]);
@@ -10,7 +10,10 @@ export default function WaitingScreen() {
 
   useEffect(() => {
     // Fetch loading screen image and header images from API
-    fetch('http://localhost:8000/api/judge-screens')
+    // Use dynamic hostname so it works when judges connect via IP
+    const apiUrl = `http://${window.location.hostname}:8000/api/judge-screens`;
+    
+    fetch(apiUrl)
       .then(res => res.json())
       .then(data => {
         if (data.loading && data.loading.length > 0) {
@@ -74,8 +77,18 @@ export default function WaitingScreen() {
           )}
         </div>
 
-        {/* Empty space on right for balance */}
-        <div style={{ minWidth: '200px' }}></div>
+        {/* Judge Number on Right */}
+        <div style={{ 
+          minWidth: '200px',
+          textAlign: 'right',
+          fontSize: '28px',
+          fontWeight: 'bold',
+          color: '#fff',
+          fontFamily: 'Nunito, sans-serif',
+          letterSpacing: '2px'
+        }}>
+          {judgeId && `JUDGE ${String(judgeId).padStart(2, '0')}`}
+        </div>
       </div>
 
       {/* Content Area with Spinner */}
@@ -87,23 +100,14 @@ export default function WaitingScreen() {
         backgroundColor: '#fff',
         padding: '40px'
       }}>
-        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
           {hasImage ? (
             <img src={loadingImage} alt="Loading Screen" style={{ height: '300px', opacity: 0.8 }} />
           ) : (
-            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
-              <Circles
-                height="120"
-                width="120"
-                color="#fdba74"
-                ariaLabel="circles-loading"
-                visible={true}
-              />
+            <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+              <AdminPreloader />
             </div>
           )}
-          <p style={{ color: '#666', fontSize: '24px', marginTop: '20px', margin: '20px 0 0 0' }}>
-            Waiting for Admin to select criteria...
-          </p>
         </div>
       </div>
     </>

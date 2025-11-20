@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { ChevronRight, ChevronLeft, PlayCircle, BarChart3 } from 'lucide-react';
 import EventSequenceManager from './EventSequenceManager';
+import CriteriaChart from './CriteriaChart';
 
 export default function EventSequenceSidebar({
   availableCategories,
@@ -11,77 +13,101 @@ export default function EventSequenceSidebar({
   onMoveDown,
   isVotingActive,
   onStartEvent,
-  isOpen: isOpenProp,
-  onClose
+  shouldOpen = false
 }) {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const isOpen = isOpenProp !== undefined ? isOpenProp : false;
+  const [isOpen, setIsOpen] = useState(false);
+  
+  // Open sidebar when shouldOpen prop changes to true
+  useEffect(() => {
+    if (shouldOpen) {
+      setIsOpen(true);
+    }
+  }, [shouldOpen]);
+  
+  // Handle keyboard shortcuts for < > keys
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Check for < or , key (shift+comma)
+      if ((e.shiftKey && e.key === '<') || e.key === ',') {
+        e.preventDefault();
+        setIsOpen(false);
+      } 
+      // Check for > or . key (shift+period)
+      else if ((e.shiftKey && e.key === '>') || e.key === '.') {
+        e.preventDefault();
+        setIsOpen(true);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+  
+  const handleToggle = () => {
+    setIsOpen(!isOpen);
+  };
 
   return (
     <>
       {/* Sidebar */}
       <div
-        style={{
-          position: 'fixed',
-          top: '0',
-          right: isOpen ? '0' : '-320px',
-          width: '320px',
-          height: '100vh',
-          backgroundColor: '#fff',
-          boxShadow: isOpen ? '-4px 0 12px rgba(0,0,0,0.1)' : 'none',
-          transition: 'right 0.3s ease-in-out',
-          zIndex: 1000,
-          overflowY: 'auto',
-          paddingTop: '180px' // Space for fixed header
-        }}
+        className={`
+          fixed top-0 right-0 w-[550px] h-screen bg-white shadow-2xl transition-all duration-300 ease-in-out z-50 overflow-y-auto border-l border-slate-100 scrollbar-hide
+          ${isOpen ? 'translate-x-0' : 'translate-x-full'}
+        `}
       >
-        <EventSequenceManager
-          availableCategories={availableCategories}
-          eventSequence={eventSequence}
-          currentSequenceIndex={currentSequenceIndex}
-          onAddToSequence={onAddToSequence}
-          onRemoveFromSequence={onRemoveFromSequence}
-          onMoveUp={onMoveUp}
-          onMoveDown={onMoveDown}
-          isVotingActive={isVotingActive}
-        />
+        {/* Header Section */}
+        <div className="grid grid-cols-2 gap-0 sticky top-0 z-10 bg-white border-b border-slate-100">
+          {/* Minimal Accent Line */}
+          <div className="absolute top-0 left-0 w-full h-0.5 bg-slate-900"></div>
+          
+          {/* Event Sequence Header */}
+          <div className="bg-white text-slate-900 px-4 py-3 border-r border-slate-100">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-600">Event Sequence</h3>
+          </div>
+          
+          {/* Criteria Overview Header */}
+          <div className="bg-white text-slate-900 px-4 py-3">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-600">Criteria Overview</h3>
+          </div>
+        </div>
+
+        {/* Content Section - Two Columns */}
+        <div className="grid grid-cols-2 gap-0 pb-24">
+          {/* Left Column - Event Sequence Manager */}
+          <div className="border-r border-slate-200">
+            <div className="p-5 space-y-4">
+              <EventSequenceManager
+                availableCategories={availableCategories}
+                eventSequence={eventSequence}
+                currentSequenceIndex={currentSequenceIndex}
+                onAddToSequence={onAddToSequence}
+                onRemoveFromSequence={onRemoveFromSequence}
+                onMoveUp={onMoveUp}
+                onMoveDown={onMoveDown}
+                isVotingActive={isVotingActive}
+              />
+            </div>
+          </div>
+          
+          {/* Right Column - Criteria Chart */}
+          <div>
+            <div className="p-5">
+              <CriteriaChart key={isOpen ? 'open' : 'closed'} categories={availableCategories} />
+            </div>
+          </div>
+        </div>
         
-        {/* Confirm & Start Button */}
+        {/* Confirm & Start Button - Spans Both Columns */}
         {!isVotingActive && eventSequence.length > 0 && (
-          <div style={{ 
-            padding: '20px',
-            borderTop: '1px solid #e5e7eb',
-            backgroundColor: '#f9fafb'
-          }}>
+          <div className="fixed bottom-0 right-0 w-[550px] p-4 border-t border-slate-200 bg-gradient-to-t from-white to-slate-50 shadow-lg">
             <button
               onClick={() => setShowConfirmModal(true)}
-              style={{
-                width: '100%',
-                padding: '14px',
-                backgroundColor: '#10b981',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#059669';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#10b981';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
+              className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-bold uppercase tracking-widest rounded-lg shadow-lg hover:shadow-xl hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 text-sm"
             >
-              <span className="material-icons" style={{ fontSize: '20px' }}>play_arrow</span>
-              Confirm & Start Event
+              <PlayCircle size={18} />
+              Start Event
             </button>
           </div>
         )}
@@ -89,66 +115,23 @@ export default function EventSequenceSidebar({
 
       {/* Confirmation Modal */}
       {showConfirmModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000
-        }}>
-          <div style={{
-            backgroundColor: '#fff',
-            borderRadius: '12px',
-            padding: '32px',
-            maxWidth: '400px',
-            width: '90%',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }}>
-            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-              <span className="material-icons" style={{ fontSize: '48px', color: '#10b981' }}>
-                check_circle
-              </span>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[2000] animate-fade-in">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-11/12 shadow-2xl border border-slate-200 animate-scale-in">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-50 mb-4 shadow-md">
+                <PlayCircle size={40} className="text-emerald-600" />
+              </div>
             </div>
-            <h3 style={{ 
-              fontSize: '18px', 
-              fontWeight: '600', 
-              marginBottom: '12px',
-              textAlign: 'center',
-              color: '#111827'
-            }}>
+            <h3 className="text-3xl font-bold text-slate-900 text-center mb-2 uppercase tracking-widest">
               Start Event?
             </h3>
-            <p style={{ 
-              fontSize: '14px', 
-              color: '#6b7280',
-              textAlign: 'center',
-              marginBottom: '24px',
-              lineHeight: '1.5'
-            }}>
-              You have {eventSequence.length} round{eventSequence.length !== 1 ? 's' : ''} in the sequence. Once started, judges can begin scoring.
+            <p className="text-sm text-slate-600 text-center mb-8 leading-relaxed">
+              You have <span className="font-bold text-emerald-600">{eventSequence.length}</span> round{eventSequence.length !== 1 ? 's' : ''} in the sequence. Once started, judges can begin scoring.
             </p>
-            <div style={{ display: 'flex', gap: '12px' }}>
+            <div className="flex gap-3">
               <button
                 onClick={() => setShowConfirmModal(false)}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  backgroundColor: '#fff',
-                  color: '#374151',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fff'}
+                className="flex-1 py-3 px-4 bg-white text-slate-700 border-2 border-slate-300 rounded-lg font-semibold uppercase tracking-wide text-sm hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 active:scale-95"
               >
                 Cancel
               </button>
@@ -156,66 +139,54 @@ export default function EventSequenceSidebar({
                 onClick={() => {
                   setShowConfirmModal(false);
                   onStartEvent();
-                  if (onClose) onClose();
+                  setIsOpen(false); // Close sidebar after starting
                 }}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  backgroundColor: '#10b981',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#059669'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#10b981'}
+                className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-bold uppercase tracking-widest text-sm hover:from-emerald-700 hover:to-emerald-800 shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95"
               >
-                Start Event
+                Confirm
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Toggle Button - Hidden when controlled by START button */}
-      {isOpenProp === undefined && (
+      {/* Toggle Button - Minimal Elegant Design */}
       <button
-        onClick={() => {}}
-        style={{
-          position: 'fixed',
-          top: '50%',
-          right: isOpen ? '320px' : '0',
-          transform: 'translateY(-50%)',
-          width: '40px',
-          height: '80px',
-          backgroundColor: '#f97316',
-          border: 'none',
-          borderRadius: isOpen ? '8px 0 0 8px' : '8px 0 0 8px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '-2px 0 8px rgba(0,0,0,0.1)',
-          transition: 'right 0.3s ease-in-out',
-          zIndex: 1001,
-          color: '#fff',
-          fontSize: '24px'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#ea580c';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#f97316';
-        }}
+        onClick={handleToggle}
+        title="Use < > keys or click to toggle"
+        className={`
+          fixed top-1/2 -translate-y-1/2 w-12 h-20 bg-white hover:bg-slate-50 text-slate-900 rounded-full shadow-lg transition-all duration-300 z-[1001] flex items-center justify-center border border-slate-200 hover:border-slate-300 active:scale-95
+          ${isOpen ? 'right-[550px]' : 'right-0'}
+        `}
       >
-        <span className="material-icons">
-          {isOpen ? 'chevron_right' : 'chevron_left'}
-        </span>
+        {isOpen ? (
+          <ChevronRight size={24} className="text-slate-900" />
+        ) : (
+          <ChevronLeft size={24} className="text-slate-900" />
+        )}
       </button>
-      )}
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in { animation: fadeIn 0.2s ease-out; }
+        .animate-scale-in { animation: scaleIn 0.3s ease-out cubic-bezier(0.34, 1.56, 0.64, 1); }
+        
+        /* Hide scrollbar while keeping scroll functionality */
+        .scrollbar-hide {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;  /* Chrome, Safari and Opera */
+        }
+      `}</style>
     </>
   );
 }

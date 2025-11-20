@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AdminSidebar from '../../components/admin/AdminSidebar';
@@ -8,6 +8,7 @@ import ControlButtons from '../../components/admin/ControlButtons';
 import EventSequenceSidebar from '../../components/admin/EventSequenceSidebar';
 import DataTableManager from '../../components/admin/DataTableManager';
 import StopEventModal from '../../components/admin/StopEventModal';
+import AdminPreloader from '../../components/admin/AdminPreloader';
 import { useAdminData } from '../../hooks/useAdminData';
 import { useVotingControl } from '../../hooks/useVotingControl';
 import { useEventSequence } from '../../hooks/useEventSequence';
@@ -15,9 +16,20 @@ import { useVotingWebSocket } from '../../hooks/useVotingWebSocket';
 
 export default function AdminTools() {
   const location = useLocation();
+  const navigate = useNavigate();
   const continuingEventFromState = location.state?.continuingEvent;
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  // Simple auth check - just verify localStorage
+  useEffect(() => {
+    const token = localStorage.getItem('adminToken');
+    const pin = localStorage.getItem('adminPin');
+    
+    if (!token || !pin) {
+      navigate('/admin/login', { replace: true });
+    }
+  }, [navigate]);
   
   // Show toast notification when continuing an event
   useEffect(() => {
@@ -65,7 +77,7 @@ export default function AdminTools() {
           },
           {
             position: 'top-right',
-            autoClose: 10000,
+            autoClose: 1000,
             hideProgressBar: false,
             closeOnClick: true,
             pauseOnHover: true,
@@ -82,7 +94,7 @@ export default function AdminTools() {
   const continuingEvent = continuingEventFromState || (eventFromStorage ? JSON.parse(eventFromStorage) : null);
   
   // Custom hooks
-  const { candidates, rounds, criteria, loading } = useAdminData();
+  const { candidates, rounds, criteria, loading } = useAdminData(continuingEvent?.id);
   
   const {
     isVotingActive,
@@ -106,12 +118,58 @@ export default function AdminTools() {
     } else {
       // Show event sequence sidebar for starting
       setShowStartStopModal(true);
+      // Reset after a brief moment to allow effect to trigger
+      setTimeout(() => setShowStartStopModal(false), 100);
     }
   };
 
   const handleStopConfirm = async () => {
     await handleStartStopConfirm();
     setShowStopModal(false);
+  };
+
+  const handleStartEventWithFirstRound = async () => {
+    try {
+      console.log('=== Starting Event with First Round ===');
+      console.log('Event sequence:', eventSequence);
+      
+      if (eventSequence.length === 0) {
+        toast.error('Please add rounds to the sequence first!', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+        return;
+      }
+      
+      // Step 1: Start the event
+      console.log('Step 1: Starting event...');
+      await handleStartStopConfirm();
+      console.log('Event started successfully');
+      
+      // Step 2: Activate the first round in the sequence
+      const firstRound = eventSequence[0];
+      console.log('Step 2: Activating first round:', firstRound);
+      
+      await handleCategorySelect(firstRound);
+      console.log('First round activated successfully');
+      
+      // Step 3: Show success message
+      toast.success(`🎯 ${firstRound.name} is now active!`, {
+        position: 'top-right',
+        autoClose: 4000,
+      });
+      
+      console.log('=== Event Started Successfully ===');
+    } catch (error) {
+      console.error('=== Error Starting Event ===');
+      console.error('Error details:', error);
+      console.error('Error response:', error.response?.data);
+      
+      toast.error('Failed to start event: ' + (error.response?.data?.error || error.message), { 
+        position: 'top-right',
+        autoClose: 5000,
+      });
+    }
   };
 
   const {
@@ -136,65 +194,7 @@ export default function AdminTools() {
       <ToastContainer />
       
       {loading ? (
-        <>
-          {/* Skeleton Header */}
-          <div style={{ padding: '20px', borderBottom: '2px solid #e5e7eb' }}>
-            <div style={{ 
-              height: '80px', 
-              backgroundColor: '#f3f4f6', 
-              borderRadius: '8px',
-              animation: 'pulse 1.5s ease-in-out infinite'
-            }}></div>
-          </div>
-          
-          {/* Skeleton Control Buttons */}
-          <div style={{ padding: '20px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} style={{ 
-                width: '120px', 
-                height: '120px', 
-                backgroundColor: '#f3f4f6', 
-                borderRadius: '8px',
-                animation: 'pulse 1.5s ease-in-out infinite'
-              }}></div>
-            ))}
-          </div>
-          
-          {/* Skeleton Tabs */}
-          <div style={{ padding: '20px', borderBottom: '2px solid #e5e7eb' }}>
-            <div style={{ display: 'flex', gap: '20px' }}>
-              {[1, 2, 3, 4, 5].map(i => (
-                <div key={i} style={{ 
-                  width: '120px', 
-                  height: '40px', 
-                  backgroundColor: '#f3f4f6', 
-                  borderRadius: '4px',
-                  animation: 'pulse 1.5s ease-in-out infinite'
-                }}></div>
-              ))}
-            </div>
-          </div>
-          
-          {/* Skeleton Table */}
-          <div style={{ padding: '20px' }}>
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} style={{ 
-                height: '60px', 
-                backgroundColor: '#f3f4f6', 
-                borderRadius: '4px',
-                marginBottom: '10px',
-                animation: 'pulse 1.5s ease-in-out infinite'
-              }}></div>
-            ))}
-          </div>
-          
-          <style>{`
-            @keyframes pulse {
-              0%, 100% { opacity: 1; }
-              50% { opacity: 0.5; }
-            }
-          `}</style>
-        </>
+        <AdminPreloader />
       ) : (
         <>
       
@@ -216,14 +216,13 @@ export default function AdminTools() {
       <div style={{ paddingTop: '20px', paddingBottom: '40px' }}>
         {/* Control Buttons */}
         <ControlButtons
+          eventId={continuingEvent?.unique_id || continuingEvent?.id}
           isVotingActive={isVotingActive}
           eventSequence={eventSequence}
           currentSequenceIndex={currentSequenceIndex}
           onStartStop={handleStartStopButtonClick}
           onNext={handleNextCategory}
         />
-        
-        <hr style={{ width: '75%', margin: '30px auto', borderColor: '#ddd' }} />
         
         {/* Data Table Manager - Full Width */}
         <div style={{ margin: '40px 20px' }}>
@@ -245,9 +244,8 @@ export default function AdminTools() {
         onMoveUp={handleMoveSequenceUp}
         onMoveDown={handleMoveSequenceDown}
         isVotingActive={isVotingActive}
-        onStartEvent={handleStartStopConfirm}
-        isOpen={showStartStopModal}
-        onClose={() => setShowStartStopModal(false)}
+        onStartEvent={handleStartEventWithFirstRound}
+        shouldOpen={showStartStopModal}
       />
 
       {/* Stop Event Modal */}

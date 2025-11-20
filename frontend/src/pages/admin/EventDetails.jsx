@@ -1,12 +1,34 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import AdminPreloader from '../../components/admin/AdminPreloader';
 
 export default function EventDetails() {
   const { eventId } = useParams();
   const navigate = useNavigate();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [editingCriterion, setEditingCriterion] = useState(null);
+  const [editValues, setEditValues] = useState({ name: '', percentage: '' });
+  const [editingBasicInfo, setEditingBasicInfo] = useState(false);
+  const [basicInfoValues, setBasicInfoValues] = useState({
+    event_date: '',
+    description: '',
+    event_type: '',
+    number_of_judges: ''
+  });
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleValue, setTitleValue] = useState('');
+
+  // Simple auth check
+  useEffect(() => {
+    const token = localStorage.getItem('adminToken');
+    const pin = localStorage.getItem('adminPin');
+    
+    if (!token || !pin) {
+      navigate('/admin/login', { replace: true });
+    }
+  }, [navigate]);
 
   useEffect(() => {
     loadEventDetails();
@@ -14,11 +36,7 @@ export default function EventDetails() {
 
   const loadEventDetails = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/events/${eventId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        }
-      });
+      const response = await fetch(`http://localhost:8000/api/events/${eventId}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -34,12 +52,153 @@ export default function EventDetails() {
     }
   };
 
+  const handleEditCriterion = (criterion) => {
+    setEditingCriterion(criterion.id);
+    setEditValues({ 
+      name: criterion.name, 
+      percentage: criterion.points || criterion.percentage // points field stores percentage 
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCriterion(null);
+    setEditValues({ name: '', percentage: '' });
+  };
+
+  const handleSaveCriterion = async (criterionId) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/criteria/${criterionId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify({
+          name: editValues.name,
+          points: parseInt(editValues.percentage), // Save percentage to points field
+          event_id: event.id
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Criterion updated successfully');
+        setEditingCriterion(null);
+        setEditValues({ name: '', percentage: '' });
+        loadEventDetails(); // Reload to show updated data
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to update criterion');
+      }
+    } catch (error) {
+      console.error('Error saving criterion:', error);
+      toast.error('Error updating criterion');
+    }
+  };
+
+  const handleEditBasicInfo = () => {
+    setEditingBasicInfo(true);
+    // Format date to yyyy-MM-dd for date input
+    let formattedDate = '';
+    if (event.event_date) {
+      const dateObj = new Date(event.event_date);
+      formattedDate = dateObj.toISOString().split('T')[0]; // Extract yyyy-MM-dd
+    }
+    setBasicInfoValues({
+      event_date: formattedDate,
+      description: event.description || '',
+      event_type: event.event_type || 'pageant',
+      number_of_judges: event.number_of_judges || 7
+    });
+  };
+
+  const handleCancelBasicInfo = () => {
+    setEditingBasicInfo(false);
+    setBasicInfoValues({
+      event_date: '',
+      description: '',
+      event_type: '',
+      number_of_judges: ''
+    });
+  };
+
+  const handleSaveBasicInfo = async () => {
+    try {
+      // Use unique_id if available, otherwise use regular id
+      const actualEventId = event.unique_id || event.id;
+      const response = await fetch(`http://localhost:8000/api/events/${actualEventId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify({
+          event_date: basicInfoValues.event_date,
+          description: basicInfoValues.description,
+          event_type: basicInfoValues.event_type,
+          number_of_judges: parseInt(basicInfoValues.number_of_judges)
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Basic information updated successfully');
+        setEditingBasicInfo(false);
+        loadEventDetails();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to update basic information');
+      }
+    } catch (error) {
+      console.error('Error saving basic info:', error);
+      toast.error('Error updating basic information');
+    }
+  };
+
+  const handleEditTitle = () => {
+    setEditingTitle(true);
+    setTitleValue(event.title);
+  };
+
+  const handleCancelTitle = () => {
+    setEditingTitle(false);
+    setTitleValue('');
+  };
+
+  const handleSaveTitle = async () => {
+    if (!titleValue.trim()) {
+      toast.error('Event title cannot be empty');
+      return;
+    }
+
+    try {
+      // Use unique_id if available, otherwise use regular id
+      const actualEventId = event.unique_id || event.id;
+      const response = await fetch(`http://localhost:8000/api/events/${actualEventId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify({
+          title: titleValue
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Event title updated successfully');
+        setEditingTitle(false);
+        loadEventDetails();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to update event title');
+      }
+    } catch (error) {
+      console.error('Error saving title:', error);
+      toast.error('Error updating event title');
+    }
+  };
+
   if (loading) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <p>Loading event details...</p>
-      </div>
-    );
+    return <AdminPreloader />;
   }
 
   if (!event) {
@@ -109,7 +268,7 @@ export default function EventDetails() {
             >
               EDIT
             </button>
-            <button onClick={() => setIsSidebarOpen(true)}
+            <button onClick={() => alert('Documentation feature coming soon')}
               style={{
                 padding: '8px 16px',
                 backgroundColor: 'transparent',
@@ -183,10 +342,80 @@ export default function EventDetails() {
       <div style={{ padding: '0 40px 40px 40px' }}>
         {/* Title and Actions */}
         <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#1f2937', marginBottom: '8px' }}>
-              {event.title}
-            </h1>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              {editingTitle ? (
+                <>
+                  <input
+                    type="text"
+                    value={titleValue}
+                    onChange={(e) => setTitleValue(e.target.value)}
+                    style={{
+                      fontSize: '32px',
+                      fontWeight: 'bold',
+                      color: '#1f2937',
+                      padding: '4px 8px',
+                      border: '2px solid #3b82f6',
+                      borderRadius: '6px',
+                      flex: 1,
+                      maxWidth: '600px'
+                    }}
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleSaveTitle}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#10b981',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      fontSize: '14px'
+                    }}
+                  >
+                    ✓ Save
+                  </button>
+                  <button
+                    onClick={handleCancelTitle}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#ef4444',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      fontSize: '14px'
+                    }}
+                  >
+                    ✗ Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                    {event.title}
+                  </h1>
+                  <button
+                    onClick={handleEditTitle}
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: '#3b82f6',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: '600'
+                    }}
+                  >
+                    Edit Title
+                  </button>
+                </>
+              )}
+            </div>
             <p style={{ color: '#6b7280', fontSize: '16px' }}>
               Event ID: {event.id} • Year: {event.year} • Status: <span style={{ 
                 color: event.status === 'active' ? '#10b981' : '#f59e0b',
@@ -196,27 +425,6 @@ export default function EventDetails() {
             </p>
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <button
-              onClick={() => navigate(`/create-event?id=${event.id}`)}
-              style={{
-                padding: '12px 24px',
-                backgroundColor: '#3b82f6',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
-            >
-              <span className="material-icons" style={{ fontSize: '18px' }}>edit</span>
-              Edit Event
-            </button>
             <button
               onClick={() => navigate('/admin')}
               style={{
@@ -241,23 +449,77 @@ export default function EventDetails() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
         {/* Basic Information */}
         <div style={{ backgroundColor: '#fff', border: '2px solid #e5e7eb', borderRadius: '12px', padding: '24px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#f97316', marginBottom: '20px', borderBottom: '2px solid #fed7aa', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="material-icons" style={{ fontSize: '24px' }}>info</span>
-            Basic Information
-          </h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #fed7aa', paddingBottom: '10px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#f97316', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+              <span className="material-icons" style={{ fontSize: '24px' }}>info</span>
+              Basic Information
+            </h2>
+            {!editingBasicInfo ? (
+              <button
+                onClick={handleEditBasicInfo}
+                style={{ padding: '6px 12px', backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+              >
+                Edit
+              </button>
+            ) : (
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button
+                  onClick={handleSaveBasicInfo}
+                  style={{ padding: '6px 12px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                >
+                  ✓ Save
+                </button>
+                <button
+                  onClick={handleCancelBasicInfo}
+                  style={{ padding: '6px 12px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                >
+                  ✗ Cancel
+                </button>
+              </div>
+            )}
+          </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', border: '2px solid #000' }}>
           <tbody>
             <tr>
               <td style={{ padding: '12px', fontWeight: '600', color: '#374151', width: '200px', border: '1px solid #000', backgroundColor: '#f9fafb' }}>Event Date:</td>
-              <td style={{ padding: '12px', color: '#374151', border: '1px solid #000' }}>{event.event_date || 'Not set'}</td>
+              <td style={{ padding: '12px', color: '#374151', border: '1px solid #000' }}>
+                {editingBasicInfo ? (
+                  <input
+                    type="date"
+                    value={basicInfoValues.event_date}
+                    onChange={(e) => setBasicInfoValues({...basicInfoValues, event_date: e.target.value})}
+                    style={{ width: '100%', padding: '6px', border: '1px solid #d1d5db', borderRadius: '4px' }}
+                  />
+                ) : (event.event_date || 'Not set')}
+              </td>
             </tr>
             <tr>
               <td style={{ padding: '12px', fontWeight: '600', color: '#374151', border: '1px solid #000', backgroundColor: '#f9fafb' }}>Description:</td>
-              <td style={{ padding: '12px', color: '#374151', border: '1px solid #000' }}>{event.description || 'No description'}</td>
+              <td style={{ padding: '12px', color: '#374151', border: '1px solid #000' }}>
+                {editingBasicInfo ? (
+                  <textarea
+                    value={basicInfoValues.description}
+                    onChange={(e) => setBasicInfoValues({...basicInfoValues, description: e.target.value})}
+                    style={{ width: '100%', padding: '6px', border: '1px solid #d1d5db', borderRadius: '4px', minHeight: '60px' }}
+                  />
+                ) : (event.description || 'No description')}
+              </td>
             </tr>
             <tr>
               <td style={{ padding: '12px', fontWeight: '600', color: '#374151', border: '1px solid #000', backgroundColor: '#f9fafb' }}>Event Type:</td>
-              <td style={{ padding: '12px', color: '#374151', border: '1px solid #000', textTransform: 'capitalize' }}>{event.event_type}</td>
+              <td style={{ padding: '12px', color: '#374151', border: '1px solid #000', textTransform: 'capitalize' }}>
+                {editingBasicInfo ? (
+                  <select
+                    value={basicInfoValues.event_type}
+                    onChange={(e) => setBasicInfoValues({...basicInfoValues, event_type: e.target.value})}
+                    style={{ width: '100%', padding: '6px', border: '1px solid #d1d5db', borderRadius: '4px' }}
+                  >
+                    <option value="pageant">Pageant</option>
+                    <option value="competition">Competition</option>
+                    <option value="contest">Contest</option>
+                  </select>
+                ) : event.event_type}
+              </td>
             </tr>
             <tr>
               <td style={{ padding: '12px', fontWeight: '600', color: '#374151', border: '1px solid #000', backgroundColor: '#f9fafb' }}>Event Days:</td>
@@ -285,7 +547,18 @@ export default function EventDetails() {
             </tr>
             <tr>
               <td style={{ padding: '12px', fontWeight: '600', color: '#374151', border: '1px solid #000', backgroundColor: '#f9fafb' }}>Number of Judges:</td>
-              <td style={{ padding: '12px', color: '#374151', border: '1px solid #000' }}>{event.number_of_judges}</td>
+              <td style={{ padding: '12px', color: '#374151', border: '1px solid #000' }}>
+                {editingBasicInfo ? (
+                  <input
+                    type="number"
+                    value={basicInfoValues.number_of_judges}
+                    onChange={(e) => setBasicInfoValues({...basicInfoValues, number_of_judges: e.target.value})}
+                    style={{ width: '100px', padding: '6px', border: '1px solid #d1d5db', borderRadius: '4px' }}
+                    min="1"
+                    max="20"
+                  />
+                ) : event.number_of_judges}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -328,16 +601,60 @@ export default function EventDetails() {
                     <thead>
                       <tr style={{ backgroundColor: '#fef3c7' }}>
                         <th style={{ padding: '10px', textAlign: 'left', fontWeight: '600', color: '#374151', border: '1px solid #000' }}>Criterion</th>
-                        <th style={{ padding: '10px', textAlign: 'center', fontWeight: '600', color: '#374151', width: '120px', border: '1px solid #000' }}>Max Score</th>
                         <th style={{ padding: '10px', textAlign: 'center', fontWeight: '600', color: '#374151', width: '120px', border: '1px solid #000' }}>Percentage</th>
+                        <th style={{ padding: '10px', textAlign: 'center', fontWeight: '600', color: '#374151', width: '100px', border: '1px solid #000' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {categoryCriteria.map((criterion, index) => (
                         <tr key={criterion.id}>
-                          <td style={{ padding: '10px', color: '#374151', border: '1px solid #000' }}>{criterion.name}</td>
-                          <td style={{ padding: '10px', textAlign: 'center', color: '#374151', border: '1px solid #000' }}>{criterion.max_score}</td>
-                          <td style={{ padding: '10px', textAlign: 'center', fontWeight: '600', color: '#f97316', border: '1px solid #000' }}>{criterion.percentage}%</td>
+                          <td style={{ padding: '10px', color: '#374151', border: '1px solid #000' }}>
+                            {editingCriterion === criterion.id ? (
+                              <input 
+                                type="text" 
+                                value={editValues.name}
+                                onChange={(e) => setEditValues({...editValues, name: e.target.value})}
+                                style={{ width: '100%', padding: '6px', border: '1px solid #d1d5db', borderRadius: '4px' }}
+                              />
+                            ) : criterion.name}
+                          </td>
+                          <td style={{ padding: '10px', textAlign: 'center', fontWeight: '600', color: '#f97316', border: '1px solid #000' }}>
+                            {editingCriterion === criterion.id ? (
+                              <input 
+                                type="number" 
+                                value={editValues.percentage}
+                                onChange={(e) => setEditValues({...editValues, percentage: e.target.value})}
+                                style={{ width: '60px', padding: '6px', border: '1px solid #d1d5db', borderRadius: '4px', textAlign: 'center' }}
+                                min="0"
+                                max="100"
+                              />
+                            ) : `${criterion.percentage}%`}
+                          </td>
+                          <td style={{ padding: '10px', textAlign: 'center', border: '1px solid #000' }}>
+                            {editingCriterion === criterion.id ? (
+                              <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                                <button 
+                                  onClick={() => handleSaveCriterion(criterion.id)}
+                                  style={{ padding: '4px 8px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                                >
+                                  ✓
+                                </button>
+                                <button 
+                                  onClick={handleCancelEdit}
+                                  style={{ padding: '4px 8px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                                >
+                                  ✗
+                                </button>
+                              </div>
+                            ) : (
+                              <button 
+                                onClick={() => handleEditCriterion(criterion)}
+                                style={{ padding: '4px 8px', backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                              >
+                                Edit
+                              </button>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
