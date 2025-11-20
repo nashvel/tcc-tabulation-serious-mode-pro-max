@@ -31,13 +31,6 @@ A comprehensive real-time event tabulation and judging system built for managing
     </td>
   </tr>
 </table>
-<!-- ALL-CONTRIBUTORS-LIST:END -->
-
-### Contribution Stats
-
-![GitHub Contributors Image](https://contrib.rocks/image?repo=nashvel/tcc-tabulation-serious-mode-pro-max)
-
-**Note:** The contributor table above is dynamically generated from GitHub. To update it locally, run:
 
 ```bash
 npm run update-contributors
