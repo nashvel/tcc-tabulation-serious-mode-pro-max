@@ -1,72 +1,45 @@
 # TCC Tabulation System - Serious Mode Pro Max
 
+![Contributors](https://img.shields.io/github/contributors/nashvel/tcc-tabulation-serious-mode-pro-max?style=for-the-badge)
+![Commits](https://img.shields.io/github/commit-activity/m/nashvel/tcc-tabulation-serious-mode-pro-max?style=for-the-badge)
+![Last Commit](https://img.shields.io/github/last-commit/nashvel/tcc-tabulation-serious-mode-pro-max?style=for-the-badge)
+
 A comprehensive real-time event tabulation and judging system built for managing pageants, competitions, and contests. The system provides live score tracking, judge management, and real-time synchronization across multiple devices using WebSocket technology.
 
 ## Contributors
 
-### Contribution Statistics
+<!-- ALL-CONTRIBUTORS-LIST:START -->
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/nashvel">
+        <img src="https://github.com/nashvel.png" width="100px;" alt="nashvel"/>
+        <br />
+        <sub><b>nashvel</b></sub>
+      </a>
+      <br />
+      <sub>9 commits (90%)</sub>
+      <br />
+      💻 🎨 📖 🏗️
+    </td>
+    <td align="center">
+      <a href="https://github.com/Brandon">
+        <img src="https://github.com/Brandon.png" width="100px;" alt="Brandon"/>
+        <br />
+        <sub><b>Brandon</b></sub>
+      </a>
+      <br />
+      <sub>1 commit (10%)</sub>
+      <br />
+      🚀
+    </td>
+  </tr>
+</table>
+<!-- ALL-CONTRIBUTORS-LIST:END -->
 
-Based on git commit history:
+### Contribution Stats
 
-- **nacht** - 9 commits (90%)
-  - Primary developer and project maintainer
-  - Full-stack implementation
-  - Architecture design and system integration
-  - WebSocket and real-time features
-  - Database schema and migrations
-  - Admin panel and judge portal development
-
-- **Brandon** - 1 commit (10%)
-  - Initial project setup and foundation
-
-### View Live Contributor Graph
-
-You can view the live contributor statistics and activity graph on GitHub:
-
-- Repository: https://github.com/nashvel/tcc-tabulation-serious-mode-pro-max
-- Contributors Page: https://github.com/nashvel/tcc-tabulation-serious-mode-pro-max/graphs/contributors
-- Commit History: https://github.com/nashvel/tcc-tabulation-serious-mode-pro-max/commits/main
-
-### Fetching Contributors Programmatically
-
-To automatically fetch and display contributors from the GitHub API, you can use the GitHub REST API:
-
-```bash
-curl -s https://api.github.com/repos/nashvel/tcc-tabulation-serious-mode-pro-max/contributors | jq '.[] | {name: .login, commits: .contributions}'
-```
-
-Or using a script to generate a contributors list:
-
-```bash
-#!/bin/bash
-echo "Fetching contributors from GitHub..."
-curl -s https://api.github.com/repos/nashvel/tcc-tabulation-serious-mode-pro-max/contributors \
-  | jq -r '.[] | "\(.login) - \(.contributions) commits"' \
-  | sort -t'-' -k2 -rn
-```
-
-For JavaScript/Node.js projects, you can use the Octokit library:
-
-```javascript
-const { Octokit } = require("@octokit/rest");
-
-const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN // Optional: for higher rate limits
-});
-
-async function getContributors() {
-  const { data } = await octokit.repos.listContributors({
-    owner: "nashvel",
-    repo: "tcc-tabulation-serious-mode-pro-max"
-  });
-  
-  data.forEach(contributor => {
-    console.log(`${contributor.login} - ${contributor.contributions} commits`);
-  });
-}
-
-getContributors();
-```
+![GitHub Contributors Image](https://contrib.rocks/image?repo=nashvel/tcc-tabulation-serious-mode-pro-max)
 
 ---
 
