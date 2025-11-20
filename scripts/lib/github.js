@@ -49,4 +49,21 @@ function fetchFromGitHub(endpoint) {
   });
 }
 
-module.exports = { fetchFromGitHub };
+/**
+ * Fetch pull requests for a contributor
+ * @param {string} owner - Repository owner
+ * @param {string} repo - Repository name
+ * @param {string} username - GitHub username
+ * @returns {Promise<Array>} - Array of pull requests
+ */
+async function fetchContributorPRs(owner, repo, username) {
+  try {
+    const endpoint = `/repos/${owner}/${repo}/pulls?state=all&creator=${username}&per_page=100`;
+    return await fetchFromGitHub(endpoint);
+  } catch (error) {
+    console.warn(`Could not fetch PRs for ${username}:`, error.message);
+    return [];
+  }
+}
+
+module.exports = { fetchFromGitHub, fetchContributorPRs };

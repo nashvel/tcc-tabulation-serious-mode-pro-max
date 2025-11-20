@@ -9,7 +9,7 @@
  */
 
 const path = require('path');
-const { fetchFromGitHub } = require('./lib/github');
+const { fetchFromGitHub, fetchContributorPRs } = require('./lib/github');
 const { generateContributorCell, generateContributorTable } = require('./lib/html-generator');
 const { updateReadmeFile } = require('./lib/readme-updater');
 
@@ -35,11 +35,17 @@ async function getContributors() {
     // Calculate total commits
     const totalCommits = contributors.reduce((sum, c) => sum + c.contributions, 0);
 
-    // Generate contributor rows
-    const rows = contributors.map((contributor) => {
+    // Generate contributor rows with PR data
+    const rows = await Promise.all(contributors.map(async (contributor) => {
       const percentage = ((contributor.contributions / totalCommits) * 100).toFixed(0);
-      return generateContributorCell(contributor, percentage);
-    });
+      
+      // Fetch PR count for this contributor
+      console.log(`Fetching PRs for ${contributor.login}...`);
+      const prs = await fetchContributorPRs(CONFIG.REPO_OWNER, CONFIG.REPO_NAME, contributor.login);
+      const prCount = prs.length;
+      
+      return generateContributorCell(contributor, percentage, prCount);
+    }));
 
     return generateContributorTable(rows);
   } catch (error) {

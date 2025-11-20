@@ -10,9 +10,15 @@ const CONFIG = {
  * Generate HTML table cell for a contributor
  * @param {Object} contributor - Contributor object from GitHub API
  * @param {number} percentage - Contribution percentage
+ * @param {number} prCount - Number of pull requests
  * @returns {string} - HTML table cell
  */
-function generateContributorCell(contributor, percentage) {
+function generateContributorCell(contributor, percentage, prCount = 0) {
+  let stats = `${contributor.contributions} commits (${percentage}%)`;
+  if (prCount > 0) {
+    stats += ` | ${prCount} PR${prCount !== 1 ? 's' : ''}`;
+  }
+  
   return `    <td align="center">
       <a href="https://github.com/${contributor.login}">
         <img src="https://github.com/${contributor.login}.png" width="100px;" alt="${contributor.login}"/>
@@ -20,7 +26,7 @@ function generateContributorCell(contributor, percentage) {
         <sub><b>${contributor.login}</b></sub>
       </a>
       <br />
-      <sub>${contributor.contributions} commits (${percentage}%)</sub>
+      <sub>${stats}</sub>
     </td>`;
 }
 
