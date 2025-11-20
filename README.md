@@ -19,8 +19,6 @@ A comprehensive real-time event tabulation and judging system built for managing
       </a>
       <br />
       <sub>11 commits (92%)</sub>
-      <br />
-      💻 🎨 📖 🏗️
     </td>
     <td align="center">
       <a href="https://github.com/brandonnagangga">
@@ -30,8 +28,6 @@ A comprehensive real-time event tabulation and judging system built for managing
       </a>
       <br />
       <sub>1 commits (8%)</sub>
-      <br />
-      💻
     </td>
   </tr>
 </table>

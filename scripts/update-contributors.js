@@ -1,28 +1,36 @@
 #!/usr/bin/env node
 
+/**
+ * Update Contributors Script
+ * Fetches latest contributor data from GitHub API and updates README.md
+ * 
+ * Usage: npm run update-contributors
+ * Or: node scripts/update-contributors.js
+ */
+
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
-const REPO_OWNER = 'nashvel';
-const REPO_NAME = 'tcc-tabulation-serious-mode-pro-max';
-const README_PATH = path.join(__dirname, '..', 'README.md');
-
-// Emoji mappings for contribution types
-const CONTRIBUTION_EMOJIS = {
-  code: '💻',
-  design: '🎨',
-  docs: '📖',
-  infrastructure: '🏗️',
-  setup: '🚀',
-  bug: '🐛',
-  review: '👀'
+// Configuration
+const CONFIG = {
+  REPO_OWNER: 'nashvel',
+  REPO_NAME: 'tcc-tabulation-serious-mode-pro-max',
+  README_PATH: path.join(__dirname, '..', 'README.md'),
+  GITHUB_API_URL: 'api.github.com',
+  CONTRIBUTORS_PER_PAGE: 100,
+  CONTRIBUTORS_PER_ROW: 3
 };
 
+/**
+ * Fetch data from GitHub API
+ * @param {string} endpoint - GitHub API endpoint
+ * @returns {Promise<Array>} - Parsed JSON response
+ */
 function fetchFromGitHub(endpoint) {
   return new Promise((resolve, reject) => {
     const options = {
-      hostname: 'api.github.com',
+      hostname: CONFIG.GITHUB_API_URL,
       path: endpoint,
       method: 'GET',
       headers: {
@@ -54,11 +62,52 @@ function fetchFromGitHub(endpoint) {
   });
 }
 
+/**
+ * Generate HTML table row for a contributor
+ * @param {Object} contributor - Contributor object from GitHub API
+ * @param {number} percentage - Contribution percentage
+ * @returns {string} - HTML table cell
+ */
+function generateContributorCell(contributor, percentage) {
+  return `    <td align="center">
+      <a href="https://github.com/${contributor.login}">
+        <img src="https://github.com/${contributor.login}.png" width="100px;" alt="${contributor.login}"/>
+        <br />
+        <sub><b>${contributor.login}</b></sub>
+      </a>
+      <br />
+      <sub>${contributor.contributions} commits (${percentage}%)</sub>
+    </td>`;
+}
+
+/**
+ * Generate HTML table from contributors array
+ * @param {Array} rows - Array of HTML table cells
+ * @returns {string} - Complete HTML table
+ */
+function generateContributorTable(rows) {
+  const tableRows = [];
+  for (let i = 0; i < rows.length; i += CONFIG.CONTRIBUTORS_PER_ROW) {
+    const rowItems = rows.slice(i, i + CONFIG.CONTRIBUTORS_PER_ROW).join('\n');
+    tableRows.push(`  <tr>\n${rowItems}\n  </tr>`);
+  }
+
+  return `<!-- ALL-CONTRIBUTORS-LIST:START -->
+<table>
+${tableRows.join('\n')}
+</table>
+<!-- ALL-CONTRIBUTORS-LIST:END -->`;
+}
+
+/**
+ * Fetch contributors from GitHub and generate HTML table
+ * @returns {Promise<string>} - HTML table string
+ */
 async function getContributors() {
   try {
     console.log('Fetching contributors from GitHub...');
     const contributors = await fetchFromGitHub(
-      `/repos/${REPO_OWNER}/${REPO_NAME}/contributors?per_page=100&sort=contributions`
+      `/repos/${CONFIG.REPO_OWNER}/${CONFIG.REPO_NAME}/contributors?per_page=${CONFIG.CONTRIBUTORS_PER_PAGE}&sort=contributions`
     );
 
     // Calculate total commits
@@ -67,55 +116,25 @@ async function getContributors() {
     // Generate contributor rows
     const rows = contributors.map((contributor) => {
       const percentage = ((contributor.contributions / totalCommits) * 100).toFixed(0);
-      const emojis = getEmojisForContributor(contributor.login);
-
-      return `    <td align="center">
-      <a href="https://github.com/${contributor.login}">
-        <img src="https://github.com/${contributor.login}.png" width="100px;" alt="${contributor.login}"/>
-        <br />
-        <sub><b>${contributor.login}</b></sub>
-      </a>
-      <br />
-      <sub>${contributor.contributions} commits (${percentage}%)</sub>
-      <br />
-      ${emojis}
-    </td>`;
+      return generateContributorCell(contributor, percentage);
     });
 
-    // Split into rows of 3 contributors per row
-    const tableRows = [];
-    for (let i = 0; i < rows.length; i += 3) {
-      const rowItems = rows.slice(i, i + 3).join('\n');
-      tableRows.push(`  <tr>\n${rowItems}\n  </tr>`);
-    }
-
-    const contributorTable = `<!-- ALL-CONTRIBUTORS-LIST:START -->
-<table>
-${tableRows.join('\n')}
-</table>
-<!-- ALL-CONTRIBUTORS-LIST:END -->`;
-
-    return contributorTable;
+    return generateContributorTable(rows);
   } catch (error) {
     console.error('Error fetching contributors:', error.message);
     process.exit(1);
   }
 }
 
-function getEmojisForContributor(username) {
-  // Default emojis based on contribution level
-  const emojiMap = {
-    'nashvel': '💻 🎨 📖 🏗️',
-    'brandon': '🚀'
-  };
 
-  return emojiMap[username.toLowerCase()] || '💻';
-}
-
+/**
+ * Update README.md with latest contributors
+ * @returns {Promise<void>}
+ */
 async function updateReadme() {
   try {
     // Read current README
-    let readmeContent = fs.readFileSync(README_PATH, 'utf8');
+    let readmeContent = fs.readFileSync(CONFIG.README_PATH, 'utf8');
 
     // Get updated contributor table
     const contributorTable = await getContributors();
@@ -125,13 +144,17 @@ async function updateReadme() {
     readmeContent = readmeContent.replace(regex, contributorTable);
 
     // Write back to README
-    fs.writeFileSync(README_PATH, readmeContent, 'utf8');
-    console.log('✓ README.md updated with latest contributors');
+    fs.writeFileSync(CONFIG.README_PATH, readmeContent, 'utf8');
+    console.log('README.md updated with latest contributors');
   } catch (error) {
     console.error('Error updating README:', error.message);
     process.exit(1);
   }
 }
 
-// Run the update
-updateReadme();
+// Main execution
+if (require.main === module) {
+  updateReadme();
+}
+
+module.exports = { updateReadme, getContributors };
