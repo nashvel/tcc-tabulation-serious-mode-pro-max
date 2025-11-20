@@ -32,8 +32,7 @@ Route::get('scoreboard', [PointController::class, 'getScoreboard']);
 // Public Voting & Event Sequence Routes (no auth needed)
 Route::get('voting/state', [VotingController::class, 'getState']);
 Route::get('voting/history', [VotingController::class, 'getHistory']);
-Route::post('voting/start', [VotingController::class, 'start']);
-Route::post('voting/stop', [VotingController::class, 'stop']);
+Route::post('voting/start-first-round', [VotingController::class, 'startFirstRound']);
 Route::post('voting/activate-round', [VotingController::class, 'activateRound']);
 Route::post('voting/lock', [VotingController::class, 'lock']);
 Route::post('voting/unlock', [VotingController::class, 'unlock']);

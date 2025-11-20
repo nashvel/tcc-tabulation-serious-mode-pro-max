@@ -17,7 +17,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(false);
             $table->boolean('is_locked')->default(false);
             $table->unsignedBigInteger('active_session_id')->nullable();
-            $table->foreignId('active_round_id')->nullable()->constrained('rounds')->onDelete('set null');
+            $table->unsignedBigInteger('active_round_id')->nullable();
             $table->timestamps();
             
             $table->unique('event_id');

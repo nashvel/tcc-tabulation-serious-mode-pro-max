@@ -11,10 +11,11 @@ use Illuminate\Queue\SerializesModels;
 class VotingStateChanged implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
+    
 
     public $eventId;
     public $votingState;
-    public $action; // 'started', 'stopped', 'round_changed'
+    public $action; // 'started', 'stopped', 'round_changed', 'locked', 'unlocked'
 
     public function __construct($eventId, $votingState, $action = 'updated')
     {
@@ -32,8 +33,8 @@ class VotingStateChanged implements ShouldBroadcast
 
     public function broadcastAs(): string
     {
-        // For Socket.IO via Echo Server, use the channel name as the event
-        return 'voting.' . $this->eventId;
+        // Laravel Echo expects dot-prefixed event names
+        return 'voting.state.changed';
     }
 
     public function broadcastWith(): array

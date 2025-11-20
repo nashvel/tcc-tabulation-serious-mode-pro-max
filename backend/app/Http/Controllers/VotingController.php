@@ -56,15 +56,16 @@ class VotingController extends Controller
                 // Create initial voting state
                 $votingState = VotingState::create([
                     'event_id' => $eventId,
-                    'is_active' => false,
                 ]);
             }
 
             $response = [
-                'is_active' => $votingState->is_active,
+                'event_id' => $votingState->event_id,
                 'is_locked' => $votingState->is_locked ?? false,
                 'active_session' => $votingState->activeSession,
                 'active_round' => null,
+                'active_round_id' => $votingState->active_round_id,
+                'active_round_name' => $votingState->active_round_name,
             ];
 
             if ($votingState->active_round_id) {
@@ -288,7 +289,6 @@ class VotingController extends Controller
             $votingState = VotingState::firstOrCreate(
                 ['event_id' => $eventId],
                 [
-                    'is_active' => false,
                     'active_round_id' => null,
                 ]
             );
@@ -305,6 +305,8 @@ class VotingController extends Controller
             if (!$votingState->active_session_id) {
                 $session = VotingSession::create([
                     'event_id' => $eventId,
+                    'day_number' => 1,
+                    'day_name' => 'Day 1',
                     'round_id' => $round->id,
                     'round_name' => $round->name,
                     'status' => 'active',
@@ -446,6 +448,62 @@ class VotingController extends Controller
         } catch (\Exception $e) {
             Log::error('Error unlocking screen: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to unlock screen'], 500);
+        }
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/voting/start-first-round",
+     *     tags={"Voting"},
+     *     summary="Auto-activate the first round",
+     *     description="Automatically activates the first round from event sequence",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"event_id"},
+     *             @OA\Property(property="event_id", type="integer", example=1, description="Event ID")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="First round activated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string"),
+     *             @OA\Property(property="round", type="object")
+     *         )
+     *     )
+     * )
+     */
+    public function startFirstRound(Request $request)
+    {
+        try {
+            $eventId = $request->input('event_id', 1);
+
+            // Get the first round from event sequence
+            $firstSequence = DB::table('event_sequences')
+                ->where('event_id', $eventId)
+                ->orderBy('order', 'asc')
+                ->first();
+
+            if (!$firstSequence) {
+                return response()->json(['error' => 'No event sequence found'], 404);
+            }
+
+            // Activate the first round
+            $round = Round::find($firstSequence->round_id);
+            if (!$round) {
+                return response()->json(['error' => 'Round not found'], 404);
+            }
+
+            // Use activateRound to set it up properly
+            return $this->activateRound(new Request([
+                'event_id' => $eventId,
+                'round_id' => $round->id
+            ]));
+
+        } catch (\Exception $e) {
+            Log::error('Error starting first round: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to start first round: ' . $e->getMessage()], 500);
         }
     }
 

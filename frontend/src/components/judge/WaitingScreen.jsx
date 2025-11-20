@@ -25,7 +25,10 @@ export default function WaitingScreen({ judgeId }) {
           setHasHeaderImages(true);
         }
       })
-      .catch(err => console.error('Error loading waiting screen:', err));
+      .catch(err => {
+        // Silently fail - use default UI if API not available
+        console.debug('Waiting screen images not available');
+      });
   }, []);
 
   return (

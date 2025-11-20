@@ -22,6 +22,19 @@ export default function FixedHeader({
         const votingStateResponse = await fetch(`${apiBase}/api/voting/state`);
         const votingState = await votingStateResponse.json();
         
+        // Auto-start first round if no round is active yet
+        if (!votingState.active_round_name && !votingState.active_round_id) {
+          try {
+            await fetch(`${apiBase}/api/voting/start-first-round`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ event_id: votingState.event_id || 1 })
+            });
+          } catch (err) {
+            console.warn('Could not auto-start first round:', err);
+          }
+        }
+        
         if (votingState.active_round_name) {
           // Use the active round name from voting state
           setNextCategory(votingState.active_round_name);

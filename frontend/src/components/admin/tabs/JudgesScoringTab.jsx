@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { initializeEcho } from '../../../lib/echo';
+import { initializeEcho } from '../../../config/echo';
 import LiveIndicator from '../scoring/LiveIndicator';
 import RoundHeader from '../scoring/RoundHeader';
 import ScoreTable from '../scoring/ScoreTable';

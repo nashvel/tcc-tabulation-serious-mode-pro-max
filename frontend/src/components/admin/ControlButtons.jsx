@@ -15,9 +15,11 @@ export default function ControlButtons({
 }) {
   const [isLocked, setIsLocked] = useState(false);
    
-  // Load lock state on mount
+  // Load lock state on mount and refresh every 2 seconds
   useEffect(() => {
     loadLockState();
+    const interval = setInterval(loadLockState, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   // Testing function to mark round as completed
@@ -28,8 +30,8 @@ export default function ControlButtons({
   const loadLockState = async () => {
     try {
       const response = await votingAPI.getState({ event_id: 1 });
-      if (response.data && response.data.is_locked) {
-        setIsLocked(true);
+      if (response.data) {
+        setIsLocked(response.data.is_locked ?? false);
       }
     } catch (error) {
       console.error('Error loading lock state:', error);

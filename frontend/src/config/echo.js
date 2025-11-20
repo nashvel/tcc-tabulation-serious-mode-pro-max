@@ -57,7 +57,7 @@ export const initializeEcho = () => {
     });
     
     socket.on('error', (error) => {
-      console.error('Socket.IO error:', error);
+      console.error('✗ Socket.IO error:', error);
     });
     
     // Debug: Log all incoming events

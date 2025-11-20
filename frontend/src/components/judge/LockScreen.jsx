@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Lock } from 'lucide-react';
 
 export default function LockScreen() {
   const [lockImage, setLockImage] = useState(null);
@@ -34,7 +33,13 @@ export default function LockScreen() {
         {hasImage ? (
           <img src={lockImage} alt="Lock Screen" style={{ height: '300px', opacity: 0.8 }} />
         ) : (
-          <Lock size={120} color="#fdba74" style={{ marginBottom: '20px' }} />
+          <span className="material-icons" style={{ 
+            fontSize: '120px', 
+            color: '#fdba74',
+            marginBottom: '20px'
+          }}>
+            lock
+          </span>
         )}
         <br />
         <p style={{ color: '#666', fontSize: '24px', marginTop: '20px' }}>
