@@ -2,6 +2,74 @@
 
 A comprehensive real-time event tabulation and judging system built for managing pageants, competitions, and contests. The system provides live score tracking, judge management, and real-time synchronization across multiple devices using WebSocket technology.
 
+## Contributors
+
+### Contribution Statistics
+
+Based on git commit history:
+
+- **nacht** - 9 commits (90%)
+  - Primary developer and project maintainer
+  - Full-stack implementation
+  - Architecture design and system integration
+  - WebSocket and real-time features
+  - Database schema and migrations
+  - Admin panel and judge portal development
+
+- **Brandon** - 1 commit (10%)
+  - Initial project setup and foundation
+
+### View Live Contributor Graph
+
+You can view the live contributor statistics and activity graph on GitHub:
+
+- Repository: https://github.com/nashvel/tcc-tabulation-serious-mode-pro-max
+- Contributors Page: https://github.com/nashvel/tcc-tabulation-serious-mode-pro-max/graphs/contributors
+- Commit History: https://github.com/nashvel/tcc-tabulation-serious-mode-pro-max/commits/main
+
+### Fetching Contributors Programmatically
+
+To automatically fetch and display contributors from the GitHub API, you can use the GitHub REST API:
+
+```bash
+curl -s https://api.github.com/repos/nashvel/tcc-tabulation-serious-mode-pro-max/contributors | jq '.[] | {name: .login, commits: .contributions}'
+```
+
+Or using a script to generate a contributors list:
+
+```bash
+#!/bin/bash
+echo "Fetching contributors from GitHub..."
+curl -s https://api.github.com/repos/nashvel/tcc-tabulation-serious-mode-pro-max/contributors \
+  | jq -r '.[] | "\(.login) - \(.contributions) commits"' \
+  | sort -t'-' -k2 -rn
+```
+
+For JavaScript/Node.js projects, you can use the Octokit library:
+
+```javascript
+const { Octokit } = require("@octokit/rest");
+
+const octokit = new Octokit({
+  auth: process.env.GITHUB_TOKEN // Optional: for higher rate limits
+});
+
+async function getContributors() {
+  const { data } = await octokit.repos.listContributors({
+    owner: "nashvel",
+    repo: "tcc-tabulation-serious-mode-pro-max"
+  });
+  
+  data.forEach(contributor => {
+    console.log(`${contributor.login} - ${contributor.contributions} commits`);
+  });
+}
+
+getContributors();
+```
+
+---
+
 ## Project Overview
 
 The TCC Tabulation System is a full-stack application designed to streamline the judging process for large-scale events. It features a desktop application for event management, a web-based admin panel for real-time control, and judge portals for score submission with live synchronization.
@@ -425,26 +493,6 @@ If ports are already in use, modify:
 ## Contributing
 
 This project was developed as a capstone project for TCC (Technological Career College). Contributions are welcome through pull requests.
-
-## Contributors
-
-### Primary Contributors
-
-**Nashvel** - Project Lead, Full-Stack Development
-- Architecture design and implementation
-- Backend API development with Laravel
-- Frontend React application development
-- WebSocket integration and real-time features
-- Database schema design and optimization
-
-### Key Development Areas
-
-- Admin Panel Development - Event management, sequence building, control interface
-- Judge Portal - Score submission, real-time updates, authentication
-- WebSocket Implementation - Real-time voting state synchronization
-- API Development - RESTful endpoints with comprehensive documentation
-- UI/UX Design - Modern interface with TailwindCSS and Lucide icons
-- Database Design - Normalized schema for events, candidates, scoring
 
 ## License
 
