@@ -40,6 +40,26 @@ This script fetches the latest contributor data from the GitHub API and automati
 
 ---
 
+## Quick Start
+
+### Development
+
+```bash
+# Start all services
+config/start-all.bat          # Windows CMD
+config/start-all.ps1          # Windows PowerShell
+```
+
+Access the application at http://localhost:5173
+
+### Documentation
+
+- **[Setup Guide](./docs/SETUP.md)** - Detailed setup instructions
+- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment
+- **[Project Structure](./docs/PROJECT_STRUCTURE.md)** - Directory organization
+
+---
+
 ## Project Overview
 
 The TCC Tabulation System is a full-stack application designed to streamline the judging process for large-scale events. It features a desktop application for event management, a web-based admin panel for real-time control, and judge portals for score submission with live synchronization.
