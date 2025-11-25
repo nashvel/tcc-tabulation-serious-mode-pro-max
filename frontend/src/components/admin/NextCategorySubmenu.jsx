@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getApiBase, getCurrentEventId } from '../../config/api';
+import { useVotingWebSocket } from '../../hooks/useVotingWebSocket';
 
 export default function NextCategorySubmenu({
   eventSequence,
@@ -10,7 +12,54 @@ export default function NextCategorySubmenu({
 }) {
   const [isHovering, setIsHovering] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
+  const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(currentSequenceIndex);
+  const [activeRoundId, setActiveRoundId] = useState(null);
+
+  // WebSocket handler for real-time category changes
+  const handleVotingStateChange = useCallback((data) => {
+    // Check for active_round (can be at root level or nested in voting_state)
+    const activeRound = data.active_round || data.voting_state?.active_round;
+    if (activeRound?.id) {
+      setActiveRoundId(activeRound.id);
+    }
+  }, []);
+  
+  // Setup WebSocket connection
+  useVotingWebSocket(1, handleVotingStateChange);
+
+  // Initialize activeRoundId from API on mount
+  useEffect(() => {
+    const fetchActiveRound = async () => {
+      try {
+        const apiBase = getApiBase();
+        const response = await fetch(`${apiBase}/api/voting/state`);
+        const votingState = await response.json();
+        
+        if (votingState.active_round?.id) {
+          setActiveRoundId(votingState.active_round.id);
+        }
+      } catch (error) {
+        // Silently handle error
+      }
+    };
+    
+    fetchActiveRound();
+  }, []);
+
+  // Sync selectedCategoryIndex with currentSequenceIndex when it changes
+  useEffect(() => {
+    setSelectedCategoryIndex(currentSequenceIndex);
+  }, [currentSequenceIndex]);
+
+  // Sync selectedCategoryIndex with activeRoundId when it changes (from WebSocket)
+  useEffect(() => {
+    if (activeRoundId && eventSequence.length > 0) {
+      const activeIndex = eventSequence.findIndex(cat => cat.id === activeRoundId);
+      if (activeIndex !== -1) {
+        setSelectedCategoryIndex(activeIndex);
+      }
+    }
+  }, [activeRoundId, eventSequence]);
 
   // Allow switching anytime - no voting requirement
   const isDisabled = eventSequence.length === 0;
@@ -21,42 +70,38 @@ export default function NextCategorySubmenu({
     if (isDisabled) return;
     
     const selectedCategory = eventSequence[selectedCategoryIndex];
-    if (!selectedCategory) return;
+    if (!selectedCategory) {
+      return;
+    }
     
     setIsLoading(true);
     try {
-      // Get active event ID from voting state
-      const apiBase = `http://${window.location.hostname}:8000`;
-      
-      let eventId = 1;
-      try {
-        const votingStateResponse = await fetch(`${apiBase}/api/voting/state`);
-        const votingState = await votingStateResponse.json();
-        eventId = votingState.event_id || 1;
-      } catch (err) {
-        console.warn('Could not get event ID from voting state, using default:', err);
+      const apiBase = getApiBase();
+      // Get eventId from localStorage first (faster), fallback to API
+      let eventId = localStorage.getItem('eventId');
+      if (!eventId) {
+        eventId = await getCurrentEventId();
       }
+
+      const payload = {
+        event_id: eventId,
+        round_id: selectedCategory.id
+      };
 
       // Switch to the selected category
       const response = await fetch(`${apiBase}/api/voting/activate-round`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event_id: eventId,
-          round_id: selectedCategory.id
-        })
+        body: JSON.stringify(payload)
       });
-
-      const data = await response.json();
 
       if (response.ok) {
         toast.success(`Switched to: ${selectedCategory.name}`, { duration: 2000 });
-        if (onNext) await onNext();
       } else {
+        const data = await response.json();
         toast.error(data.message || 'Failed to switch category');
       }
     } catch (error) {
-      console.error('Error switching category:', error);
       toast.error('Failed to switch category');
     } finally {
       setIsLoading(false);
@@ -85,7 +130,6 @@ export default function NextCategorySubmenu({
         <span>Next</span>
       </button>
 
-      {/* Submenu - WordPress Style */}
       {isHovering && !isDisabled && nextCategory && (
         <div
           className="absolute left-full top-0 ml-0 bg-white text-slate-900 rounded-lg shadow-xl border border-slate-200 z-50 min-w-[240px] animate-in fade-in slide-in-from-left-2 duration-200"
@@ -104,11 +148,11 @@ export default function NextCategorySubmenu({
           {/* Content */}
           <div className="p-4">
             {/* Current Info */}
-            {currentSequenceIndex >= 0 && eventSequence[currentSequenceIndex] && (
+            {activeRoundId && (
               <div className="mb-4 pb-3 border-b border-slate-200">
                 <p className="text-xs text-slate-600 font-semibold mb-1">Currently On:</p>
                 <p className="text-xs text-slate-700 font-medium">
-                  {eventSequence[currentSequenceIndex].name}
+                  {eventSequence.find(cat => cat.id === activeRoundId)?.name || 'Loading...'}
                 </p>
               </div>
             )}
@@ -120,7 +164,8 @@ export default function NextCategorySubmenu({
               </p>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {remainingCategories.map((category, idx) => {
-                  const absoluteIndex = currentSequenceIndex + 1 + idx;
+                  const isSelected = selectedCategoryIndex === idx;
+                  
                   return (
                     <label
                       key={category.id}
@@ -129,9 +174,9 @@ export default function NextCategorySubmenu({
                       <input
                         type="radio"
                         name="category"
-                        value={absoluteIndex}
-                        checked={selectedCategoryIndex === absoluteIndex}
-                        onChange={() => setSelectedCategoryIndex(absoluteIndex)}
+                        value={idx}
+                        checked={isSelected}
+                        onChange={() => setSelectedCategoryIndex(idx)}
                         className="w-4 h-4 cursor-pointer accent-slate-900"
                       />
                       <span className="text-xs font-medium text-slate-700">

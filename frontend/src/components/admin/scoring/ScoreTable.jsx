@@ -66,7 +66,7 @@ export default function ScoreTable({
                 <th className="py-2 px-2 text-left text-[9px] font-bold uppercase tracking-widest text-slate-400" style={{minWidth: '150px'}}>Candidate</th>
                 <th className="py-2 px-2 text-left text-[9px] font-bold uppercase tracking-widest text-slate-400" style={{minWidth: '120px'}}>Team/Dept</th>
                 {judges.map((judge) => (
-                  <th key={judge.id} className="py-2 px-2 text-center text-[9px] font-bold uppercase tracking-widest text-emerald-400" style={{minWidth: '70px'}}>
+                  <th key={judge.id} className="py-2 px-2 text-center text-[9px] font-bold uppercase tracking-widest text-slate-400" style={{minWidth: '70px'}}>
                     {judge.name}
                   </th>
                 ))}

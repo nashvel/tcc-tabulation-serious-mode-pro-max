@@ -4,6 +4,7 @@ use App\Http\Controllers\API\CandidateController;
 use App\Http\Controllers\API\RoundController;
 use App\Http\Controllers\API\CriteriaController;
 use App\Http\Controllers\API\PointController;
+use App\Http\Controllers\API\JudgeController;
 use App\Http\Controllers\API\TemplateController;
 use App\Http\Controllers\API\CandidateTemplateController;
 use App\Http\Controllers\AdminAuthController;
@@ -27,6 +28,7 @@ Route::get('candidates', [CandidateController::class, 'index']);
 Route::get('rounds', [RoundController::class, 'index']);
 Route::get('criteria', [CriteriaController::class, 'index']);
 Route::get('points', [PointController::class, 'index']);
+Route::get('judges', [JudgeController::class, 'index']);
 Route::get('scoreboard', [PointController::class, 'getScoreboard']);
 
 // Public Voting & Event Sequence Routes (no auth needed)

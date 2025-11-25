@@ -6,7 +6,25 @@ use Illuminate\Database\Eloquent\Model;
 
 class Candidate extends Model
 {
-    protected $fillable = ['number', 'name', 'gender'];
+    protected $fillable = [
+        'event_id',
+        'number',
+        'name',
+        'gender',
+        'department',
+        'participant_type',
+        'order'
+    ];
+
+    public function event()
+    {
+        return $this->belongsTo(Event::class);
+    }
+
+    public function partnership()
+    {
+        return $this->hasOne(CandidatePartnership::class);
+    }
 
     public function points()
     {

@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'default' => env('BROADCAST_CONNECTION', 'null'),
+    'default' => env('BROADCAST_CONNECTION', 'pusher'),
 
     /*
     |--------------------------------------------------------------------------
@@ -67,6 +67,11 @@ return [
         'ably' => [
             'driver' => 'ably',
             'key' => env('ABLY_KEY'),
+        ],
+
+        'redis' => [
+            'driver' => 'redis',
+            'connection' => 'default',
         ],
 
         'log' => [

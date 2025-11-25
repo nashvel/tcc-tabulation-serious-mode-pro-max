@@ -16,9 +16,11 @@ use App\Models\Event;
 use App\Models\EventDay;
 use App\Models\EventImportantPerson;
 use App\Models\Candidate;
+use App\Models\CandidatePartnership;
 use App\Models\Round;
 use App\Models\Criteria;
 use App\Models\EventSequence;
+use App\Models\Judge;
 use Illuminate\Support\Facades\DB;
 
 try {
@@ -33,14 +35,9 @@ try {
     // Create the main event
     $event = Event::create([
         'id' => 1,
-        'unique_id' => 'INTRAM25',
         'title' => 'TCC INTRAMURALS 2025',
         'year' => 2025,
-        'event_date' => '2025-11-11',
-        'description' => 'Tagoloan Community College Intramurals 2025',
-        'event_type' => 'pageant',
-        'number_of_judges' => 7,
-        'status' => 'draft'
+        'status' => 'active'
     ]);
 
     echo " Event created: {$event->title} (ID: {$event->id})\n";
@@ -66,6 +63,7 @@ try {
     echo " Important Person added: Director - Reche Osma-Tan\n";
 
     // Create Candidates (Pairs)
+    // Note: Partner data is now stored in candidate_partnerships table (normalized)
     $candidatesData = [
         // Pair 1
         [
@@ -74,9 +72,6 @@ try {
             'name' => 'ZUSMITHA SHEN ITUM',
             'gender' => 'Female',
             'department' => 'College of Criminal Justice and Public Safety',
-            'partner_number' => 1,
-            'partner_name' => 'GLENT TOMONGLAY',
-            'partner_gender' => 'Male',
             'order' => 1
         ],
         [
@@ -85,9 +80,6 @@ try {
             'name' => 'GLENT TOMONGLAY',
             'gender' => 'Male',
             'department' => 'College of Criminal Justice and Public Safety',
-            'partner_number' => 1,
-            'partner_name' => 'ZUSMITHA SHEN ITUM',
-            'partner_gender' => 'Female',
             'order' => 2
         ],
         
@@ -98,9 +90,6 @@ try {
             'name' => 'RAINE MARSHA NICE CABĒLTES',
             'gender' => 'Female',
             'department' => 'College of Midwifery',
-            'partner_number' => 2,
-            'partner_name' => 'JOHN VINCENT CANPALAN',
-            'partner_gender' => 'Male',
             'order' => 3
         ],
         [
@@ -109,9 +98,6 @@ try {
             'name' => 'JOHN VINCENT CANPALAN',
             'gender' => 'Male',
             'department' => 'College of Midwifery',
-            'partner_number' => 2,
-            'partner_name' => 'RAINE MARSHA NICE CABĒLTES',
-            'partner_gender' => 'Female',
             'order' => 4
         ],
         
@@ -122,9 +108,6 @@ try {
             'name' => 'JEAN CLIAR COLETA',
             'gender' => 'Female',
             'department' => 'College of Library Information Science',
-            'partner_number' => 3,
-            'partner_name' => 'KHEM HARVEY BRIGOLE',
-            'partner_gender' => 'Male',
             'order' => 5
         ],
         [
@@ -133,9 +116,6 @@ try {
             'name' => 'KHEM HARVEY BRIGOLE',
             'gender' => 'Male',
             'department' => 'College of Library Information Science',
-            'partner_number' => 3,
-            'partner_name' => 'JEAN CLIAR COLETA',
-            'partner_gender' => 'Female',
             'order' => 6
         ],
         
@@ -146,9 +126,6 @@ try {
             'name' => 'JEAN MARIE ALFEREZ',
             'gender' => 'Female',
             'department' => 'College of Hospitality Management and Tourism',
-            'partner_number' => 4,
-            'partner_name' => 'RALPH SHEM BARAGUIR',
-            'partner_gender' => 'Male',
             'order' => 7
         ],
         [
@@ -157,9 +134,6 @@ try {
             'name' => 'RALPH SHEM BARAGUIR',
             'gender' => 'Male',
             'department' => 'College of Hospitality Management and Tourism',
-            'partner_number' => 4,
-            'partner_name' => 'JEAN MARIE ALFEREZ',
-            'partner_gender' => 'Female',
             'order' => 8
         ],
         
@@ -170,9 +144,6 @@ try {
             'name' => 'ANGELICA JEAN MAGNO',
             'gender' => 'Female',
             'department' => 'College of Business Administration',
-            'partner_number' => 5,
-            'partner_name' => 'MARK ZEDRICK MAGHANOY',
-            'partner_gender' => 'Male',
             'order' => 9
         ],
         [
@@ -181,9 +152,6 @@ try {
             'name' => 'MARK ZEDRICK MAGHANOY',
             'gender' => 'Male',
             'department' => 'College of Business Administration',
-            'partner_number' => 5,
-            'partner_name' => 'ANGELICA JEAN MAGNO',
-            'partner_gender' => 'Female',
             'order' => 10
         ],
         
@@ -194,9 +162,6 @@ try {
             'name' => 'RIENA KHATELEEN GONZAGA',
             'gender' => 'Female',
             'department' => 'College of Information Technology',
-            'partner_number' => 6,
-            'partner_name' => 'MARC LESTER BONGALING',
-            'partner_gender' => 'Male',
             'order' => 11
         ],
         [
@@ -205,9 +170,6 @@ try {
             'name' => 'MARC LESTER BONGALING',
             'gender' => 'Male',
             'department' => 'College of Information Technology',
-            'partner_number' => 6,
-            'partner_name' => 'RIENA KHATELEEN GONZAGA',
-            'partner_gender' => 'Female',
             'order' => 12
         ],
         
@@ -218,9 +180,6 @@ try {
             'name' => 'KRIZZA MAE PATENIO',
             'gender' => 'Female',
             'department' => 'College of Teacher Education',
-            'partner_number' => 7,
-            'partner_name' => 'VINCENT NOAH CAINGLET',
-            'partner_gender' => 'Male',
             'order' => 13
         ],
         [
@@ -229,9 +188,6 @@ try {
             'name' => 'VINCENT NOAH CAINGLET',
             'gender' => 'Male',
             'department' => 'College of Teacher Education',
-            'partner_number' => 7,
-            'partner_name' => 'KRIZZA MAE PATENIO',
-            'partner_gender' => 'Female',
             'order' => 14
         ],
         
@@ -242,9 +198,6 @@ try {
             'name' => 'JOHN NICOLE BASARTE',
             'gender' => 'Female',
             'department' => 'College of Arts and Sciences',
-            'partner_number' => 8,
-            'partner_name' => 'JERVIE PAUL SINAG',
-            'partner_gender' => 'Male',
             'order' => 15
         ],
         [
@@ -253,18 +206,132 @@ try {
             'name' => 'JERVIE PAUL SINAG',
             'gender' => 'Male',
             'department' => 'College of Arts and Sciences',
-            'partner_number' => 8,
-            'partner_name' => 'JOHN NICOLE BASARTE',
-            'partner_gender' => 'Female',
             'order' => 16
         ],
     ];
 
+    // Store candidates with their IDs for partnership creation
+    $candidates = [];
     foreach ($candidatesData as $candidateData) {
-        Candidate::create($candidateData);
+        $candidates[] = Candidate::create($candidateData);
     }
 
     echo " Created 16 candidates (8 pairs)\n";
+
+    // Create partnerships (normalized data)
+    // Pair 1
+    CandidatePartnership::create([
+        'candidate_id' => $candidates[0]->id, // ZUSMITHA SHEN ITUM
+        'partner_number' => 1,
+        'partner_name' => 'GLENT TOMONGLAY',
+        'partner_gender' => 'Male',
+    ]);
+    CandidatePartnership::create([
+        'candidate_id' => $candidates[1]->id, // GLENT TOMONGLAY
+        'partner_number' => 1,
+        'partner_name' => 'ZUSMITHA SHEN ITUM',
+        'partner_gender' => 'Female',
+    ]);
+
+    // Pair 2
+    CandidatePartnership::create([
+        'candidate_id' => $candidates[2]->id, // RAINE MARSHA NICE CABĒLTES
+        'partner_number' => 2,
+        'partner_name' => 'JOHN VINCENT CANPALAN',
+        'partner_gender' => 'Male',
+    ]);
+    CandidatePartnership::create([
+        'candidate_id' => $candidates[3]->id, // JOHN VINCENT CANPALAN
+        'partner_number' => 2,
+        'partner_name' => 'RAINE MARSHA NICE CABĒLTES',
+        'partner_gender' => 'Female',
+    ]);
+
+    // Pair 3
+    CandidatePartnership::create([
+        'candidate_id' => $candidates[4]->id, // JEAN CLIAR COLETA
+        'partner_number' => 3,
+        'partner_name' => 'KHEM HARVEY BRIGOLE',
+        'partner_gender' => 'Male',
+    ]);
+    CandidatePartnership::create([
+        'candidate_id' => $candidates[5]->id, // KHEM HARVEY BRIGOLE
+        'partner_number' => 3,
+        'partner_name' => 'JEAN CLIAR COLETA',
+        'partner_gender' => 'Female',
+    ]);
+
+    // Pair 4
+    CandidatePartnership::create([
+        'candidate_id' => $candidates[6]->id, // JEAN MARIE ALFEREZ
+        'partner_number' => 4,
+        'partner_name' => 'RALPH SHEM BARAGUIR',
+        'partner_gender' => 'Male',
+    ]);
+    CandidatePartnership::create([
+        'candidate_id' => $candidates[7]->id, // RALPH SHEM BARAGUIR
+        'partner_number' => 4,
+        'partner_name' => 'JEAN MARIE ALFEREZ',
+        'partner_gender' => 'Female',
+    ]);
+
+    // Pair 5
+    CandidatePartnership::create([
+        'candidate_id' => $candidates[8]->id, // ANGELICA JEAN MAGNO
+        'partner_number' => 5,
+        'partner_name' => 'MARK ZEDRICK MAGHANOY',
+        'partner_gender' => 'Male',
+    ]);
+    CandidatePartnership::create([
+        'candidate_id' => $candidates[9]->id, // MARK ZEDRICK MAGHANOY
+        'partner_number' => 5,
+        'partner_name' => 'ANGELICA JEAN MAGNO',
+        'partner_gender' => 'Female',
+    ]);
+
+    // Pair 6
+    CandidatePartnership::create([
+        'candidate_id' => $candidates[10]->id, // RIENA KHATELEEN GONZAGA
+        'partner_number' => 6,
+        'partner_name' => 'MARC LESTER BONGALING',
+        'partner_gender' => 'Male',
+    ]);
+    CandidatePartnership::create([
+        'candidate_id' => $candidates[11]->id, // MARC LESTER BONGALING
+        'partner_number' => 6,
+        'partner_name' => 'RIENA KHATELEEN GONZAGA',
+        'partner_gender' => 'Female',
+    ]);
+
+    // Pair 7
+    CandidatePartnership::create([
+        'candidate_id' => $candidates[12]->id, // KRIZZA MAE PATENIO
+        'partner_number' => 7,
+        'partner_name' => 'VINCENT NOAH CAINGLET',
+        'partner_gender' => 'Male',
+    ]);
+    CandidatePartnership::create([
+        'candidate_id' => $candidates[13]->id, // VINCENT NOAH CAINGLET
+        'partner_number' => 7,
+        'partner_name' => 'KRIZZA MAE PATENIO',
+        'partner_gender' => 'Female',
+    ]);
+
+    // Pair 8
+    CandidatePartnership::create([
+        'candidate_id' => $candidates[14]->id, // JOHN NICOLE BASARTE
+        'partner_number' => 8,
+        'partner_name' => 'JERVIE PAUL SINAG',
+        'partner_gender' => 'Male',
+    ]);
+    CandidatePartnership::create([
+        'candidate_id' => $candidates[15]->id, // JERVIE PAUL SINAG
+        'partner_number' => 8,
+        'partner_name' => 'JOHN NICOLE BASARTE',
+        'partner_gender' => 'Female',
+    ]);
+
+    echo " Created 16 candidate partnerships (8 pairs)\n";
 
     // Create Rounds with Criteria
     
@@ -431,6 +498,27 @@ try {
 
     echo " Event Sequence: 5 rounds ordered\n";
 
+    // Create Judges
+    $judgesData = [
+        ['name' => 'Judge 1', 'chair_number' => 1],
+        ['name' => 'Judge 2', 'chair_number' => 2],
+        ['name' => 'Judge 3', 'chair_number' => 3],
+        ['name' => 'Judge 4', 'chair_number' => 4],
+        ['name' => 'Judge 5', 'chair_number' => 5],
+        ['name' => 'Judge 6', 'chair_number' => 6],
+    ];
+
+    foreach ($judgesData as $judgeData) {
+        Judge::create([
+            'event_id' => $event->id,
+            'name' => $judgeData['name'],
+            'chair_number' => $judgeData['chair_number'],
+            'status' => 'active'
+        ]);
+    }
+
+    echo " Created 5 judges\n";
+
     DB::commit();
 
     echo "\n";
@@ -442,6 +530,7 @@ try {
     echo "   - Date: {$event->event_date}\n";
     echo "   - Event Days: 1 (MR AND MISS - Duo Pageant)\n";
     echo "   - Candidates: 16 (8 pairs)\n";
+    echo "   - Judges: 5\n";
     echo "   - Rounds: 5\n";
     echo "   - Total Criteria: 20\n";
     echo "   - Important People: 1\n";

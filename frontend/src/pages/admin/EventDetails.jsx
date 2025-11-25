@@ -722,18 +722,18 @@ export default function EventDetails() {
                   <td style={{ padding: '12px', color: '#374151', fontWeight: '600', border: '1px solid #000' }}>#{candidate.number}</td>
                   <td style={{ padding: '12px', color: '#374151', border: '1px solid #000' }}>
                     {candidate.name}
-                    {candidate.partner_name && (
+                    {candidate.partnership?.partner_name && (
                       <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
-                        Partner: {candidate.partner_name} ({candidate.partner_gender})
+                        Partner: {candidate.partnership.partner_name} ({candidate.partnership.partner_gender})
                       </div>
                     )}
                   </td>
                   <td style={{ padding: '12px', color: '#374151', textTransform: 'capitalize', border: '1px solid #000' }}>{candidate.gender || '-'}</td>
                   <td style={{ padding: '12px', color: '#374151', border: '1px solid #000' }}>
-                    {candidate.partner_name ? (
+                    {candidate.partnership?.partner_name ? (
                       <div>
-                        <div>{candidate.partner_name}</div>
-                        <div style={{ fontSize: '12px', color: '#9ca3af' }}>#{candidate.partner_number} • {candidate.partner_gender}</div>
+                        <div>{candidate.partnership.partner_name}</div>
+                        <div style={{ fontSize: '12px', color: '#9ca3af' }}>#{candidate.partnership.partner_number} • {candidate.partnership.partner_gender}</div>
                       </div>
                     ) : '-'}
                   </td>

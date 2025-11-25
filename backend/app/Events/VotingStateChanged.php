@@ -12,7 +12,6 @@ class VotingStateChanged implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
     
-
     public $eventId;
     public $votingState;
     public $action; // 'started', 'stopped', 'round_changed', 'locked', 'unlocked'
@@ -22,19 +21,21 @@ class VotingStateChanged implements ShouldBroadcast
         $this->eventId = $eventId;
         $this->votingState = $votingState;
         $this->action = $action;
+        // Broadcast to everyone including the sender
+        // (no dontBroadcastToCurrentUser call)
     }
 
     public function broadcastOn(): array
     {
         return [
-            new Channel('voting.' . $this->eventId),
+            new \Illuminate\Broadcasting\Channel('voting.' . $this->eventId),
         ];
     }
 
     public function broadcastAs(): string
     {
-        // Laravel Echo expects dot-prefixed event names
-        return 'voting.state.changed';
+        // Event name for frontend listeners - prefix with dot for client events
+        return '.VotingStateChanged';
     }
 
     public function broadcastWith(): array

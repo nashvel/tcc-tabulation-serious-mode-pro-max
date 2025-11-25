@@ -22,8 +22,7 @@ class PointController extends Controller
             'round_id' => 'required|exists:rounds,id',
             'criteria_id' => 'required|exists:criteria,id',
             'points' => 'required|integer',
-            'judge_id' => 'required|integer',
-            'category' => 'required|string|max:6'
+            'judge_id' => 'required|exists:judges,id',
         ]);
 
         // Check if point already exists for this combination
@@ -31,7 +30,6 @@ class PointController extends Controller
             ->where('round_id', $validated['round_id'])
             ->where('criteria_id', $validated['criteria_id'])
             ->where('judge_id', $validated['judge_id'])
-            ->where('category', $validated['category'])
             ->first();
 
         if ($existing) {
@@ -58,8 +56,7 @@ class PointController extends Controller
             'round_id' => 'sometimes|exists:rounds,id',
             'criteria_id' => 'sometimes|exists:criteria,id',
             'points' => 'sometimes|integer',
-            'judge_id' => 'sometimes|integer',
-            'category' => 'sometimes|string|max:6'
+            'judge_id' => 'sometimes|exists:judges,id',
         ]);
 
         $point->update($validated);
@@ -76,18 +73,13 @@ class PointController extends Controller
     public function getScoreboard(Request $request): JsonResponse
     {
         $roundId = $request->query('round_id');
-        $category = $request->query('category');
 
-        $query = Point::with(['candidate', 'criteria'])
+        $query = Point::with(['candidate', 'criteria', 'judge'])
             ->selectRaw('candidate_id, SUM(points) as total_points')
             ->groupBy('candidate_id');
 
         if ($roundId) {
             $query->where('round_id', $roundId);
-        }
-
-        if ($category) {
-            $query->where('category', $category);
         }
 
         $scores = $query->orderBy('total_points', 'desc')->get();

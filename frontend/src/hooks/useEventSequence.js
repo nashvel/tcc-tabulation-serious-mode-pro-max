@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { votingAPI, eventSequenceAPI } from '../api/services';
+import { getApiBase, getCurrentEventId } from '../config/api';
 
 export const useEventSequence = (continuingEvent, setActiveCategory) => {
   const [eventSequence, setEventSequence] = useState([]);
@@ -20,26 +21,17 @@ export const useEventSequence = (continuingEvent, setActiveCategory) => {
       let eventId = continuingEvent?.id;
       
       if (!eventId) {
-        try {
-          const eventsResponse = await fetch('http://localhost:8000/api/events');
-          const events = await eventsResponse.json();
-          // Get the most recent event (highest ID)
-          const latestEvent = events.sort((a, b) => b.id - a.id)[0];
-          eventId = latestEvent?.id || 1;
-          console.log('Using latest event ID:', eventId);
-        } catch (err) {
-          console.error('Error fetching events:', err);
-          eventId = 1;
-        }
+        eventId = await getCurrentEventId();
       }
       
       setCurrentEventId(eventId); // Store the event ID for other functions
       
       // Load rounds created from the event's categories
-      const response = await fetch(`http://localhost:8000/api/rounds?event_id=${eventId}`);
+      const apiBase = getApiBase();
+      const response = await fetch(`${apiBase}/api/rounds?event_id=${eventId}`);
       const rounds = await response.json();
       
-      console.log(`Loaded rounds/categories for event ${eventId}:`, rounds);
+      // Rounds loaded successfully
       
       // Map rounds to category format
       const categories = rounds.map(round => ({
@@ -61,21 +53,14 @@ export const useEventSequence = (continuingEvent, setActiveCategory) => {
       let eventId = continuingEvent?.id;
       
       if (!eventId) {
-        try {
-          const eventsResponse = await fetch('http://localhost:8000/api/events');
-          const events = await eventsResponse.json();
-          const latestEvent = events.sort((a, b) => b.id - a.id)[0];
-          eventId = latestEvent?.id || 1;
-        } catch (err) {
-          eventId = 1;
-        }
+        eventId = await getCurrentEventId();
       }
       
       const response = await eventSequenceAPI.getAll({ 
         event_id: eventId 
       });
       
-      console.log(`Loaded sequence from database for event ${eventId}:`, response.data);
+      // Sequence loaded successfully
       
       // Map database sequence to category format
       const mappedSequence = response.data.map(seq => {
@@ -126,7 +111,7 @@ export const useEventSequence = (continuingEvent, setActiveCategory) => {
     }
     
     try {
-      console.log('Removing sequence item:', item.sequenceId);
+      // Removing sequence item
       await eventSequenceAPI.remove(item.sequenceId);
       await loadSequence(); // Reload from database
       toast('Category removed from sequence', { 
@@ -195,14 +180,12 @@ export const useEventSequence = (continuingEvent, setActiveCategory) => {
     setCurrentSequenceIndex(nextIndex);
     
     try {
-      const roundMapping = {
-        1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6
-      };
-      const roundId = roundMapping[nextCategory.id] || nextCategory.id;
+      // Use the actual round ID from the category - no mapping needed
+      // Activating next round
       
       await votingAPI.activateRound({ 
         event_id: continuingEvent?.id || 1,
-        round_id: roundId
+        round_id: nextCategory.id
       });
       
       setActiveCategory(nextCategory);

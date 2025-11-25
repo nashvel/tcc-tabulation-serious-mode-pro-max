@@ -29,7 +29,7 @@ export default function ControlButtons({
   
   const loadLockState = async () => {
     try {
-      const response = await votingAPI.getState({ event_id: 1 });
+      const response = await votingAPI.getState({ event_id: eventId || 1 });
       if (response.data) {
         setIsLocked(response.data.is_locked ?? false);
       }
@@ -41,11 +41,11 @@ export default function ControlButtons({
   const handleLockToggle = async () => {
     try {
       if (isLocked) {
-        await votingAPI.unlock({ event_id: 1 });
+        await votingAPI.unlock({ event_id: eventId || 1 });
         setIsLocked(false);
         toast.success('Screen Unlocked!', { duration: 2000 });
       } else {
-        await votingAPI.lock({ event_id: 1 });
+        await votingAPI.lock({ event_id: eventId || 1 });
         setIsLocked(true);
         toast.success('Screen Locked!', { duration: 2000 });
       }

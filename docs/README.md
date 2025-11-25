@@ -4,9 +4,12 @@ Welcome to the TCC Tabulation System documentation. This folder contains compreh
 
 ## Quick Links
 
-- **[Setup Guide](./SETUP.md)** - Local development setup instructions
-- **[Deployment Guide](./DEPLOYMENT.md)** - Production deployment and CI/CD
-- **[Project Structure](./PROJECT_STRUCTURE.md)** - Directory organization and file layout
+- **[Setup Guide](./SETUP.md)** - Detailed setup instructions
+- **[Deployment Guide](./DEPLOYMENT.md)** - Production deployment
+- **[Project Structure](./PROJECT_STRUCTURE.md)** - Directory organization
+- **[API Documentation](./API_DOCUMENTATION.md)** - REST API endpoints
+- **[Flowcharts](./FLOWCHARTS.md)** - System workflows and diagrams
+- **[ERD](./ERD.md)** - Entity Relationship Diagram and database schema
 
 ## Getting Started
 

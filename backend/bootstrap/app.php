@@ -17,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
+        // Exclude broadcasting auth from CSRF protection
+        $middleware->validateCsrfTokens(except: [
+            'broadcasting/auth',
+        ]);
+
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
         ]);

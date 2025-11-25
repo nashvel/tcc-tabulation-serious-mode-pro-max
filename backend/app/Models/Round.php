@@ -6,7 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Round extends Model
 {
-    protected $fillable = ['spot', 'name'];
+    protected $fillable = ['event_id', 'spot', 'name'];
+
+    public function event()
+    {
+        return $this->belongsTo(Event::class);
+    }
 
     public function criteria()
     {

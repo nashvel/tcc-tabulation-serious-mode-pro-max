@@ -9,7 +9,18 @@ class Event extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'year', 'status', 'start_date', 'end_date'];
+    protected $fillable = [
+        'unique_id',
+        'title',
+        'year',
+        'event_date',
+        'description',
+        'event_type',
+        'number_of_judges',
+        'status',
+        'start_date',
+        'end_date'
+    ];
 
     protected $with = ['days'];
 

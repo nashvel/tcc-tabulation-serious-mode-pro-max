@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import AdminHeaderButtons from './AdminHeaderButtons';
 import { Calendar, Clock, ChevronRight, ChevronDown } from 'lucide-react';
+import { useVotingWebSocket } from '../../hooks/useVotingWebSocket';
 
 export default function FixedHeader({ 
   onEditClick, 
@@ -9,59 +10,31 @@ export default function FixedHeader({
   judges = []
 }) {
   const [eventData, setEventData] = React.useState(null);
-  const [nextCategory, setNextCategory] = React.useState(null);
+  const [nextCategory, setNextCategory] = useState(activeCategory?.name || 'Loading...');
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [selectedDate, setSelectedDate] = React.useState(new Date());
   
-  React.useEffect(() => {
-    const fetchEventData = async () => {
-      try {
-        const apiBase = `http://${window.location.hostname}:8000`;
-        
-        // Get currently active category from voting state
-        const votingStateResponse = await fetch(`${apiBase}/api/voting/state`);
-        const votingState = await votingStateResponse.json();
-        
-        // Auto-start first round if no round is active yet
-        if (!votingState.active_round_name && !votingState.active_round_id) {
-          try {
-            await fetch(`${apiBase}/api/voting/start-first-round`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ event_id: votingState.event_id || 1 })
-            });
-          } catch (err) {
-            console.warn('Could not auto-start first round:', err);
-          }
-        }
-        
-        if (votingState.active_round_name) {
-          // Use the active round name from voting state
-          setNextCategory(votingState.active_round_name);
-        } else if (votingState.active_round_id) {
-          // Fallback: fetch round details if only ID is available
-          const roundResponse = await fetch(`${apiBase}/api/rounds/${votingState.active_round_id}`);
-          const round = await roundResponse.json();
-          setNextCategory(round.name || 'Unknown');
-        } else if (votingState.is_active) {
-          // Event is active but no specific round selected yet
-          setNextCategory('Event Active - No Round Selected');
-        } else {
-          // No active event
-          setNextCategory('Not Active');
-        }
-      } catch (error) {
-        console.error('Error fetching voting state:', error);
-        setNextCategory('Error');
-      }
-    };
+  // WebSocket handler for real-time category changes (SAME as RoundHeader)
+  const handleVotingStateChange = useCallback((data) => {
+    // Check for active_round (can be at root level or nested in voting_state)
+    const activeRound = data.active_round || data.voting_state?.active_round;
     
-    fetchEventData();
-    
-    // Refresh every 2 seconds to stay in sync
-    const interval = setInterval(fetchEventData, 2000);
-    return () => clearInterval(interval);
+    if (activeRound?.name) {
+      setNextCategory(activeRound.name);
+    } else if (data.voting_state?.active_round_name) {
+      setNextCategory(data.voting_state.active_round_name);
+    }
   }, []);
+  
+  // Setup WebSocket connection (SAME as RoundHeader)
+  useVotingWebSocket(activeCategory?.event_id || continuingEvent?.id || 1, handleVotingStateChange);
+  
+  // Update when prop changes (SAME as RoundHeader)
+  useEffect(() => {
+    if (activeCategory?.name) {
+      setNextCategory(activeCategory.name);
+    }
+  }, [activeCategory?.name]);
 
   // Generate calendar days
   const getDaysInMonth = (date) => {
@@ -202,6 +175,8 @@ export default function FixedHeader({
             <img src="/assets/logo-3.png" className="h-14 object-contain drop-shadow-sm filter hover:brightness-110 transition-all" alt="Logo 1" />
             <div className="h-10 w-px bg-slate-200"></div>
             <img src="/assets/tcc_seal.png" className="h-14 object-contain drop-shadow-sm filter hover:brightness-110 transition-all" alt="Seal" />
+            <div className="h-10 w-px bg-slate-200"></div>
+            <img src="/src/assets/logo.png" className="h-16 object-contain drop-shadow-sm filter hover:brightness-110 transition-all" alt="App Logo" />
             <div className="h-10 w-px bg-slate-200"></div>
             <img src="/assets/it.png" className="h-14 object-contain drop-shadow-sm filter hover:brightness-110 transition-all" alt="IT" />
             <div className="h-10 w-px bg-slate-200"></div>

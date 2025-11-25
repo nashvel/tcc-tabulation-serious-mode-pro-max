@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StopCircle, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getApiBase, getCurrentEventId } from '../../config/api';
 
 export default function StopEventSubmenu({ isVotingActive, onStop }) {
   const [isHovering, setIsHovering] = useState(false);
@@ -9,17 +10,8 @@ export default function StopEventSubmenu({ isVotingActive, onStop }) {
   const handleStop = async () => {
     setIsLoading(true);
     try {
-      const apiBase = `http://${window.location.hostname}:8000`;
-      
-      // Get event ID from voting state
-      let eventId = 1;
-      try {
-        const votingStateResponse = await fetch(`${apiBase}/api/voting/state`);
-        const votingState = await votingStateResponse.json();
-        eventId = votingState.event_id || 1;
-      } catch (err) {
-        console.warn('Could not get event ID from voting state, using default:', err);
-      }
+      const apiBase = getApiBase();
+      const eventId = await getCurrentEventId();
 
       const response = await fetch(`${apiBase}/api/voting/stop`, {
         method: 'POST',

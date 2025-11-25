@@ -17,7 +17,6 @@ class VotingState extends Model
         'is_locked',
         'active_session_id',
         'active_round_id',
-        'active_round_name',
         'active_criteria',
     ];
 

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('round_id')->constrained('rounds')->onDelete('cascade');
             $table->foreignId('criteria_id')->constrained('criteria')->onDelete('cascade');
             $table->integer('points');
-            $table->integer('judge_id');
+            $table->unsignedBigInteger('judge_id')->nullable(); // Will add FK constraint later after judges table exists
             $table->string('category', 6);
             $table->timestamps();
         });

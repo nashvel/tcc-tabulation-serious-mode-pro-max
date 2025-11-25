@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
+import { getApiBase } from '../../config/api';
 import AdminHeaderButtons from '../../components/admin/AdminHeaderButtons';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import EventForm from '../../components/admin/EventForm';
@@ -34,12 +35,34 @@ export default function Setup() {
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/events');
+      const apiBase = getApiBase();
+      console.log('Fetching events from:', `${apiBase}/api/events`);
+      
+      const response = await fetch(`${apiBase}/api/events`);
+      
+      // Check if response is ok
+      if (!response.ok) {
+        console.error('API Error:', response.status, response.statusText);
+        toast.error(`API Error: ${response.status} ${response.statusText}`);
+        return;
+      }
+      
+      // Check content type
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Invalid content type:', contentType);
+        const text = await response.text();
+        console.error('Response body:', text.substring(0, 200));
+        toast.error('Backend returned invalid response (not JSON)');
+        return;
+      }
+      
       const data = await response.json();
-      setEvents(data);
+      console.log('Events fetched:', data);
+      setEvents(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching events:', error);
-      toast.error('Failed to fetch events');
+      toast.error('Failed to fetch events - Check backend is running');
     }
   };
 
@@ -47,7 +70,8 @@ export default function Setup() {
     e.preventDefault();
     
     try {
-      const response = await fetch('http://localhost:8000/api/events', {
+      const apiBase = getApiBase();
+      const response = await fetch(`${apiBase}/api/events`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -89,7 +113,8 @@ export default function Setup() {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/api/events/${deleteModal.event.id}`, {
+      const apiBase = getApiBase();
+      const response = await fetch(`${apiBase}/api/events/${deleteModal.event.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`

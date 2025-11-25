@@ -39,7 +39,12 @@ export default function CreateEvent() {
 
   // Candidates by Day (organized by event day)
   const [candidatesByDay, setCandidatesByDay] = useState({
-    0: [{ number: 1, name: '', gender: 'Female', team_name: '', department: '', partner_number: '', partner_name: '', partner_gender: '' }]
+    0: [{ number: 1, name: '', gender: 'Female', team_name: '', department: '' }]
+  });
+
+  // Partnership data (separate from candidates for normalization)
+  const [partnershipsByDay, setPartnershipsByDay] = useState({
+    0: [{ partner_number: '', partner_name: '', partner_gender: '' }]
   });
 
   // Categories
@@ -456,6 +461,7 @@ export default function CreateEvent() {
   // Candidate handlers (by day)
   const addCandidateToDay = (dayIndex) => {
     const dayCandidates = candidatesByDay[dayIndex] || [];
+    const dayPartnerships = partnershipsByDay[dayIndex] || [];
     const nextNumber = dayCandidates.length + 1;
     
     setCandidatesByDay({
@@ -465,7 +471,14 @@ export default function CreateEvent() {
         name: '',
         gender: 'Female',
         team_name: '',
-        department: '',
+        department: ''
+      }]
+    });
+
+    // Add corresponding partnership entry if needed
+    setPartnershipsByDay({
+      ...partnershipsByDay,
+      [dayIndex]: [...dayPartnerships, {
         partner_number: '',
         partner_name: '',
         partner_gender: ''

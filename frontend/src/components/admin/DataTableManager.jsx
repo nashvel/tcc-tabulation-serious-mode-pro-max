@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import JudgesScoringTab from './tabs/JudgesScoringTab';
 import VotingControlTab from './tabs/VotingControlTab';
 import CandidatesTab from './tabs/CandidatesTab';
@@ -7,12 +7,34 @@ import ResultsTab from './tabs/ResultsTab';
 import BestInTab from './tabs/BestInTab';
 import { Gavel, Vote, Users, List, BarChart2, Trophy } from 'lucide-react';
 
-export default function DataTableManager({ candidates, rounds, criteria }) {
+export default function DataTableManager({ candidates, rounds, criteria, continuingEvent }) {
   const [activeTab, setActiveTab] = useState('judges');
+  const [judges, setJudges] = useState([]);
+
+  useEffect(() => {
+    const fetchJudges = async () => {
+      try {
+        const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+        const eventId = continuingEvent?.id;
+        
+        if (!eventId) return;
+        
+        const response = await fetch(`${apiBase}/api/judges?event_id=${eventId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setJudges(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch judges:', error);
+      }
+    };
+
+    fetchJudges();
+  }, [continuingEvent]);
 
   const tabColors = {
     judges: { bg: 'bg-emerald-500', icon: 'text-emerald-500' },
-    voting: { bg: 'bg-blue-500', icon: 'text-blue-500' },
+    judgecontrol: { bg: 'bg-blue-500', icon: 'text-blue-500' },
     candidates: { bg: 'bg-purple-500', icon: 'text-purple-500' },
     categories: { bg: 'bg-orange-500', icon: 'text-orange-500' },
     results: { bg: 'bg-pink-500', icon: 'text-pink-500' },
@@ -35,13 +57,13 @@ export default function DataTableManager({ candidates, rounds, criteria }) {
           Judges Scoring
         </button>
         <button
-          onClick={() => setActiveTab('voting')}
-          className={`${tabButtonClass} ${activeTab === 'voting' ? tabColors.voting.bg : 'bg-slate-400'} hover:opacity-90`}
+          onClick={() => setActiveTab('judgecontrol')}
+          className={`${tabButtonClass} ${activeTab === 'judgecontrol' ? tabColors.judgecontrol.bg : 'bg-slate-400'} hover:opacity-90`}
         >
           <div className="bg-white rounded-full p-1">
-            <Vote size={12} className={tabColors.voting.icon} />
+            <Vote size={12} className={tabColors.judgecontrol.icon} />
           </div>
-          Voting Control
+          Judge Control
         </button>
         <button
           onClick={() => setActiveTab('candidates')}
@@ -83,8 +105,59 @@ export default function DataTableManager({ candidates, rounds, criteria }) {
 
       {/* Table Content */}
       <div className="overflow-x-auto">
-        {activeTab === 'judges' && <JudgesScoringTab candidates={candidates} />}
-        {activeTab === 'voting' && <VotingControlTab candidates={candidates} />}
+        {activeTab === 'judges' && <JudgesScoringTab candidates={candidates} continuingEvent={continuingEvent} />}
+        {activeTab === 'judgecontrol' && (
+          <div className="p-8 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+            <div className="max-w-7xl mx-auto">
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-slate-900">Judge Control Panel</h2>
+                <p className="text-sm text-slate-600 mt-1">Manage judge status and access</p>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {judges.map((judge) => (
+                  <div key={judge.id} className="bg-white border border-slate-200 rounded-lg p-5 hover:shadow-lg hover:border-slate-300 transition-all duration-200">
+                    {/* Judge Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-slate-900 text-sm">{judge.name}</h3>
+                        <p className="text-xs text-slate-500 mt-1">Chair #{judge.chair_number}</p>
+                      </div>
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1 ${judge.status === 'active' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                    </div>
+                    
+                    {/* Status Badge */}
+                    <div className="mb-4">
+                      <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${
+                        judge.status === 'active' 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        {judge.status === 'active' ? '● Active' : '● Inactive'}
+                      </span>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      <button className="flex-1 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded-md transition-colors duration-150">
+                        Lock
+                      </button>
+                      <button className="flex-1 px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-md transition-colors duration-150">
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {judges.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-slate-500">No judges available</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {activeTab === 'candidates' && <CandidatesTab candidates={candidates} />}
         {activeTab === 'categories' && <CategoriesTab />}
         {activeTab === 'results' && <ResultsTab candidates={candidates} />}

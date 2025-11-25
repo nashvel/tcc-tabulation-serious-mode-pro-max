@@ -9,15 +9,8 @@ export const useVotingControl = (continuingEvent) => {
   const [isCategoryGridCollapsed, setIsCategoryGridCollapsed] = useState(false);
   const [showStartStopModal, setShowStartStopModal] = useState(false);
 
-  // Available categories for mapping
-  const availableCategories = [
-    { id: 1, icon: '2095628.png', name: 'Intergalactic Attire' },
-    { id: 2, icon: '3365992.png', name: 'Best in Swimwear & Trunks' },
-    { id: 3, icon: '3669556.png', name: 'Preliminary Question and Answer' },
-    { id: 4, icon: '3409564.png', name: 'Barong Tagalog & Modern Filipiana' },
-    { id: 5, icon: '735768.png', name: 'Final Question and Answer' },
-    { id: 6, icon: '735768.png', name: 'Display Criteria 06' }
-  ];
+  // NOTE: availableCategories are now loaded dynamically from the database via useEventSequence hook
+  // This hook is deprecated - use useEventSequence instead for dynamic category loading
 
   // Load voting state on mount
   useEffect(() => {
@@ -30,19 +23,21 @@ export const useVotingControl = (continuingEvent) => {
         event_id: continuingEvent?.id || 1 
       });
       
-      console.log('Voting state response:', response.data);
+      // Voting state loaded
       
       if (response.data) {
         const { is_active, active_round } = response.data;
         setIsVotingActive(is_active || false);
         
-        // If there's an active round, find and set the corresponding category
+        // If there's an active round, set it directly from the response
         if (active_round && active_round.id) {
-          const category = availableCategories.find(cat => cat.id === active_round.id);
-          if (category) {
-            setActiveCategory(category);
-            console.log('Active category set:', category);
-          }
+          const category = {
+            id: active_round.id,
+            name: active_round.name,
+            spot: active_round.spot
+          };
+          setActiveCategory(category);
+          // Active category updated
         }
       }
     } catch (error) {
@@ -75,10 +70,16 @@ export const useVotingControl = (continuingEvent) => {
         });
       } else {
         // Start voting - show category grid
+        // Get current day from event or default to Day 1
+        const dayNumber = continuingEvent?.current_day || 1;
+        const dayName = `Day ${dayNumber}`;
+        
+        // Starting voting session
+        
         await votingAPI.start({
           event_id: continuingEvent?.id || 1,
-          day_number: 1,
-          day_name: 'Day 1',
+          day_number: dayNumber,
+          day_name: dayName,
         });
         setIsVotingActive(true);
         setShowCategoryGrid(true);
@@ -103,15 +104,12 @@ export const useVotingControl = (continuingEvent) => {
 
   const handleCategorySelect = async (category) => {
     try {
-      const roundMapping = {
-        1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6
-      };
-
-      const roundId = roundMapping[category.id] || category.id;
+      // Use the actual category ID directly - no mapping needed
+      // Activating category
 
       await votingAPI.activateRound({ 
         event_id: continuingEvent?.id || 1,
-        round_id: roundId
+        round_id: category.id
       });
       setActiveCategory(category);
       setShowCategoryGrid(false);

@@ -87,21 +87,21 @@ export default function Step2Participants({
                 <>
                   <input
                     type="number"
-                    value={candidate.partner_number}
-                    onChange={(e) => updateCandidate(index, 'partner_number', e.target.value)}
+                    value={candidate.partnership?.partner_number || ''}
+                    onChange={(e) => updateCandidate(index, 'partnership', { ...candidate.partnership, partner_number: e.target.value })}
                     placeholder="Partner Number"
                     className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
                   <input
                     type="text"
-                    value={candidate.partner_name}
-                    onChange={(e) => updateCandidate(index, 'partner_name', e.target.value)}
+                    value={candidate.partnership?.partner_name || ''}
+                    onChange={(e) => updateCandidate(index, 'partnership', { ...candidate.partnership, partner_name: e.target.value })}
                     placeholder="Partner Name"
                     className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
                   <select
-                    value={candidate.partner_gender}
-                    onChange={(e) => updateCandidate(index, 'partner_gender', e.target.value)}
+                    value={candidate.partnership?.partner_gender || ''}
+                    onChange={(e) => updateCandidate(index, 'partnership', { ...candidate.partnership, partner_gender: e.target.value })}
                     className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   >
                     <option value="">Partner Gender</option>

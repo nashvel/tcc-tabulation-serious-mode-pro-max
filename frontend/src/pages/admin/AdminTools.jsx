@@ -20,6 +20,7 @@ export default function AdminTools() {
   const continuingEventFromState = location.state?.continuingEvent;
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [realtimeCategory, setRealtimeCategory] = useState(null);
   
   // Simple auth check - just verify localStorage
   useEffect(() => {
@@ -183,9 +184,21 @@ export default function AdminTools() {
     handleNextCategory,
   } = useEventSequence(continuingEvent, handleCategorySelect);
 
-  // WebSocket for real-time sync (optional for admin, but useful for multi-admin scenarios)
+  // WebSocket for real-time sync - update active category when voting state changes
   useVotingWebSocket(continuingEvent?.id || 1, (data) => {
     console.log('Admin received WebSocket update:', data);
+    
+    // Update active category from WebSocket event
+    if (data.voting_state?.active_round) {
+      const activeRound = data.voting_state.active_round;
+      const updatedCategory = {
+        id: activeRound.id,
+        name: activeRound.name,
+        spot: activeRound.spot
+      };
+      console.log('Real-time category update:', updatedCategory);
+      setRealtimeCategory(updatedCategory);
+    }
   });
 
   return (
@@ -207,7 +220,7 @@ export default function AdminTools() {
       {/* Fixed Header */}
       <FixedHeader
         onEditClick={() => setIsSidebarOpen(true)}
-        activeCategory={activeCategory}
+        activeCategory={realtimeCategory || activeCategory}
         continuingEvent={continuingEvent}
         judges={Array.from({ length: 5 }, (_, i) => ({ id: i + 1, name: `Judge ${i + 1}` }))}
       />
@@ -230,6 +243,7 @@ export default function AdminTools() {
             candidates={candidates}
             rounds={rounds}
             criteria={criteria}
+            continuingEvent={continuingEvent}
           />
         </div>
       </div>

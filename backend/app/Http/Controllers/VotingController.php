@@ -65,7 +65,6 @@ class VotingController extends Controller
                 'active_session' => $votingState->activeSession,
                 'active_round' => null,
                 'active_round_id' => $votingState->active_round_id,
-                'active_round_name' => $votingState->active_round_name,
             ];
 
             if ($votingState->active_round_id) {
@@ -283,6 +282,13 @@ class VotingController extends Controller
             $eventId = $request->input('event_id', 1);
             $roundId = $request->input('round_id');
 
+            // Log the incoming request
+            Log::info("activateRound called with:", [
+                'event_id' => $eventId,
+                'round_id' => $roundId,
+                'round_id_type' => gettype($roundId),
+            ]);
+
             DB::beginTransaction();
 
             // Get or create voting state - no prerequisites
@@ -294,11 +300,15 @@ class VotingController extends Controller
             );
 
             $round = Round::with('criteria')->findOrFail($roundId);
+            
+            Log::info("Round found:", [
+                'id' => $round->id,
+                'name' => $round->name,
+            ]);
 
             // Update voting state with active round - completely free switching
             $votingState->update([
                 'active_round_id' => $round->id,
-                'active_round_name' => $round->name,
             ]);
 
             // Create session if it doesn't exist (auto-start if needed)
@@ -323,17 +333,60 @@ class VotingController extends Controller
 
             DB::commit();
 
-            // Broadcast the change
-            broadcast(new VotingStateChanged($eventId, [
-                'is_active' => $votingState->is_active,
-                'active_session' => $votingState->activeSession,
-                'active_round' => [
-                    'id' => $round->id,
-                    'name' => $round->name,
-                    'spot' => $round->spot,
-                    'criteria' => $round->criteria,
-                ],
-            ], 'round_changed'));
+            // Broadcast the change - use dispatch to ensure it's sent
+            Log::info("About to broadcast VotingStateChanged event for event {$eventId}");
+            Log::info("Current BROADCAST_CONNECTION: " . config('broadcasting.default'));
+            
+            try {
+                // Get active session and convert to array
+                $activeSession = $votingState->activeSession;
+                $sessionArray = $activeSession ? $activeSession->toArray() : null;
+                
+                $broadcastData = [
+                    'is_active' => $votingState->is_active,
+                    'active_session' => $sessionArray,
+                    'active_round' => [
+                        'id' => $round->id,
+                        'name' => $round->name,
+                        'spot' => $round->spot,
+                        'criteria' => $round->criteria ? $round->criteria->toArray() : [],
+                    ],
+                ];
+                
+                Log::info("Broadcasting data: " . json_encode($broadcastData));
+                Log::info("Pusher App ID: " . config('broadcasting.connections.pusher.app_id'));
+                Log::info("Pusher Key: " . substr(config('broadcasting.connections.pusher.key'), 0, 5) . '...');
+                Log::info("Pusher Secret: " . substr(config('broadcasting.connections.pusher.secret'), 0, 5) . '...');
+                Log::info("Pusher Cluster: " . config('broadcasting.connections.pusher.options.cluster'));
+                Log::info("Broadcast Driver: " . config('broadcasting.default'));
+                
+                // Test Pusher connection directly
+                try {
+                    $pusher = new \Pusher\Pusher(
+                        config('broadcasting.connections.pusher.key'),
+                        config('broadcasting.connections.pusher.secret'),
+                        config('broadcasting.connections.pusher.app_id'),
+                        [
+                            'cluster' => config('broadcasting.connections.pusher.options.cluster'),
+                            'useTLS' => true,
+                        ]
+                    );
+                    
+                    $testResult = $pusher->trigger('voting.' . $eventId, 'VotingStateChanged', $broadcastData);
+                    Log::info("Direct Pusher trigger result: " . json_encode($testResult));
+                } catch (\Exception $pusherError) {
+                    Log::error("Direct Pusher error: " . $pusherError->getMessage());
+                }
+                
+                // Broadcast the event using event() helper
+                $event = new VotingStateChanged($eventId, $broadcastData, 'round_changed');
+                event($event);
+                
+                Log::info("Successfully dispatched VotingStateChanged event for event {$eventId}");
+            } catch (\Exception $broadcastError) {
+                Log::error("Broadcast error: " . $broadcastError->getMessage());
+                Log::error("Broadcast error trace: " . $broadcastError->getTraceAsString());
+            }
 
             Log::info("Round {$roundId} activated for event {$eventId} (no prerequisites)");
 

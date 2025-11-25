@@ -38,8 +38,8 @@ export default function AdminLogin() {
         localStorage.setItem('isAdmin', 'true');
         
         // Show welcome toast
-        toast.success('Welcome Admin! 🎉', {
-          duration: 4000,
+        toast.success('Welcome Admin', {
+          duration: 2000,
           style: {
             background: '#10b981',
             color: '#fff',

@@ -223,7 +223,6 @@ export default function AdminPreloader() {
           </g>
         </g>
       </svg>
-      <p className="preloader-text">Loading Admin Panel...</p>
     </div>
   );
 }

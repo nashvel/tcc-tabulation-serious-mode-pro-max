@@ -1,7 +1,56 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { candidatesAPI, roundsAPI, criteriaAPI, pointsAPI, votingAPI } from '../../api/services';
+import { ChevronDown } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { getApiBase, getCurrentEventId } from '../../config/api';
 import { useVotingWebSocket } from '../../hooks/useVotingWebSocket';
+import JudgePreloader from '../../components/judge/JudgePreloader';
+
+// Simple API helper functions
+const apiBase = getApiBase();
+
+const candidatesAPI = {
+  getAll: async () => {
+    const response = await fetch(`${apiBase}/api/candidates`);
+    const data = await response.json();
+    return { data: Array.isArray(data) ? data : data.data || [] };
+  }
+};
+
+const roundsAPI = {
+  getAll: async () => {
+    const response = await fetch(`${apiBase}/api/rounds`);
+    const data = await response.json();
+    return { data: Array.isArray(data) ? data : data.data || [] };
+  }
+};
+
+const criteriaAPI = {
+  getAll: async () => {
+    const response = await fetch(`${apiBase}/api/criteria`);
+    const data = await response.json();
+    return { data: Array.isArray(data) ? data : data.data || [] };
+  }
+};
+
+const pointsAPI = {
+  create: async (data) => {
+    const response = await fetch(`${apiBase}/api/points`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return response.json();
+  }
+};
+
+const votingAPI = {
+  getState: async (params) => {
+    const queryString = new URLSearchParams(params).toString();
+    const response = await fetch(`${apiBase}/api/voting/state?${queryString}`);
+    return { data: await response.json() };
+  }
+};
 
 // Time display component
 function TimeDisplay() {
@@ -179,11 +228,10 @@ export default function Judge() {
   
   // Show all candidates (both Female and Male in one table)
   const filteredCandidates = candidates;
-
+  
+  // judges pre loader
   if (loading) {
-    return <div className="flex justify-center items-center h-64">
-      <div className="text-xl">Loading...</div>
-    </div>;
+    return <JudgePreloader />;
   }
 
   // Judge Selection Screen (Matching Old UI)
