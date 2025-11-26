@@ -20,12 +20,8 @@ export const initializeEcho = () => {
       key: import.meta.env.VITE_PUSHER_APP_KEY,
       cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
       forceTLS: true,
-      authEndpoint: 'http://localhost:8000/broadcasting/auth',
-      auth: {
-        headers: {
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
-        }
-      },
+      // Public channels don't need authentication
+      // authEndpoint: 'http://localhost:8000/broadcasting/auth',
       enabledTransports: ['ws', 'wss']
     });
 

@@ -1,22 +1,18 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, PlayCircle, BarChart3 } from 'lucide-react';
-import EventSequenceManager from './EventSequenceManager';
+import { ChevronRight, ChevronLeft, Lock, Unlock, Shuffle } from 'lucide-react';
 import CriteriaChart from './CriteriaChart';
+import toast from 'react-hot-toast';
+import { getApiBase } from '../../config/api';
 
 export default function EventSequenceSidebar({
   availableCategories,
-  eventSequence,
-  currentSequenceIndex,
-  onAddToSequence,
-  onRemoveFromSequence,
-  onMoveUp,
-  onMoveDown,
-  isVotingActive,
-  onStartEvent,
+  judges = [],
   shouldOpen = false
 }) {
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [judgesList, setJudgesList] = useState(judges);
+  const [isLoading, setIsLoading] = useState({});
+  const [swapDropdown, setSwapDropdown] = useState(null); // Track which judge's swap dropdown is open
   
   // Open sidebar when shouldOpen prop changes to true
   useEffect(() => {
@@ -24,6 +20,63 @@ export default function EventSequenceSidebar({
       setIsOpen(true);
     }
   }, [shouldOpen]);
+
+  // Update judges list when props change
+  useEffect(() => {
+    setJudgesList(judges);
+  }, [judges]);
+
+  // Handle lock/unlock judge
+  const handleLockUnlock = async (judgeId, currentStatus) => {
+    setIsLoading(prev => ({ ...prev, [judgeId]: true }));
+    try {
+      const apiBase = getApiBase();
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      
+      const response = await fetch(`${apiBase}/api/judges/${judgeId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        setJudgesList(prev => 
+          prev.map(j => j.id === judgeId ? { ...j, status: newStatus } : j)
+        );
+        toast.success(newStatus === 'active' ? 'Judge unlocked' : 'Judge locked', { duration: 2000 });
+      } else {
+        toast.error('Failed to update judge status');
+      }
+    } catch (error) {
+      toast.error('Error updating judge');
+    } finally {
+      setIsLoading(prev => ({ ...prev, [judgeId]: false }));
+    }
+  };
+
+  // Handle swap judges
+  const handleSwapJudges = (judgeId, targetJudgeId) => {
+    const judge1 = judgesList.find(j => j.id === judgeId);
+    const judge2 = judgesList.find(j => j.id === targetJudgeId);
+
+    if (!judge1 || !judge2) return;
+
+    // Swap chair numbers in state
+    const updatedList = judgesList.map(j => {
+      if (j.id === judgeId) return { ...j, chair_number: judge2.chair_number };
+      if (j.id === targetJudgeId) return { ...j, chair_number: judge1.chair_number };
+      return j;
+    });
+
+    setJudgesList(updatedList);
+
+    // Update localStorage with swapped chair numbers
+    localStorage.setItem(`judge_${judgeId}_chair`, judge2.chair_number);
+    localStorage.setItem(`judge_${targetJudgeId}_chair`, judge1.chair_number);
+
+    toast.success(`Swapped ${judge1.name} ↔ ${judge2.name}`, { duration: 2000 });
+    setSwapDropdown(null);
+  };
   
   // Handle keyboard shortcuts for < > keys
   useEffect(() => {
@@ -57,14 +110,14 @@ export default function EventSequenceSidebar({
           ${isOpen ? 'translate-x-0' : 'translate-x-full'}
         `}
       >
-        {/* Header Section */}
+        {/* Header Section - Two Columns */}
         <div className="grid grid-cols-2 gap-0 sticky top-0 z-10 bg-white border-b border-slate-100">
           {/* Minimal Accent Line */}
           <div className="absolute top-0 left-0 w-full h-0.5 bg-slate-900"></div>
           
-          {/* Event Sequence Header */}
+          {/* Judge Control Header */}
           <div className="bg-white text-slate-900 px-4 py-3 border-r border-slate-100">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-600">Event Sequence</h3>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-600">Judge Control</h3>
           </div>
           
           {/* Criteria Overview Header */}
@@ -75,19 +128,72 @@ export default function EventSequenceSidebar({
 
         {/* Content Section - Two Columns */}
         <div className="grid grid-cols-2 gap-0 pb-24">
-          {/* Left Column - Event Sequence Manager */}
+          {/* Left Column - Judge Control */}
           <div className="border-r border-slate-200">
-            <div className="p-5 space-y-4">
-              <EventSequenceManager
-                availableCategories={availableCategories}
-                eventSequence={eventSequence}
-                currentSequenceIndex={currentSequenceIndex}
-                onAddToSequence={onAddToSequence}
-                onRemoveFromSequence={onRemoveFromSequence}
-                onMoveUp={onMoveUp}
-                onMoveDown={onMoveDown}
-                isVotingActive={isVotingActive}
-              />
+            <div className="p-5 space-y-2">
+              {judgesList.length > 0 ? (
+                judgesList.map((judge) => (
+                  <div key={judge.id} className="relative">
+                    <div className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-slate-900 truncate">{judge.name}</p>
+                        <p className="text-xs text-slate-500">Chair #{judge.chair_number}</p>
+                      </div>
+                      <div className="flex gap-1 flex-shrink-0 ml-2">
+                        {/* Swap Button */}
+                        <div className="relative">
+                          <button
+                            onClick={() => setSwapDropdown(swapDropdown === judge.id ? null : judge.id)}
+                            className="p-1.5 rounded-lg transition-colors bg-blue-100 text-blue-600 hover:bg-blue-200"
+                            title="Swap judge"
+                          >
+                            <Shuffle size={14} />
+                          </button>
+                          
+                          {/* Swap Dropdown */}
+                          {swapDropdown === judge.id && (
+                            <div className="absolute top-full mt-1 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-50 min-w-max">
+                              <p className="px-3 py-2 text-xs font-semibold text-slate-600 border-b border-slate-200">Swap with:</p>
+                              {judgesList
+                                .filter(j => j.id !== judge.id)
+                                .map(otherJudge => (
+                                  <button
+                                    key={otherJudge.id}
+                                    onClick={() => handleSwapJudges(judge.id, otherJudge.id)}
+                                    className="w-full text-left px-3 py-2 text-xs hover:bg-slate-100 transition-colors"
+                                  >
+                                    <span className="font-semibold">{otherJudge.name}</span>
+                                    <span className="text-slate-500"> (Chair #{otherJudge.chair_number})</span>
+                                  </button>
+                                ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Lock Button */}
+                        <button
+                          onClick={() => handleLockUnlock(judge.id, judge.status)}
+                          disabled={isLoading[judge.id]}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            judge.status === 'active'
+                              ? 'bg-green-100 text-green-600 hover:bg-green-200'
+                              : 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          title={judge.status === 'active' ? 'Lock judge' : 'Unlock judge'}
+                        >
+                          {judge.status === 'active' ? (
+                            <Unlock size={14} />
+                          ) : (
+                            <Lock size={14} />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-500 text-center py-4">No judges available</p>
+              )}
             </div>
           </div>
           
@@ -98,57 +204,8 @@ export default function EventSequenceSidebar({
             </div>
           </div>
         </div>
-        
-        {/* Confirm & Start Button - Spans Both Columns */}
-        {!isVotingActive && eventSequence.length > 0 && (
-          <div className="fixed bottom-0 right-0 w-[550px] p-4 border-t border-slate-200 bg-gradient-to-t from-white to-slate-50 shadow-lg">
-            <button
-              onClick={() => setShowConfirmModal(true)}
-              className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-bold uppercase tracking-widest rounded-lg shadow-lg hover:shadow-xl hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 text-sm"
-            >
-              <PlayCircle size={18} />
-              Start Event
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Confirmation Modal */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[2000] animate-fade-in">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-11/12 shadow-2xl border border-slate-200 animate-scale-in">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-50 mb-4 shadow-md">
-                <PlayCircle size={40} className="text-emerald-600" />
-              </div>
-            </div>
-            <h3 className="text-3xl font-bold text-slate-900 text-center mb-2 uppercase tracking-widest">
-              Start Event?
-            </h3>
-            <p className="text-sm text-slate-600 text-center mb-8 leading-relaxed">
-              You have <span className="font-bold text-emerald-600">{eventSequence.length}</span> round{eventSequence.length !== 1 ? 's' : ''} in the sequence. Once started, judges can begin scoring.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className="flex-1 py-3 px-4 bg-white text-slate-700 border-2 border-slate-300 rounded-lg font-semibold uppercase tracking-wide text-sm hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 active:scale-95"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowConfirmModal(false);
-                  onStartEvent();
-                  setIsOpen(false); // Close sidebar after starting
-                }}
-                className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-bold uppercase tracking-widest text-sm hover:from-emerald-700 hover:to-emerald-800 shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95"
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Toggle Button - Minimal Elegant Design */}
       <button

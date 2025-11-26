@@ -4,41 +4,184 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Point;
+use App\Events\ScoreUpdated;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 
 class PointController extends Controller
 {
     public function index(): JsonResponse
     {
-        $points = Point::with(['candidate', 'round', 'criteria'])->get();
+        $points = Point::with(['candidate', 'round', 'criteria', 'judge'])->get();
+        Log::info('Fetching all points', ['count' => $points->count()]);
+        if ($points->count() > 0) {
+            Log::info('Sample point:', $points->first()->toArray());
+        }
         return response()->json($points);
     }
 
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'candidate_id' => 'required|exists:candidates,id',
-            'round_id' => 'required|exists:rounds,id',
-            'criteria_id' => 'required|exists:criteria,id',
-            'points' => 'required|integer',
-            'judge_id' => 'required|exists:judges,id',
-        ]);
+        Log::info('=== SCORE SUBMISSION START ===');
+        Log::info('Raw request data', $request->all());
+        
+        try {
+            $validated = $request->validate([
+                'candidate_id' => 'required|exists:candidates,id',
+                'round_id' => 'required|exists:rounds,id',
+                'criteria_id' => 'required|exists:criteria,id',
+                'points' => 'required|numeric',
+                'judge_id' => 'required|integer',
+                'event_id' => 'required|exists:events,id',
+            ]);
+            
+            Log::info('Validation passed', $validated);
+            
+            // Store event_id for broadcasting later
+            $eventId = $validated['event_id'];
+            
+            // Validate judge belongs to the event
+            $judge = \App\Models\Judge::where('id', $validated['judge_id'])
+                ->where('event_id', $eventId)
+                ->first();
+            
+            if (!$judge) {
+                Log::error('Judge not found for event', [
+                    'judge_id' => $validated['judge_id'],
+                    'event_id' => $eventId,
+                ]);
+                return response()->json([
+                    'error' => 'Judge not found for this event'
+                ], 422);
+            }
+            
+            // Remove event_id from validated data since points table doesn't have it
+            unset($validated['event_id']);
 
-        // Check if point already exists for this combination
-        $existing = Point::where('candidate_id', $validated['candidate_id'])
-            ->where('round_id', $validated['round_id'])
-            ->where('criteria_id', $validated['criteria_id'])
-            ->where('judge_id', $validated['judge_id'])
-            ->first();
+            // Check if point already exists for this combination
+            $existing = Point::where('candidate_id', $validated['candidate_id'])
+                ->where('round_id', $validated['round_id'])
+                ->where('criteria_id', $validated['criteria_id'])
+                ->where('judge_id', $validated['judge_id'])
+                ->first();
 
-        if ($existing) {
-            $existing->update(['points' => $validated['points']]);
-            return response()->json($existing);
+            if ($existing) {
+                Log::info('Found existing score record', [
+                    'point_id' => $existing->id,
+                    'old_points' => $existing->points,
+                    'new_points' => $validated['points'],
+                ]);
+                $existing->update(['points' => $validated['points']]);
+                Log::info('Score updated successfully', [
+                    'point_id' => $existing->id,
+                    'updated_points' => $existing->points,
+                ]);
+                
+                // Broadcast score update event
+                Log::info('Broadcasting ScoreUpdated event', [
+                    'channel' => 'scores.' . $eventId,
+                    'event' => 'ScoreUpdated',
+                    'judge_id' => $existing->judge_id,
+                    'candidate_id' => $existing->candidate_id,
+                    'criteria_id' => $existing->criteria_id,
+                    'points' => $existing->points,
+                    'BROADCAST_CONNECTION' => config('broadcasting.default'),
+                    'PUSHER_APP_ID' => config('broadcasting.connections.pusher.app_id'),
+                    'PUSHER_KEY' => substr(config('broadcasting.connections.pusher.key') ?? '', 0, 5),
+                    'QUEUE_CONNECTION' => config('queue.default'),
+                ]);
+                
+                Log::info('About to broadcast ScoreUpdated event');
+                try {
+                    // Dispatch event immediately (synchronously)
+                    Event::dispatch(new ScoreUpdated(
+                        $existing->judge_id,
+                        $existing->candidate_id,
+                        $existing->criteria_id,
+                        $existing->points,
+                        $eventId
+                    ));
+                    
+                    Log::info('Event dispatched via Event::dispatch()');
+                } catch (\Exception $e) {
+                    Log::error('Broadcast error:', [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                }
+                
+                Log::info('✓ Score update broadcasted via WebSocket');
+                
+                return response()->json($existing);
+            }
+
+            Log::info('Creating new score record', $validated);
+            
+            $point = Point::create($validated);
+            Log::info('✓ Score saved successfully to database', [
+                'point_id' => $point->id,
+                'candidate_id' => $point->candidate_id,
+                'round_id' => $point->round_id,
+                'criteria_id' => $point->criteria_id,
+                'judge_id' => $point->judge_id,
+                'points' => $point->points,
+            ]);
+            
+            // Broadcast score update event
+            Log::info('Broadcasting ScoreUpdated event (new)', [
+                'channel' => 'scores.' . $eventId,
+                'event' => 'ScoreUpdated',
+                'judge_id' => $point->judge_id,
+                'candidate_id' => $point->candidate_id,
+                'criteria_id' => $point->criteria_id,
+                'points' => $point->points,
+                'BROADCAST_CONNECTION' => config('broadcasting.default'),
+                'PUSHER_APP_ID' => config('broadcasting.connections.pusher.app_id'),
+                'PUSHER_KEY' => substr(config('broadcasting.connections.pusher.key') ?? '', 0, 5),
+                'QUEUE_CONNECTION' => config('queue.default'),
+            ]);
+            
+            Log::info('About to broadcast ScoreUpdated event');
+            try {
+                // Dispatch event immediately (synchronously)
+                Event::dispatch(new ScoreUpdated(
+                    $point->judge_id,
+                    $point->candidate_id,
+                    $point->criteria_id,
+                    $point->points,
+                    $eventId
+                ));
+                
+                Log::info('Event dispatched via Event::dispatch()');
+            } catch (\Exception $e) {
+                Log::error('Broadcast error:', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+            
+            Log::info('✓ Score creation broadcasted via WebSocket');
+            
+            return response()->json($point, 201);
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation failed', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all(),
+            ]);
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error saving score', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'request_data' => $request->all(),
+            ]);
+            throw $e;
         }
-
-        $point = Point::create($validated);
-        return response()->json($point, 201);
     }
 
     public function show(string $id): JsonResponse

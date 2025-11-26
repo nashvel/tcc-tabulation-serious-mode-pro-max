@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Clock, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getApiBase, getCurrentEventId } from '../../config/api';
 import { useVotingWebSocket } from '../../hooks/useVotingWebSocket';
@@ -10,24 +10,32 @@ import JudgePreloader from '../../components/judge/JudgePreloader';
 const apiBase = getApiBase();
 
 const candidatesAPI = {
-  getAll: async () => {
-    const response = await fetch(`${apiBase}/api/candidates`);
+  getAll: async (eventId) => {
+    const response = await fetch(`${apiBase}/api/candidates?event_id=${eventId}`);
     const data = await response.json();
     return { data: Array.isArray(data) ? data : data.data || [] };
   }
 };
 
 const roundsAPI = {
-  getAll: async () => {
-    const response = await fetch(`${apiBase}/api/rounds`);
+  getAll: async (eventId) => {
+    const response = await fetch(`${apiBase}/api/rounds?event_id=${eventId}`);
     const data = await response.json();
     return { data: Array.isArray(data) ? data : data.data || [] };
   }
 };
 
 const criteriaAPI = {
-  getAll: async () => {
-    const response = await fetch(`${apiBase}/api/criteria`);
+  getAll: async (eventId) => {
+    const response = await fetch(`${apiBase}/api/criteria?event_id=${eventId}`);
+    const data = await response.json();
+    return { data: Array.isArray(data) ? data : data.data || [] };
+  }
+};
+
+const judgesAPI = {
+  getAll: async (eventId) => {
+    const response = await fetch(`${apiBase}/api/judges?event_id=${eventId}`);
     const data = await response.json();
     return { data: Array.isArray(data) ? data : data.data || [] };
   }
@@ -37,10 +45,42 @@ const pointsAPI = {
   create: async (data) => {
     const response = await fetch(`${apiBase}/api/points`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify(data)
     });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API error: ${response.status} - ${errorText}`);
+    }
+    
     return response.json();
+  },
+  getAll: async () => {
+    try {
+      console.log('📡 Fetching points from:', `${apiBase}/api/points`);
+      const response = await fetch(`${apiBase}/api/points`);
+      console.log('📡 Points response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('📡 Points fetch error:', response.status, errorText);
+        throw new Error(`API error: ${response.status} - ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('📡 Raw points data:', data);
+      console.log('📡 Is array?', Array.isArray(data));
+      console.log('📡 Data length:', data?.length || data?.data?.length || 0);
+      
+      return { data: Array.isArray(data) ? data : data.data || [] };
+    } catch (error) {
+      console.error('📡 Error in pointsAPI.getAll():', error);
+      throw error;
+    }
   }
 };
 
@@ -74,6 +114,7 @@ export default function Judge() {
   const [candidates, setCandidates] = useState([]);
   const [rounds, setRounds] = useState([]);
   const [criteria, setCriteria] = useState([]);
+  const [judges, setJudges] = useState([]);
   const [selectedRound, setSelectedRound] = useState('1');
   const [selectedCriteria, setSelectedCriteria] = useState('1');
   const [selectedCategory, setSelectedCategory] = useState('Female');
@@ -84,16 +125,81 @@ export default function Judge() {
   const [showJudgeSelection, setShowJudgeSelection] = useState(!localStorage.getItem('judgeId'));
   const [showScoringInterface, setShowScoringInterface] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [eventId, setEventId] = useState(null);
+  const [eventName, setEventName] = useState('');
+  const [activeRoundName, setActiveRoundName] = useState('Loading...');
+
+  // Setup console command to exit judge
+  useEffect(() => {
+    window.exitJudge = () => {
+      localStorage.removeItem('judgeId');
+      setJudgeId('');
+      setShowJudgeSelection(true);
+      setShowScoringInterface(false);
+      // Refresh the page after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    };
+  }, []);
 
   useEffect(() => {
-    loadData();
-    loadInitialVotingState();
+    const initializeEvent = async () => {
+      try {
+        console.log('Initializing event...');
+        // Get event ID from voting state
+        const response = await votingAPI.getState({});
+        console.log('Voting state response:', response);
+        
+        if (response.data?.event_id) {
+          const eid = response.data.event_id;
+          console.log('Event ID found:', eid);
+          setEventId(eid);
+          
+          // Try to get event name from voting state response first
+          if (response.data?.event?.name) {
+            setEventName(response.data.event.name);
+          } else {
+            // Fallback: Fetch event details to get event name
+            try {
+              const eventRes = await fetch(`${apiBase}/api/events/${eid}`);
+              if (eventRes.ok) {
+                const eventData = await eventRes.json();
+                setEventName(eventData.name || 'Event');
+              }
+            } catch (err) {
+              console.error('Error fetching event details:', err);
+              setEventName('Event');
+            }
+          }
+          
+          await loadData(eid);
+          await loadInitialVotingState(eid);
+          
+          // If judge is already selected from localStorage, load their scores
+          const savedJudgeId = localStorage.getItem('judgeId');
+          if (savedJudgeId) {
+            console.log('🔵 Judge already in localStorage:', savedJudgeId);
+            console.log('🔵 Loading scores for saved judge');
+            await loadJudgeScores(savedJudgeId);
+          }
+        } else {
+          console.warn('No event_id in voting state response');
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error initializing event:', error);
+        setLoading(false);
+      }
+    };
+    
+    initializeEvent();
   }, []);
 
   // Load initial voting state
-  const loadInitialVotingState = async () => {
+  const loadInitialVotingState = async (eid) => {
     try {
-      const response = await votingAPI.getState({ event_id: 1 });
+      const response = await votingAPI.getState({ event_id: eid });
       console.log('Initial voting state:', response.data);
       
       if (response.data) {
@@ -105,6 +211,7 @@ export default function Judge() {
         // Load active round
         if (response.data.active_round && response.data.active_round.id) {
           setSelectedRound(response.data.active_round.id.toString());
+          setActiveRoundName(response.data.active_round.name || 'Loading...');
           setShowScoringInterface(true);
         }
       }
@@ -130,6 +237,7 @@ export default function Judge() {
     // Handle round activation/change
     else if ((data.action === 'round_activated' || data.action === 'round_changed') && data.voting_state?.active_round) {
       setSelectedRound(data.voting_state.active_round.id.toString());
+      setActiveRoundName(data.voting_state.active_round.name || 'Loading...');
       setShowScoringInterface(true);
       console.log('Judge screen activated for round:', data.voting_state.active_round.name);
     } 
@@ -145,41 +253,115 @@ export default function Judge() {
     }
   }, []);
 
-  // Setup WebSocket connection
-  useVotingWebSocket(1, handleVotingStateChange);
+  // Setup WebSocket connection (call hook at top level)
+  useVotingWebSocket(eventId, handleVotingStateChange);
 
   useEffect(() => {
     localStorage.setItem('judgeId', judgeId);
   }, [judgeId]);
 
-  const loadData = async () => {
+  const loadData = async (eid) => {
     try {
-      const [candidatesRes, roundsRes, criteriaRes] = await Promise.all([
-        candidatesAPI.getAll(),
-        roundsAPI.getAll(),
-        criteriaAPI.getAll(),
+      console.log('Loading data for event:', eid);
+      
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Data loading timeout')), 10000)
+      );
+      
+      const dataPromise = Promise.all([
+        candidatesAPI.getAll(eid),
+        roundsAPI.getAll(eid),
+        criteriaAPI.getAll(eid),
+        judgesAPI.getAll(eid),
       ]);
       
-      setCandidates(candidatesRes.data);
-      setRounds(roundsRes.data);
-      setCriteria(criteriaRes.data);
+      const [candidatesRes, roundsRes, criteriaRes, judgesRes] = await Promise.race([
+        dataPromise,
+        timeoutPromise
+      ]);
       
-      console.log('Loaded candidates:', candidatesRes.data.length);
-      console.log('Loaded rounds:', roundsRes.data.length);
-      console.log('Loaded criteria:', criteriaRes.data.length);
+      setCandidates(candidatesRes.data || []);
+      setRounds(roundsRes.data || []);
+      setCriteria(criteriaRes.data || []);
+      setJudges(judgesRes.data || []);
+      
+      console.log('Loaded candidates:', candidatesRes.data?.length || 0);
+      console.log('Loaded rounds:', roundsRes.data?.length || 0);
+      console.log('Loaded criteria:', criteriaRes.data?.length || 0);
+      console.log('Loaded judges:', judgesRes.data?.length || 0);
+      setLoading(false);
     } catch (error) {
       console.error('Error loading data:', error);
-      alert('Failed to load data from server. Please check your connection.');
-    } finally {
+      console.log('Setting loading to false due to error');
       setLoading(false);
+      // Don't show alert - just log the error
     }
   };
 
-  const handleScoreChange = (candidateId, criteriaId, value) => {
-    setScores(prev => ({
-      ...prev,
-      [`${candidateId}-${criteriaId}`]: value
-    }));
+  // Load existing scores for the current judge
+  const loadJudgeScores = async (jid) => {
+    try {
+      console.log('Loading existing scores for judge:', jid);
+      const pointsRes = await pointsAPI.getAll();
+      console.log('Raw points response:', pointsRes);
+      
+      // Handle both direct array and wrapped response
+      let allPoints = Array.isArray(pointsRes) ? pointsRes : (pointsRes.data || []);
+      console.log('All points from backend:', allPoints);
+      console.log('Total points count:', allPoints.length);
+      
+      // Filter points for this judge
+      const judgeId = parseInt(jid);
+      console.log('Filtering for judge ID:', judgeId);
+      const judgePoints = allPoints.filter(p => {
+        console.log('Checking point:', p, 'judge_id:', p.judge_id, 'matches:', p.judge_id === judgeId);
+        return p.judge_id === judgeId;
+      });
+      
+      console.log('Judge points found:', judgePoints);
+      
+      // Transform into scores object
+      const loadedScores = {};
+      judgePoints.forEach(point => {
+        const key = `${point.candidate_id}-${point.criteria_id}`;
+        loadedScores[key] = point.points.toString();
+        console.log('Added score:', key, '=', point.points);
+      });
+      
+      setScores(loadedScores);
+      console.log('✓ Loaded', Object.keys(loadedScores).length, 'existing scores for judge', jid);
+    } catch (error) {
+      console.error('Error loading judge scores:', error);
+    }
+  };
+
+  const handleScoreChange = (candidateId, criteriaId, value, maxPoints) => {
+    // Only allow numbers and decimal points
+    if (value === '') {
+      // Allow empty input
+      setScores(prev => ({
+        ...prev,
+        [`${candidateId}-${criteriaId}`]: value
+      }));
+      return;
+    }
+    
+    // Check if input contains only numbers and decimal point
+    if (!/^\d*\.?\d*$/.test(value)) {
+      // Invalid input (contains letters or special chars), don't update
+      return;
+    }
+    
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue)) {
+      // Cap the value at maxPoints if it exceeds
+      const cappedValue = numValue > maxPoints ? maxPoints : numValue;
+      setScores(prev => ({
+        ...prev,
+        [`${candidateId}-${criteriaId}`]: cappedValue.toString()
+      }));
+    }
   };
 
   const handleSubmit = async (candidateId, criteriaId) => {
@@ -187,36 +369,61 @@ export default function Judge() {
     const points = scores[key];
     
     if (!points || points === '') {
-      alert('Please enter a score');
-      return;
+      return; // Silently ignore empty submissions
     }
 
     try {
-      await pointsAPI.create({
+      const response = await pointsAPI.create({
         candidate_id: candidateId,
         round_id: selectedRound,
         criteria_id: criteriaId,
-        points: parseInt(points),
+        points: parseFloat(points),
         judge_id: parseInt(judgeId),
-        category: selectedCategory
+        event_id: eventId
       });
-      alert('Score saved successfully!');
-      setScores(prev => ({ ...prev, [key]: '' }));
+      
+      // Only show success if response is valid
+      if (response && response.id) {
+        console.log('Score saved successfully:', response);
+        // Don't clear the field - keep it for reference
+      }
     } catch (error) {
       console.error('Error saving score:', error);
-      alert('Failed to save score');
+      // Don't show alert on error - just log it
     }
   };
 
   const handleJudgeSelect = (id) => {
+    console.log('🔵 Judge selected:', id);
     setJudgeId(id.toString());
     localStorage.setItem('judgeId', id.toString());
+    
+    // Big ASCII art console log
+    const judgeNumber = id;
+    console.log(`
+%c
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║                    JUDGE #${judgeNumber} LOGGED IN            ║
+║                                                               ║
+║                Ready to Score Candidates                      ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+    `, 'color: #00ff00; font-weight: bold; font-size: 14px;');
+    
+    // Load existing scores for this judge
+    console.log('🔵 Calling loadJudgeScores for judge:', id);
+    loadJudgeScores(id.toString());
     // Don't hide the selection screen yet - wait for PROCEED
   };
 
   const handleProceed = () => {
     if (judgeId) {
       setShowJudgeSelection(false); // Now hide and go to scoring interface
+      // Refresh the page to load scoring interface fresh
+      setTimeout(() => {
+        window.location.reload();
+      }, 300);
       // navigate('/scoreboard'); // Removed - stay on judge page for scoring
     }
   };
@@ -254,41 +461,31 @@ export default function Judge() {
             
             {/* Judge Selection Buttons */}
             <div className="text-center space-y-6">
-              {/* First Row - 3 Judges */}
-              <div className="flex justify-center gap-4">
-                {[1, 2, 3].map((id) => (
-                  <button
-                    key={id}
-                    onClick={() => handleJudgeSelect(id)}
-                    className="bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg px-8 py-6 transition-all flex flex-col items-center gap-3"
-                    style={{ textTransform: 'uppercase', letterSpacing: '2px', fontSize: '15px' }}
-                  >
-                    <img src="/assets/icon/2994536.png" alt="Judge" className="h-20" />
-                    <div>
-                      SELECT <br />
-                      JUDGE <span className="inline-block bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">{String(id).padStart(2, '0')}</span>
+              {judges.length === 0 ? (
+                <p className="text-gray-500 py-8">No judges available</p>
+              ) : (
+                <>
+                  {/* Render judges in rows of 3 */}
+                  {Array.from({ length: Math.ceil(judges.length / 3) }).map((_, rowIndex) => (
+                    <div key={rowIndex} className="flex justify-center gap-4 flex-wrap">
+                      {judges.slice(rowIndex * 3, (rowIndex + 1) * 3).map((judge) => (
+                        <button
+                          key={judge.id}
+                          onClick={() => handleJudgeSelect(judge.id)}
+                          className="bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg px-8 py-6 transition-all flex flex-col items-center gap-3"
+                          style={{ textTransform: 'uppercase', letterSpacing: '2px', fontSize: '15px' }}
+                        >
+                          <img src="/assets/icon/2994536.png" alt="Judge" className="h-20" />
+                          <div>
+                            SELECT <br />
+                            JUDGE <span className="inline-block bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">{String(judge.chair_number).padStart(2, '0')}</span>
+                          </div>
+                        </button>
+                      ))}
                     </div>
-                  </button>
-                ))}
-              </div>
-
-              {/* Second Row - 2 Judges */}
-              <div className="flex justify-center gap-4">
-                {[4, 5].map((id) => (
-                  <button
-                    key={id}
-                    onClick={() => handleJudgeSelect(id)}
-                    className="bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg px-8 py-6 transition-all flex flex-col items-center gap-3"
-                    style={{ textTransform: 'uppercase', letterSpacing: '2px', fontSize: '15px' }}
-                  >
-                    <img src="/assets/icon/2994536.png" alt="Judge" className="h-20" />
-                    <div>
-                      SELECT <br />
-                      JUDGE <span className="inline-block bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">{String(id).padStart(2, '0')}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
+                  ))}
+                </>
+              )}
 
               <hr className="border-gray-300 my-6 w-3/4 mx-auto" />
 
@@ -296,7 +493,7 @@ export default function Judge() {
               {judgeId && (
                 <p className="text-lg font-bold">
                   JUDGE <span className="inline-block bg-red-600 text-white px-4 py-1 rounded" style={{ letterSpacing: '2px' }}>
-                    [#0{judgeId}]
+                    [#{String(judges.find(j => j.id === parseInt(judgeId))?.chair_number || judgeId).padStart(2, '0')}]
                   </span> WAS CHOSEN
                 </p>
               )}
@@ -357,54 +554,6 @@ export default function Judge() {
         </div>
       )}
       
-      {/* Header matching old system - Orange */}
-      <div style={{ 
-        backgroundColor: '#f97316',
-        borderBottom: '5px solid #ea580c',
-        padding: '8px 0'
-      }}>
-        {/* Empty orange header bar */}
-      </div>
-      
-      {/* Time and Logos Row */}
-      <div style={{ 
-        backgroundColor: '#fff',
-        padding: '20px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        borderBottom: '1px solid #ddd'
-      }}>
-        {/* Time Display on Left */}
-        <div style={{ 
-          fontSize: '32px',
-          fontWeight: 'bold',
-          fontFamily: 'Arial, sans-serif',
-          minWidth: '200px'
-        }}>
-          <TimeDisplay />
-        </div>
-        
-        {/* Logos in Center */}
-        <div style={{ 
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: '20px',
-          flex: 1
-        }}>
-          <img src="/assets/1.png" alt="Logo 1" style={{ height: '60px' }} />
-          <img src="/assets/2.png" alt="Logo 2" style={{ height: '60px' }} />
-          <img src="/assets/3.png" alt="Logo 3" style={{ height: '60px' }} />
-          <img src="/assets/4.png" alt="Logo 4" style={{ height: '60px' }} />
-          <img src="/assets/5.png" alt="Logo 5" style={{ height: '60px' }} />
-          <img src="/assets/6.png" alt="Logo 6" style={{ height: '60px' }} />
-          <img src="/assets/7.png" alt="Logo 7" style={{ height: '60px' }} />
-        </div>
-        
-        {/* Empty space on right for balance */}
-        <div style={{ minWidth: '200px' }}></div>
-      </div>
       
       {/* Show empty state by default - matching old system behavior */}
       {!isLocked && !showScoringInterface && (
@@ -427,28 +576,60 @@ export default function Judge() {
       
       {/* Show scoring interface only when activated by admin and not locked */}
       {!isLocked && showScoringInterface && (
-      <div style={{ backgroundColor: '#fff', padding: '20px' }}>
-        {/* Header with Hide Scores Button */}
+      <div style={{ backgroundColor: '#fff' }}>
+        {/* Professional Header with Logos - Same as Admin */}
+        <div className="bg-white px-8 py-6 border-b border-slate-100 relative overflow-hidden">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            
+            {/* Left: Time Display */}
+            <div className="flex-1 min-w-[200px]">
+              <div className="text-2xl font-light text-slate-900 tracking-tight uppercase">
+                <TimeDisplay />
+              </div>
+            </div>
+
+            {/* Center: Logos (Balanced) */}
+            <div className="flex items-center justify-center gap-6 py-2">
+              <img src="/assets/logo-3.png" className="h-14 object-contain drop-shadow-sm filter hover:brightness-110 transition-all" alt="Logo 1" />
+              <div className="h-10 w-px bg-slate-200"></div>
+              <img src="/assets/tcc_seal.png" className="h-14 object-contain drop-shadow-sm filter hover:brightness-110 transition-all" alt="Seal" />
+              <div className="h-10 w-px bg-slate-200"></div>
+              <img src="/src/assets/logo.png" className="h-16 object-contain drop-shadow-sm filter hover:brightness-110 transition-all" alt="App Logo" />
+              <div className="h-10 w-px bg-slate-200"></div>
+              <img src="/assets/it.png" className="h-14 object-contain drop-shadow-sm filter hover:brightness-110 transition-all" alt="IT" />
+              <div className="h-10 w-px bg-slate-200"></div>
+              <img src="/assets/bsit.png" className="h-14 object-contain drop-shadow-sm filter hover:brightness-110 transition-all" alt="BSIT" />
+            </div>
+
+            {/* Right: Empty space for balance */}
+            <div className="flex-1 min-w-[200px]"></div>
+          </div>
+        </div>
+
+        {/* Hide Scores Button - Below Header */}
         <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+          backgroundColor: '#fff',
+          padding: '15px 20px',
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '20px',
-          paddingLeft: '25px'
+          borderBottom: '1px solid #ddd',
+          position: 'relative'
         }}>
-          <h3 style={{
+          {/* Minimal Accent Line at bottom */}
+          <div style={{ position: 'absolute', bottom: '0', left: '0', width: '100%', height: '2px', backgroundColor: '#1e293b' }}></div>
+          
+          {/* Active Round Display */}
+          <div style={{
+            fontSize: '16px',
+            fontWeight: 'bold',
+            color: '#1e293b',
             textTransform: 'uppercase',
-            fontFamily: 'Nunito, sans-serif',
-            fontWeight: 'bolder',
-            fontSize: '24px',
-            margin: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
+            letterSpacing: '1px'
           }}>
-            <img src="/assets/1642423.png" alt="" style={{ height: '55px' }} />
-            Criteria for Judging (Linggo Ng Kabataan)
-          </h3>
+            Active Round: <span style={{ color: '#f97316' }}>{activeRoundName}</span>
+          </div>
+          
           <button 
             onClick={() => setScoresHidden(!scoresHidden)}
             style={{
@@ -461,10 +642,12 @@ export default function Judge() {
               letterSpacing: '2px',
               textTransform: 'uppercase',
               fontWeight: 'bold',
-              marginRight: '20px'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}
           >
-            <span style={{ marginRight: '8px' }}>👁</span>
+            {scoresHidden ? <Eye size={18} /> : <EyeOff size={18} />}
             {scoresHidden ? 'Show My Scores' : 'Hide My Scores'}
           </button>
         </div>
@@ -481,8 +664,6 @@ export default function Judge() {
                 padding: '10px',
                 border: '1px solid #ddd'
               }}>
-                <strong style={{ fontWeight: 'bolder' }}>(BARANGAY)</strong>
-                <br />
                 Female Category
               </td>
               {filteredCriteria.map(criteriaItem => (
@@ -492,7 +673,7 @@ export default function Judge() {
                   border: '1px solid #ddd',
                   backgroundColor: '#f9f9f9'
                 }}>
-                  {criteriaItem.name} <b>({criteriaItem.max_score}%)</b>
+                  {criteriaItem.name} <b>({criteriaItem.points}%)</b>
                 </th>
               ))}
               <th style={{ 
@@ -510,7 +691,7 @@ export default function Judge() {
               const candidateScores = filteredCriteria.map(crit => 
                 parseFloat(scores[`${candidate.id}-${crit.id}`] || 0)
               );
-              const average = candidateScores.reduce((sum, score) => sum + score, 0) / candidateScores.length || 0;
+              const average = candidateScores.reduce((sum, score) => sum + score, 0);
               
               return (
                 <tr key={candidate.id}>
@@ -528,19 +709,21 @@ export default function Judge() {
                       <input
                         type={scoresHidden ? 'password' : 'number'}
                         value={scores[`${candidate.id}-${criteriaItem.id}`] || ''}
-                        onChange={(e) => handleScoreChange(candidate.id, criteriaItem.id, e.target.value)}
-                        onBlur={() => handleScoreSubmit(candidate.id, criteriaItem.id)}
-                        max={criteriaItem.max_score}
+                        onChange={(e) => handleScoreChange(candidate.id, criteriaItem.id, e.target.value, criteriaItem.points)}
+                        onBlur={() => handleSubmit(candidate.id, criteriaItem.id)}
+                        max={criteriaItem.points}
                         min="0"
                         step="0.01"
-                        placeholder={`Score: 1-${criteriaItem.max_score}`}
+                        placeholder={`Score: 1-${criteriaItem.points}`}
                         style={{
                           width: '100%',
                           border: 'none',
                           borderBottom: '1px solid #ccc',
                           textAlign: 'center',
                           padding: '8px',
-                          fontSize: '14px'
+                          fontSize: '14px',
+                          filter: scoresHidden ? 'blur(8px)' : 'none',
+                          transition: 'filter 0.3s ease'
                         }}
                       />
                     </td>
@@ -575,8 +758,6 @@ export default function Judge() {
                 border: '1px solid #ddd',
                 textAlign: 'center'
               }}>
-                <strong style={{ fontWeight: 'bolder' }}>(BARANGAY)</strong>
-                <br />
                 Male Category
               </td>
               {filteredCriteria.map(criteriaItem => (
@@ -586,7 +767,7 @@ export default function Judge() {
                   border: '1px solid #ddd',
                   backgroundColor: '#f9f9f9'
                 }}>
-                  {criteriaItem.name} <b>({criteriaItem.max_score}%)</b>
+                  {criteriaItem.name} <b>({criteriaItem.points}%)</b>
                 </th>
               ))}
               <th style={{ 
@@ -604,7 +785,7 @@ export default function Judge() {
               const candidateScores = filteredCriteria.map(crit => 
                 parseFloat(scores[`${candidate.id}-${crit.id}`] || 0)
               );
-              const average = candidateScores.reduce((sum, score) => sum + score, 0) / candidateScores.length || 0;
+              const average = candidateScores.reduce((sum, score) => sum + score, 0);
               
               return (
                 <tr key={candidate.id}>
@@ -622,19 +803,21 @@ export default function Judge() {
                       <input
                         type={scoresHidden ? 'password' : 'number'}
                         value={scores[`${candidate.id}-${criteriaItem.id}`] || ''}
-                        onChange={(e) => handleScoreChange(candidate.id, criteriaItem.id, e.target.value)}
-                        onBlur={() => handleScoreSubmit(candidate.id, criteriaItem.id)}
-                        max={criteriaItem.max_score}
+                        onChange={(e) => handleScoreChange(candidate.id, criteriaItem.id, e.target.value, criteriaItem.points)}
+                        onBlur={() => handleSubmit(candidate.id, criteriaItem.id)}
+                        max={criteriaItem.points}
                         min="0"
                         step="0.01"
-                        placeholder={`Score: 1-${criteriaItem.max_score}`}
+                        placeholder={`Score: 1-${criteriaItem.points}`}
                         style={{
                           width: '100%',
                           border: 'none',
                           borderBottom: '1px solid #ccc',
                           textAlign: 'center',
                           padding: '8px',
-                          fontSize: '14px'
+                          fontSize: '14px',
+                          filter: scoresHidden ? 'blur(8px)' : 'none',
+                          transition: 'filter 0.3s ease'
                         }}
                       />
                     </td>

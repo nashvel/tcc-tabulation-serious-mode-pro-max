@@ -28,6 +28,7 @@ Route::get('candidates', [CandidateController::class, 'index']);
 Route::get('rounds', [RoundController::class, 'index']);
 Route::get('criteria', [CriteriaController::class, 'index']);
 Route::get('points', [PointController::class, 'index']);
+Route::post('points', [PointController::class, 'store']); // Judges submit scores (no auth needed)
 Route::get('judges', [JudgeController::class, 'index']);
 Route::get('scoreboard', [PointController::class, 'getScoreboard']);
 
@@ -87,7 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('criteria/{criteria}', [CriteriaController::class, 'update']);
     Route::delete('criteria/{criteria}', [CriteriaController::class, 'destroy']);
     
-    Route::post('points', [PointController::class, 'store']);
+    // Points: POST is public (judges), PUT/DELETE are protected (admin)
     Route::put('points/{point}', [PointController::class, 'update']);
     Route::delete('points/{point}', [PointController::class, 'destroy']);
 });

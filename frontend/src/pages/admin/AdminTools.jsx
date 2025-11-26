@@ -111,6 +111,7 @@ export default function AdminTools() {
   } = useVotingControl(continuingEvent);
 
   const [showStopModal, setShowStopModal] = useState(false);
+  const [judges, setJudges] = useState([]);
 
   const handleStartStopButtonClick = () => {
     if (isVotingActive) {
@@ -244,6 +245,8 @@ export default function AdminTools() {
             rounds={rounds}
             criteria={criteria}
             continuingEvent={continuingEvent}
+            onJudgesLoaded={setJudges}
+            isVotingActive={isVotingActive}
           />
         </div>
       </div>
@@ -251,14 +254,7 @@ export default function AdminTools() {
       {/* Event Sequence Sidebar - Fixed Right */}
       <EventSequenceSidebar
         availableCategories={availableCategories}
-        eventSequence={eventSequence}
-        currentSequenceIndex={currentSequenceIndex}
-        onAddToSequence={handleAddToSequence}
-        onRemoveFromSequence={handleRemoveFromSequence}
-        onMoveUp={handleMoveSequenceUp}
-        onMoveDown={handleMoveSequenceDown}
-        isVotingActive={isVotingActive}
-        onStartEvent={handleStartEventWithFirstRound}
+        judges={judges}
         shouldOpen={showStartStopModal}
       />
 

@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { initializeEcho } from '../../../config/echo';
 import { getApiBase, getCurrentEventId } from '../../../config/api';
+import { useVotingWebSocket } from '../../../hooks/useVotingWebSocket';
 import LiveIndicator from '../scoring/LiveIndicator';
 import RoundHeader from '../scoring/RoundHeader';
 import ScoreTable from '../scoring/ScoreTable';
@@ -156,14 +157,52 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
     fetchData();
   }, []); // Empty dependency - only run on mount
 
-  // Real-time WebSocket score updates
+  // WebSocket handler for real-time score updates
+  const handleScoreUpdate = useCallback((data) => {
+    console.log('✅ handleScoreUpdate called with:', data);
+    
+    // Update single score from WebSocket event
+    if (data.judge_id && data.candidate_id && data.criteria_id !== undefined) {
+      console.log('📝 Updating score in state:', {
+        judge_id: data.judge_id,
+        candidate_id: data.candidate_id,
+        criteria_id: data.criteria_id,
+        points: data.points
+      });
+      setScores(prevScores => {
+        const newScores = { ...prevScores };
+        if (newScores[data.judge_id] && newScores[data.judge_id][data.candidate_id]) {
+          newScores[data.judge_id][data.candidate_id][data.criteria_id] = data.points;
+          console.log('✅ Score updated in state');
+        } else {
+          console.warn('⚠️ Score structure not found for judge:', data.judge_id, 'candidate:', data.candidate_id);
+        }
+        return newScores;
+      });
+    }
+  }, []);
+
+  // Get eventId from continuingEvent in localStorage
+  const eventId = useMemo(() => {
+    const continuingEventStr = localStorage.getItem('continuingEvent');
+    if (continuingEventStr) {
+      try {
+        const continuingEvent = JSON.parse(continuingEventStr);
+        return continuingEvent.id;
+      } catch (e) {
+        console.error('Error parsing continuingEvent:', e);
+      }
+    }
+    return 1; // Fallback to 1
+  }, []);
+
+  // Fetch scores when judges/categories/candidates change
   useEffect(() => {
-    // Only run once after initial data is loaded
     if (!hasInitialized.current || judges.length === 0 || categories.length === 0) {
       return;
     }
 
-    const fetchInitialScores = async () => {
+    const fetchScores = async () => {
       try {
         const apiBase = getApiBase();
         const response = await fetch(`${apiBase}/api/points`);
@@ -188,7 +227,7 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
                 const point = pointsData.find(p => 
                   p.judge_id === judge.id && 
                   p.candidate_id === candidate.id && 
-                  p.criterion_id === criterion.id
+                  p.criteria_id === criterion.id
                 );
                 
                 newScores[judge.id][candidate.id][criterion.id] = point?.points || null;
@@ -200,51 +239,58 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
           setPartnerScores(newPartnerScores);
         }
       } catch (error) {
-        console.error('Error fetching initial scores:', error);
+        console.error('Error fetching scores:', error);
       }
     };
 
+    fetchScores();
+  }, [judges, categories, activeCandidates]);
+
+  // Setup WebSocket for real-time score updates (separate effect for stability)
+  useEffect(() => {
     setIsLive(true);
     
-    // Fetch initial scores
-    fetchInitialScores();
-    
-    // Try to initialize Laravel Echo for WebSocket updates
     const echo = initializeEcho();
-    if (echo && judges.length > 0) {
-      // Subscribe to WebSocket events for real-time updates
-      const eventId = parseInt(localStorage.getItem('eventId')) || 1;
+    if (echo) {
       const channelName = `scores.${eventId}`;
+      console.log('📡 Attempting to connect to channel:', channelName);
+      const channel = echo.channel(channelName);
       
-      // Listen for score updates via Laravel Echo
-      echo.channel(channelName).listen('ScoreUpdated', (data) => {
-        console.log('Score updated via WebSocket:', data);
-        
-        // Update scores state with new data
-        setScores(prevScores => {
-          const newScores = { ...prevScores };
-          if (newScores[data.judge_id] && newScores[data.judge_id][data.candidate_id]) {
-            newScores[data.judge_id][data.candidate_id][data.criterion_id] = data.points;
-          }
-          return newScores;
-        });
+      channel.subscribed(() => {
+        console.log('✅ Successfully subscribed to channel:', channelName);
       });
       
-      console.log('WebSocket connected to scores.' + eventId);
-    } else {
-      console.warn('WebSocket not available - real-time score updates disabled');
+      channel.error((error) => {
+        console.error('❌ Channel subscription error:', error);
+      });
+      
+      // Listen for ScoreUpdated event (no dot prefix for public channels)
+      channel.listen('ScoreUpdated', (data) => {
+        console.log('🔔 *** RECEIVED ScoreUpdated event! ***');
+        console.log('🔔 Raw event data:', data);
+        console.log('🔔 Judge ID:', data.judge_id);
+        console.log('🔔 Candidate ID:', data.candidate_id);
+        console.log('🔔 Criteria ID:', data.criteria_id);
+        console.log('🔔 Points:', data.points);
+        console.log('🔔 Current scores state:', scores);
+        handleScoreUpdate(data);
+      });
+      
+      console.log('✓ WebSocket listener attached to scores channel:', channelName);
+      
+      // Cleanup on unmount
+      return () => {
+        console.log('🔌 Leaving channel:', channelName);
+        echo.leave(channelName);
+        setIsLive(false);
+      };
     }
 
     // Cleanup on unmount
     return () => {
-      const echo = initializeEcho();
-      if (echo) {
-        const eventId = parseInt(localStorage.getItem('eventId')) || 1;
-        echo.leave(`scores.${eventId}`);
-      }
       setIsLive(false);
     };
-  }, []); // Empty dependency - only run once on mount
+  }, [eventId, handleScoreUpdate]);
 
   if (loading) return <TableSkeleton />;
   if (!judges.length) return <EmptyState />;
