@@ -5,28 +5,26 @@ import NextCategorySubmenu from './NextCategorySubmenu';
 import ClearJudgesSubmenu from './ClearJudgesSubmenu';
 import { ClipboardList, Lock, Unlock, Activity } from 'lucide-react';
 
-export default function ControlButtons({ 
+export default function ControlButtons({
   eventId,
-  isVotingActive, 
-  eventSequence, 
+  isVotingActive,
+  eventSequence,
   currentSequenceIndex,
-  onStartStop, 
-  onNext 
+  onStartStop,
+  onNext
 }) {
   const [isLocked, setIsLocked] = useState(false);
-   
+
   // Load lock state on mount and refresh every 2 seconds
   useEffect(() => {
     loadLockState();
-    const interval = setInterval(loadLockState, 2000);
-    return () => clearInterval(interval);
   }, []);
 
   // Testing function to mark round as completed
   const handleTestMarkCompleted = async () => {
     // ... existing code ...
   };
-  
+
   const loadLockState = async () => {
     try {
       const response = await votingAPI.getState({ event_id: eventId || 1 });
@@ -37,7 +35,7 @@ export default function ControlButtons({
       console.error('Error loading lock state:', error);
     }
   };
-  
+
   const handleLockToggle = async () => {
     try {
       if (isLocked) {
@@ -87,7 +85,7 @@ export default function ControlButtons({
     <div className="w-full px-6 mb-6">
       {/* Colorful Pill Buttons Container */}
       <div className="bg-white rounded-lg border border-slate-200 p-3 flex flex-wrap items-center justify-center gap-2">
-        
+
         {/* Details Button - Blue */}
         <button
           onClick={() => window.location.href = `/admin/events/${eventId || 'active'}/details`}
@@ -103,11 +101,10 @@ export default function ControlButtons({
         {/* Lock/Unlock Button - Amber */}
         <button
           onClick={handleLockToggle}
-          className={`${pillButtonClass} ${
-            isLocked 
-              ? 'bg-amber-500 text-white hover:bg-amber-600' 
+          className={`${pillButtonClass} ${isLocked
+              ? 'bg-amber-500 text-white hover:bg-amber-600'
               : 'bg-blue-400 text-white hover:bg-blue-500'
-          }`}
+            }`}
         >
           <div className="bg-white rounded-full p-1">
             {isLocked ? (
@@ -120,7 +117,7 @@ export default function ControlButtons({
         </button>
 
         {/* Clear Judges Button with Submenu - Red */}
-        <ClearJudgesSubmenu 
+        <ClearJudgesSubmenu
           eventId={eventId}
           onClear={handleClearJudges}
         />

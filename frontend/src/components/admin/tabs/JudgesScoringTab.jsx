@@ -22,10 +22,11 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
   const [scoresHidden, setScoresHidden] = useState(false);
   const pollingIntervalRef = useRef(null);
   const hasInitialized = useRef(false);
-  
+  const [typingIndicators, setTypingIndicators] = useState({});
+
   // Check if we have duo participants
   const hasDuoParticipants = (fetchedCandidates || []).some(c => c.participant_type === 'duo' && c.partnership?.partner_name);
-  
+
   // Use fetched candidates if available, otherwise fall back to prop
   const activeCandidates = fetchedCandidates.length > 0 ? fetchedCandidates : (candidates || []);
 
@@ -39,20 +40,20 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
     const fetchData = async () => {
       try {
         const apiBase = getApiBase();
-        
+
         // Use continuingEvent prop first, then fallback to localStorage
         let event = continuingEvent;
-        
+
         if (!event) {
           const eventFromStorage = localStorage.getItem('continuingEvent');
           event = eventFromStorage ? JSON.parse(eventFromStorage) : null;
         }
-        
+
         // If no event in localStorage, get from voting state
         if (!event) {
           const votingStateResponse = await fetch(`${apiBase}/api/voting/state`);
           const votingState = await votingStateResponse.json();
-          
+
           if (votingState.event_id) {
             const eventResponse = await fetch(`${apiBase}/api/events/${votingState.event_id}`);
             event = await eventResponse.json();
@@ -61,9 +62,9 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
             return;
           }
         }
-        
+
         const eventId = event.id;
-        
+
         // Fetch all critical data in parallel (optimized)
         const [votingStateResponse, roundsResponse, candidatesResponse, criteriaResponse, judgesResponse] = await Promise.all([
           fetch(`${apiBase}/api/voting/state?event_id=${eventId}`),
@@ -72,29 +73,29 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
           fetch(`${apiBase}/api/criteria?event_id=${eventId}`),
           fetch(`${apiBase}/api/judges?event_id=${eventId}`)
         ]);
-        
+
         // Check all responses
         if (!votingStateResponse.ok || !roundsResponse.ok || !candidatesResponse.ok || !criteriaResponse.ok) {
           throw new Error('Failed to fetch required data');
         }
-        
+
         const votingState = await votingStateResponse.json();
         const rounds = await roundsResponse.json();
         const candidatesData = await candidatesResponse.json();
         const criteria = await criteriaResponse.json();
-        
+
         setFetchedCandidates(candidatesData);
         setCategories(criteria);
-        
+
         if (criteria.length > 0 && !selectedCategory) {
           setSelectedCategory(criteria[0].id);
         }
-        
+
         // Get active round from voting state
         const currentRoundId = votingState.active_round_id;
         const currentRound = rounds.find(r => r.id === currentRoundId);
         setActiveRound(currentRound);
-        
+
         // Process judges data
         let judgeList = [];
         if (judgesResponse.ok) {
@@ -111,7 +112,7 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
           }));
         }
         setJudges(judgeList);
-        
+
         // Initialize empty scores with criteria structure
         const emptyScores = {};
         judgeList.forEach(judge => {
@@ -124,7 +125,7 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
           });
         });
         setScores(emptyScores);
-        
+
         // Check for duo participants in fetched data
         const hasDuo = candidatesData.some(c => c.participant_type === 'duo' && c.partnership?.partner_name);
         if (hasDuo) {
@@ -142,7 +143,7 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
           });
           setPartnerScores(emptyPartnerScores);
         }
-        
+
         // Mark as initialized to prevent re-fetching
         hasInitialized.current = true;
         setLoading(false);
@@ -151,39 +152,63 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
         setLoading(false);
       }
     };
-    
-    // Fetch data immediately without blocking UI
+
     setLoading(true);
     fetchData();
   }, []); // Empty dependency - only run on mount
 
   // WebSocket handler for real-time score updates
   const handleScoreUpdate = useCallback((data) => {
-    console.log('✅ handleScoreUpdate called with:', data);
-    
     // Update single score from WebSocket event
     if (data.judge_id && data.candidate_id && data.criteria_id !== undefined) {
-      console.log('📝 Updating score in state:', {
-        judge_id: data.judge_id,
-        candidate_id: data.candidate_id,
-        criteria_id: data.criteria_id,
-        points: data.points
-      });
       setScores(prevScores => {
         const newScores = { ...prevScores };
         if (newScores[data.judge_id] && newScores[data.judge_id][data.candidate_id]) {
           newScores[data.judge_id][data.candidate_id][data.criteria_id] = data.points;
-          console.log('✅ Score updated in state');
-        } else {
-          console.warn('⚠️ Score structure not found for judge:', data.judge_id, 'candidate:', data.candidate_id);
         }
         return newScores;
       });
     }
   }, []);
 
-  // Get eventId from continuingEvent in localStorage
+  // WebSocket handler for typing indicators
+  const handleTypingUpdate = useCallback((data) => {
+    console.log('🖊️ Admin: handleTypingUpdate called with:', data);
+    const { judge_id, candidate_id, criteria_id, is_typing } = data;
+
+    if (!judge_id || !candidate_id || criteria_id === undefined) {
+      console.warn('⚠️ Admin: Invalid typing data, skipping:', data);
+      return;
+    }
+
+    console.log(`🖊️ Admin: Setting typing indicator for Judge ${judge_id}, Candidate ${candidate_id}, Criteria ${criteria_id}, isTyping: ${is_typing}`);
+
+    setTypingIndicators(prev => {
+      const newIndicators = { ...prev };
+
+      if (!newIndicators[judge_id]) newIndicators[judge_id] = {};
+      if (!newIndicators[judge_id][candidate_id]) newIndicators[judge_id][candidate_id] = {};
+
+      if (is_typing) {
+        newIndicators[judge_id][candidate_id][criteria_id] = {
+          isTyping: true,
+          timestamp: Date.now()
+        };
+        console.log('✅ Admin: Typing indicator SET');
+      } else {
+        delete newIndicators[judge_id][candidate_id][criteria_id];
+        console.log('✅ Admin: Typing indicator REMOVED');
+      }
+
+      console.log('🖊️ Admin: Updated typing indicators:', newIndicators);
+      return newIndicators;
+    });
+  }, []);
+
+  // Get eventId from continuingEvent in localStorage or prop
   const eventId = useMemo(() => {
+    if (continuingEvent) return continuingEvent.id;
+
     const continuingEventStr = localStorage.getItem('continuingEvent');
     if (continuingEventStr) {
       try {
@@ -194,7 +219,7 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
       }
     }
     return 1; // Fallback to 1
-  }, []);
+  }, [continuingEvent]);
 
   // Fetch scores when judges/categories/candidates change
   useEffect(() => {
@@ -208,33 +233,33 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
         const response = await fetch(`${apiBase}/api/points`);
         if (response.ok) {
           const pointsData = await response.json();
-          
+
           // Transform points data into scores structure
           const newScores = {};
           const newPartnerScores = {};
-          
+
           judges.forEach(judge => {
             newScores[judge.id] = {};
             newPartnerScores[judge.id] = {};
-            
+
             activeCandidates.forEach(candidate => {
               newScores[judge.id][candidate.id] = {};
               if (candidate.participant_type === 'duo' && candidate.partnership?.partner_name) {
                 newPartnerScores[judge.id][candidate.id] = {};
               }
-              
+
               categories.forEach(criterion => {
-                const point = pointsData.find(p => 
-                  p.judge_id === judge.id && 
-                  p.candidate_id === candidate.id && 
+                const point = pointsData.find(p =>
+                  p.judge_id === judge.id &&
+                  p.candidate_id === candidate.id &&
                   p.criteria_id === criterion.id
                 );
-                
+
                 newScores[judge.id][candidate.id][criterion.id] = point?.points || null;
               });
             });
           });
-          
+
           setScores(newScores);
           setPartnerScores(newPartnerScores);
         }
@@ -249,38 +274,33 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
   // Setup WebSocket for real-time score updates (separate effect for stability)
   useEffect(() => {
     setIsLive(true);
-    
+
     const echo = initializeEcho();
     if (echo) {
       const channelName = `scores.${eventId}`;
-      console.log('📡 Attempting to connect to channel:', channelName);
+      console.log('📡 Admin: Attempting to connect to channel:', channelName);
       const channel = echo.channel(channelName);
-      
+
       channel.subscribed(() => {
-        console.log('✅ Successfully subscribed to channel:', channelName);
+        console.log('✅ Admin: Successfully subscribed to channel:', channelName);
       });
-      
+
       channel.error((error) => {
         console.error('❌ Channel subscription error:', error);
       });
-      
-      // Listen for ScoreUpdated event (no dot prefix for public channels)
-      channel.listen('ScoreUpdated', (data) => {
-        console.log('🔔 *** RECEIVED ScoreUpdated event! ***');
-        console.log('🔔 Raw event data:', data);
-        console.log('🔔 Judge ID:', data.judge_id);
-        console.log('🔔 Candidate ID:', data.candidate_id);
-        console.log('🔔 Criteria ID:', data.criteria_id);
-        console.log('🔔 Points:', data.points);
-        console.log('🔔 Current scores state:', scores);
+
+      channel.listen('.ScoreUpdated', (data) => {
+        console.log('🔔 Admin: Received .ScoreUpdated event:', data);
         handleScoreUpdate(data);
       });
-      
-      console.log('✓ WebSocket listener attached to scores channel:', channelName);
-      
+
+      channel.listen('.JudgeTyping', (data) => {
+        console.log('🔔 Admin: Received .JudgeTyping event:', data);
+        handleTypingUpdate(data);
+      });
+
       // Cleanup on unmount
       return () => {
-        console.log('🔌 Leaving channel:', channelName);
         echo.leave(channelName);
         setIsLive(false);
       };
@@ -290,7 +310,34 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
     return () => {
       setIsLive(false);
     };
-  }, [eventId, handleScoreUpdate]);
+  }, [eventId, handleScoreUpdate, handleTypingUpdate]);
+
+  // Auto-cleanup typing indicators after 3 seconds of inactivity
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setTypingIndicators(prev => {
+        const newIndicators = { ...prev };
+        let hasChanges = false;
+
+        Object.keys(newIndicators).forEach(judgeId => {
+          Object.keys(newIndicators[judgeId]).forEach(candidateId => {
+            Object.keys(newIndicators[judgeId][candidateId]).forEach(criteriaId => {
+              const indicator = newIndicators[judgeId][candidateId][criteriaId];
+              if (now - indicator.timestamp > 3000) {
+                delete newIndicators[judgeId][candidateId][criteriaId];
+                hasChanges = true;
+              }
+            });
+          });
+        });
+
+        return hasChanges ? newIndicators : prev;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   if (loading) return <TableSkeleton />;
   if (!judges.length) return <EmptyState />;
@@ -302,12 +349,12 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
   return (
     <div className="font-sans antialiased bg-slate-50/50 min-h-screen pb-20">
       {isLive && <LiveIndicator />}
-      
+
       <div className="px-4 py-6 max-w-[1600px] mx-auto">
         {activeRound && <RoundHeader roundName={activeRound.name} />}
 
         {femaleCandidates.length > 0 && (
-          <ScoreTable 
+          <ScoreTable
             title="Female Candidates"
             candidates={femaleCandidates}
             judges={judges}
@@ -317,12 +364,13 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
             scoresHidden={scoresHidden}
             setScoresHidden={setScoresHidden}
             hasDuoParticipants={hasDuoParticipants}
+            typingIndicators={typingIndicators}
             colorTheme="pink"
           />
         )}
 
         {maleCandidates.length > 0 && (
-          <ScoreTable 
+          <ScoreTable
             title="Male Candidates"
             candidates={maleCandidates}
             judges={judges}
@@ -332,6 +380,7 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
             scoresHidden={scoresHidden}
             setScoresHidden={setScoresHidden}
             hasDuoParticipants={hasDuoParticipants}
+            typingIndicators={typingIndicators}
             colorTheme="blue"
           />
         )}

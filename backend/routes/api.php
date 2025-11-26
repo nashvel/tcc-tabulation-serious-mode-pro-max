@@ -29,6 +29,7 @@ Route::get('rounds', [RoundController::class, 'index']);
 Route::get('criteria', [CriteriaController::class, 'index']);
 Route::get('points', [PointController::class, 'index']);
 Route::post('points', [PointController::class, 'store']); // Judges submit scores (no auth needed)
+Route::post('judge-typing', [PointController::class, 'typing']); // Judges broadcast typing status (no auth needed)
 Route::get('judges', [JudgeController::class, 'index']);
 Route::get('scoreboard', [PointController::class, 'getScoreboard']);
 

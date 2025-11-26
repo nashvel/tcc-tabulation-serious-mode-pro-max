@@ -1,16 +1,17 @@
 import React from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
-export default function ScoreTable({ 
-  title, 
-  candidates, 
-  judges, 
-  scores, 
-  categories, 
-  activeRound, 
-  scoresHidden, 
-  setScoresHidden, 
+export default function ScoreTable({
+  title,
+  candidates,
+  judges,
+  scores,
+  categories,
+  activeRound,
+  scoresHidden,
+  setScoresHidden,
   hasDuoParticipants,
+  typingIndicators = {},
   colorTheme = 'pink' // 'pink' for female, 'blue' for male
 }) {
   const themeColors = {
@@ -40,14 +41,14 @@ export default function ScoreTable({
             {hasDuoParticipants && <span className="text-xs font-normal text-slate-500 ml-2 capitalize">(Pairs)</span>}
           </h3>
         </div>
-        
+
         {/* Hide Scores Toggle - Premium Switch */}
         <button
           onClick={() => setScoresHidden(!scoresHidden)}
           className={`
             flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all shadow-sm
-            ${scoresHidden 
-              ? 'bg-slate-800 text-white hover:bg-slate-700 ring-1 ring-slate-700' 
+            ${scoresHidden
+              ? 'bg-slate-800 text-white hover:bg-slate-700 ring-1 ring-slate-700'
               : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
             }
           `}
@@ -62,28 +63,28 @@ export default function ScoreTable({
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gradient-to-r from-slate-900 to-slate-800 text-white border-b border-slate-700">
-                <th className="py-2 px-2 text-center text-[9px] font-bold uppercase tracking-widest text-slate-400" style={{width: '40px'}}>#</th>
-                <th className="py-2 px-2 text-left text-[9px] font-bold uppercase tracking-widest text-slate-400" style={{minWidth: '150px'}}>Candidate</th>
-                <th className="py-2 px-2 text-left text-[9px] font-bold uppercase tracking-widest text-slate-400" style={{minWidth: '120px'}}>Team/Dept</th>
+                <th className="py-2 px-2 text-center text-[9px] font-bold uppercase tracking-widest text-slate-400" style={{ width: '40px' }}>#</th>
+                <th className="py-2 px-2 text-left text-[9px] font-bold uppercase tracking-widest text-slate-400" style={{ minWidth: '150px' }}>Candidate</th>
+                <th className="py-2 px-2 text-left text-[9px] font-bold uppercase tracking-widest text-slate-400" style={{ minWidth: '120px' }}>Team/Dept</th>
                 {judges.map((judge) => (
-                  <th key={judge.id} className="py-2 px-2 text-center text-[9px] font-bold uppercase tracking-widest text-slate-400" style={{minWidth: '70px'}}>
+                  <th key={judge.id} className="py-2 px-2 text-center text-[9px] font-bold uppercase tracking-widest text-slate-400" style={{ minWidth: '70px' }}>
                     {judge.name}
                   </th>
                 ))}
-                <th className="py-2 px-2 text-center text-[9px] font-bold uppercase tracking-widest text-white bg-slate-700 border-l border-slate-600" style={{minWidth: '60px'}}>
+                <th className="py-2 px-2 text-center text-[9px] font-bold uppercase tracking-widest text-white bg-slate-700 border-l border-slate-600" style={{ minWidth: '60px' }}>
                   AVG
                 </th>
-                <th className="py-2 px-2 text-center text-[9px] font-bold uppercase tracking-widest text-cyan-400 border-l border-slate-600" style={{minWidth: '100px'}}>
+                <th className="py-2 px-2 text-center text-[9px] font-bold uppercase tracking-widest text-cyan-400 border-l border-slate-600" style={{ minWidth: '100px' }}>
                   Score Chart
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100/50">
               {candidates.map((candidate, idx) => {
-                const activeCriteria = categories.filter(criterion => 
+                const activeCriteria = categories.filter(criterion =>
                   activeRound && criterion.round && criterion.round.id === activeRound.id
                 );
-                
+
                 // Calculate total scores for each judge
                 const judgeScores = judges.map(judge => {
                   return activeCriteria.reduce((sum, criterion) => {
@@ -91,13 +92,13 @@ export default function ScoreTable({
                     return sum + (score !== null ? parseFloat(score) : 0);
                   }, 0);
                 });
-                
+
                 // Calculate average
                 const validScores = judgeScores.filter(score => score > 0);
-                const average = validScores.length > 0 
-                  ? validScores.reduce((sum, score) => sum + score, 0) / validScores.length 
+                const average = validScores.length > 0
+                  ? validScores.reduce((sum, score) => sum + score, 0) / validScores.length
                   : 0;
-                
+
                 return (
                   <tr key={candidate.id} className={`${theme.hover} transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
                     <td className="py-2 px-2 text-center font-mono text-slate-400 font-semibold text-xs border-r border-slate-100/50">
@@ -121,19 +122,30 @@ export default function ScoreTable({
                         const score = scores[judge.id]?.[candidate.id]?.[criterion.id];
                         return sum + (score !== null ? parseFloat(score) : 0);
                       }, 0);
-                      
+
                       const hasScore = judgeTotal > 0;
-                      
+
                       return (
                         <td key={judge.id} className={`
                           py-2 px-2 text-center border-r border-slate-100/50 relative
                           ${hasScore ? 'text-slate-900' : 'text-slate-300'}
                         `}>
-                          <div className={`
-                            font-mono text-xs font-semibold transition-all duration-300
-                            ${scoresHidden ? 'blur-md select-none opacity-50' : ''}
-                          `}>
-                            {hasScore ? judgeTotal.toFixed(2) : '-'}
+                          <div className="relative">
+                            <div className={`
+                              font-mono text-xs font-semibold transition-all duration-300
+                              ${scoresHidden ? 'blur-md select-none opacity-50' : ''}
+                            `}>
+                              {hasScore ? judgeTotal.toFixed(2) : '-'}
+                            </div>
+
+                            {/* Typing Indicator */}
+                            {Object.keys(typingIndicators[judge.id]?.[candidate.id] || {}).some(criteriaId =>
+                              typingIndicators[judge.id]?.[candidate.id]?.[criteriaId]?.isTyping
+                            ) && (
+                                <div className="absolute -top-1 -right-1 flex items-center gap-0.5">
+                                  <div className="animate-pulse text-amber-500 text-[8px]" title="Judge is typing...">Typing...</div>
+                                </div>
+                              )}
                           </div>
                         </td>
                       );
