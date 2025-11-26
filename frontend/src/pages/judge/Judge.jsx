@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Clock, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -122,7 +122,6 @@ export default function Judge() {
   const [eventId, setEventId] = useState(null);
   const [eventName, setEventName] = useState('');
   const [activeRoundName, setActiveRoundName] = useState('Loading...');
-  const typingTimersRef = useRef({});
 
   // Setup console command to exit judge
   useEffect(() => {
@@ -303,63 +302,7 @@ export default function Judge() {
     }
   };
 
-  // Send typing notification to admin
-  const sendTypingNotification = async (candidateId, criteriaId, isTyping) => {
-    console.log('🔔 sendTypingNotification called:', { candidateId, criteriaId, isTyping, judgeId, eventId });
-
-    if (!judgeId || !eventId) {
-      console.warn('⚠️ Cannot send typing notification: missing judgeId or eventId', { judgeId, eventId });
-      return;
-    }
-
-    try {
-      console.log('📤 Sending typing notification to:', `${apiBase}/api/judge-typing`);
-      const response = await fetch(`${apiBase}/api/judge-typing`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          judge_id: parseInt(judgeId),
-          candidate_id: candidateId,
-          criteria_id: criteriaId,
-          is_typing: isTyping,
-          event_id: eventId
-        })
-      });
-
-      if (response.ok) {
-        console.log('✅ Typing notification sent successfully');
-      } else {
-        console.error('❌ Typing notification failed:', response.status, await response.text());
-      }
-    } catch (error) {
-      console.error('❌ Error sending typing notification:', error);
-    }
-  };
-
   const handleScoreChange = (candidateId, criteriaId, value, maxPoints) => {
-    const key = `${candidateId}-${criteriaId}`;
-
-    // --- Optimized Typing Indicator Logic ---
-    // If no timer exists, it means we are starting a new typing burst -> Send TRUE
-    if (!typingTimersRef.current[key]) {
-      sendTypingNotification(candidateId, criteriaId, true);
-    }
-
-    // Clear existing timer (if any) to extend the "stopped" delay
-    if (typingTimersRef.current[key]) {
-      clearTimeout(typingTimersRef.current[key]);
-    }
-
-    // Set new timer to send "stopped typing" after 1 second of inactivity
-    typingTimersRef.current[key] = setTimeout(() => {
-      sendTypingNotification(candidateId, criteriaId, false);
-      delete typingTimersRef.current[key];
-    }, 1000);
-    // ----------------------------------------
-
     // Only allow numbers and decimal points
     if (value === '') {
       // Allow empty input
@@ -414,9 +357,6 @@ export default function Judge() {
       console.error('Error saving score:', error);
       // Don't show alert on error - just log it
     }
-
-    // Send "stopped typing" notification immediately on submit
-    sendTypingNotification(candidateId, criteriaId, false);
   };
 
   const handleJudgeSelect = (id) => {

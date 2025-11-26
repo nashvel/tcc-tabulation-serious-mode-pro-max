@@ -11,7 +11,6 @@ export default function ScoreTable({
   scoresHidden,
   setScoresHidden,
   hasDuoParticipants,
-  typingIndicators = {},
   colorTheme = 'pink' // 'pink' for female, 'blue' for male
 }) {
   const themeColors = {
@@ -130,22 +129,11 @@ export default function ScoreTable({
                           py-2 px-2 text-center border-r border-slate-100/50 relative
                           ${hasScore ? 'text-slate-900' : 'text-slate-300'}
                         `}>
-                          <div className="relative">
-                            <div className={`
-                              font-mono text-xs font-semibold transition-all duration-300
-                              ${scoresHidden ? 'blur-md select-none opacity-50' : ''}
-                            `}>
-                              {hasScore ? judgeTotal.toFixed(2) : '-'}
-                            </div>
-
-                            {/* Typing Indicator */}
-                            {Object.keys(typingIndicators[judge.id]?.[candidate.id] || {}).some(criteriaId =>
-                              typingIndicators[judge.id]?.[candidate.id]?.[criteriaId]?.isTyping
-                            ) && (
-                                <div className="absolute -top-1 -right-1 flex items-center gap-0.5">
-                                  <div className="animate-pulse text-amber-500 text-[8px]" title="Judge is typing...">Typing...</div>
-                                </div>
-                              )}
+                          <div className={`
+                            font-mono text-xs font-semibold transition-all duration-300
+                            ${scoresHidden ? 'blur-md select-none opacity-50' : ''}
+                          `}>
+                            {hasScore ? judgeTotal.toFixed(2) : '-'}
                           </div>
                         </td>
                       );

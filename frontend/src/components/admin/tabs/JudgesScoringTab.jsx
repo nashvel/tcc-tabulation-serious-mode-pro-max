@@ -22,7 +22,6 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
   const [scoresHidden, setScoresHidden] = useState(false);
   const pollingIntervalRef = useRef(null);
   const hasInitialized = useRef(false);
-  const [typingIndicators, setTypingIndicators] = useState({});
 
   // Check if we have duo participants
   const hasDuoParticipants = (fetchedCandidates || []).some(c => c.participant_type === 'duo' && c.partnership?.partner_name);
@@ -171,40 +170,6 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
     }
   }, []);
 
-  // WebSocket handler for typing indicators
-  const handleTypingUpdate = useCallback((data) => {
-    console.log('🖊️ Admin: handleTypingUpdate called with:', data);
-    const { judge_id, candidate_id, criteria_id, is_typing } = data;
-
-    if (!judge_id || !candidate_id || criteria_id === undefined) {
-      console.warn('⚠️ Admin: Invalid typing data, skipping:', data);
-      return;
-    }
-
-    console.log(`🖊️ Admin: Setting typing indicator for Judge ${judge_id}, Candidate ${candidate_id}, Criteria ${criteria_id}, isTyping: ${is_typing}`);
-
-    setTypingIndicators(prev => {
-      const newIndicators = { ...prev };
-
-      if (!newIndicators[judge_id]) newIndicators[judge_id] = {};
-      if (!newIndicators[judge_id][candidate_id]) newIndicators[judge_id][candidate_id] = {};
-
-      if (is_typing) {
-        newIndicators[judge_id][candidate_id][criteria_id] = {
-          isTyping: true,
-          timestamp: Date.now()
-        };
-        console.log('✅ Admin: Typing indicator SET');
-      } else {
-        delete newIndicators[judge_id][candidate_id][criteria_id];
-        console.log('✅ Admin: Typing indicator REMOVED');
-      }
-
-      console.log('🖊️ Admin: Updated typing indicators:', newIndicators);
-      return newIndicators;
-    });
-  }, []);
-
   // Get eventId from continuingEvent in localStorage or prop
   const eventId = useMemo(() => {
     if (continuingEvent) return continuingEvent.id;
@@ -278,11 +243,11 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
     const echo = initializeEcho();
     if (echo) {
       const channelName = `scores.${eventId}`;
-      console.log('📡 Admin: Attempting to connect to channel:', channelName);
+      console.log('📡 Attempting to connect to channel:', channelName);
       const channel = echo.channel(channelName);
 
       channel.subscribed(() => {
-        console.log('✅ Admin: Successfully subscribed to channel:', channelName);
+        console.log('✅ Successfully subscribed to channel:', channelName);
       });
 
       channel.error((error) => {
@@ -290,13 +255,7 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
       });
 
       channel.listen('.ScoreUpdated', (data) => {
-        console.log('🔔 Admin: Received .ScoreUpdated event:', data);
         handleScoreUpdate(data);
-      });
-
-      channel.listen('.JudgeTyping', (data) => {
-        console.log('🔔 Admin: Received .JudgeTyping event:', data);
-        handleTypingUpdate(data);
       });
 
       // Cleanup on unmount
@@ -310,34 +269,7 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
     return () => {
       setIsLive(false);
     };
-  }, [eventId, handleScoreUpdate, handleTypingUpdate]);
-
-  // Auto-cleanup typing indicators after 3 seconds of inactivity
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = Date.now();
-      setTypingIndicators(prev => {
-        const newIndicators = { ...prev };
-        let hasChanges = false;
-
-        Object.keys(newIndicators).forEach(judgeId => {
-          Object.keys(newIndicators[judgeId]).forEach(candidateId => {
-            Object.keys(newIndicators[judgeId][candidateId]).forEach(criteriaId => {
-              const indicator = newIndicators[judgeId][candidateId][criteriaId];
-              if (now - indicator.timestamp > 3000) {
-                delete newIndicators[judgeId][candidateId][criteriaId];
-                hasChanges = true;
-              }
-            });
-          });
-        });
-
-        return hasChanges ? newIndicators : prev;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
+  }, [eventId, handleScoreUpdate]);
 
   if (loading) return <TableSkeleton />;
   if (!judges.length) return <EmptyState />;
@@ -364,7 +296,6 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
             scoresHidden={scoresHidden}
             setScoresHidden={setScoresHidden}
             hasDuoParticipants={hasDuoParticipants}
-            typingIndicators={typingIndicators}
             colorTheme="pink"
           />
         )}
@@ -380,7 +311,6 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
             scoresHidden={scoresHidden}
             setScoresHidden={setScoresHidden}
             hasDuoParticipants={hasDuoParticipants}
-            typingIndicators={typingIndicators}
             colorTheme="blue"
           />
         )}

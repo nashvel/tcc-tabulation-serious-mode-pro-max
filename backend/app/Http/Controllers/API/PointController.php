@@ -5,7 +5,6 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Point;
 use App\Events\ScoreUpdated;
-use App\Events\JudgeTyping;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -213,39 +212,6 @@ class PointController extends Controller
         $point->delete();
         return response()->json(null, 204);
     }
-
-    /**
-     * Broadcast judge typing status (no storage).
-     */
-    public function typing(Request $request): JsonResponse
-    {
-        Log::info('🔔 === TYPING NOTIFICATION RECEIVED ===');
-        Log::info('Raw typing request data', $request->all());
-        
-        $validated = $request->validate([
-            'judge_id' => 'required|integer',
-            'candidate_id' => 'required|exists:candidates,id',
-            'criteria_id' => 'required|exists:criteria,id',
-            'is_typing' => 'required|boolean',
-            'event_id' => 'required|exists:events,id',
-        ]);
-
-        Log::info('Typing validation passed', $validated);
-
-        // Broadcast typing event (no database storage)
-        Event::dispatch(new JudgeTyping(
-            $validated['judge_id'],
-            $validated['candidate_id'],
-            $validated['criteria_id'],
-            $validated['is_typing'],
-            $validated['event_id']
-        ));
-
-        Log::info('✅ JudgeTyping event dispatched');
-
-        return response()->json(['success' => true]);
-    }
-
 
     public function getScoreboard(Request $request): JsonResponse
     {
