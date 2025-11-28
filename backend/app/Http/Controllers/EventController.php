@@ -17,6 +17,11 @@ class EventController extends Controller
             $query->where('status', $request->status);
         }
         
+        // Filter by title if provided
+        if ($request->has('title')) {
+            $query->where('title', $request->title);
+        }
+        
         $events = $query->orderBy('year', 'desc')->get();
         return response()->json($events);
     }

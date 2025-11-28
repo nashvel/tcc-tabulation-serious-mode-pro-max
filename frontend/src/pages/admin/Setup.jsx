@@ -2,99 +2,45 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import { getApiBase } from '../../config/api';
-import AdminHeaderButtons from '../../components/admin/AdminHeaderButtons';
-import AdminSidebar from '../../components/admin/AdminSidebar';
-import EventForm from '../../components/admin/EventForm';
-import EventCard from '../../components/admin/EventCard';
+import GradientBackground from '../../components/common/GradientBackground';
 import DeleteConfirmationModal from '../../components/admin/DeleteConfirmationModal';
 
 export default function Setup() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [events, setEvents] = useState([]);
   const [deleteModal, setDeleteModal] = useState({ show: false, event: null, confirmText: '' });
-  const [editingEvent, setEditingEvent] = useState(null);
   const navigate = useNavigate();
 
-  // Form state
-  const [eventForm, setEventForm] = useState({
-    title: '',
-    year: new Date().getFullYear(),
-    days: [{ day_number: 1, title: '' }]
-  });
-
   useEffect(() => {
-    // Check admin auth
     const isAdmin = localStorage.getItem('isAdmin');
     if (!isAdmin) {
       navigate('/admin/login');
       return;
     }
-    
+
     fetchEvents();
   }, [navigate]);
 
   const fetchEvents = async () => {
     try {
       const apiBase = getApiBase();
-      console.log('Fetching events from:', `${apiBase}/api/events`);
-      
       const response = await fetch(`${apiBase}/api/events`);
-      
-      // Check if response is ok
+
       if (!response.ok) {
-        console.error('API Error:', response.status, response.statusText);
         toast.error(`API Error: ${response.status} ${response.statusText}`);
         return;
       }
-      
-      // Check content type
+
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        console.error('Invalid content type:', contentType);
-        const text = await response.text();
-        console.error('Response body:', text.substring(0, 200));
         toast.error('Backend returned invalid response (not JSON)');
         return;
       }
-      
+
       const data = await response.json();
-      console.log('Events fetched:', data);
       setEvents(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching events:', error);
       toast.error('Failed to fetch events - Check backend is running');
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    try {
-      const apiBase = getApiBase();
-      const response = await fetch(`${apiBase}/api/events`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        },
-        body: JSON.stringify(eventForm)
-      });
-
-      if (response.ok) {
-        toast.success('Event created successfully! 🎉');
-        setEventForm({
-          title: '',
-          year: new Date().getFullYear(),
-          days: [{ day_number: 1, title: '' }]
-        });
-        setEditingEvent(null);
-        fetchEvents();
-      } else {
-        toast.error('Failed to create event');
-      }
-    } catch (error) {
-      console.error('Error creating event:', error);
-      toast.error('Error creating event');
     }
   };
 
@@ -135,198 +81,282 @@ export default function Setup() {
   };
 
   const continueEvent = (event) => {
-    // Store in localStorage for persistence across refreshes
     localStorage.setItem('continuingEvent', JSON.stringify(event));
-    
-    // Navigate immediately - toast will show on AdminTools page
-    navigate('/admin', { state: { continuingEvent: event } });
-  };
-
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    navigate(`/admin?event_title=${encodeURIComponent(event.title)}`, { state: { continuingEvent: event } });
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#fafafa' }}>
-      <AdminSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      
-      {/* React Hot Toast */}
-      <Toaster
-        position="top-right"
-        reverseOrder={false}
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: '#fff',
-            color: '#363636',
-            padding: '16px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          },
-          success: {
-            iconTheme: {
-              primary: '#10b981',
-              secondary: '#fff',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
-            },
-          },
-        }}
-      />
-      
-      {/* Header - Fixed */}
+    <GradientBackground>
+      <Toaster position="top-right" />
+
       <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: '#fff',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '16px 32px',
-        width: '100%',
         display: 'flex',
+        minHeight: '100vh',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        zIndex: 1000,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-      }}>
-        <h1 style={{ color: '#1f2937', fontSize: '18px', fontWeight: '600', margin: 0, letterSpacing: '-0.01em' }}>
-          Event Setup
-        </h1>
-        <AdminHeaderButtons onEditClick={() => setIsSidebarOpen(true)} />
-      </div>
-
-      {/* Logos - Fixed */}
-      <div style={{ 
-        position: 'fixed',
-        top: '57px',
-        left: 0,
-        right: 0,
-        backgroundColor: '#fff',
-        padding: '16px 20px',
-        display: 'flex',
         justifyContent: 'center',
-        alignItems: 'center',
-        gap: '16px',
-        borderBottom: '1px solid #e5e7eb',
-        zIndex: 999
+        padding: '48px 16px'
       }}>
-        <img src="/assets/logo.png" alt="Logo 1" style={{ height: '50px', opacity: 0.9 }} />
-        <img src="/assets/tcc_seal.png" alt="TCC Seal" style={{ height: '50px', opacity: 0.9 }} />
-        <img src="/assets/logo-3.png" alt="Logo 3" style={{ height: '50px', opacity: 0.9 }} />
-        <img src="/assets/Mr. & Ms. TCC Logo 2024 (Gold).png" alt="TCC Logo" style={{ height: '50px', opacity: 0.9 }} />
-        <img src="/assets/lnk-logo.png" alt="LNK Logo" style={{ height: '50px', opacity: 0.9 }} />
-        <img src="/assets/bsit.png" alt="BSIT" style={{ height: '50px', opacity: 0.9 }} />
-      </div>
+        <div style={{ width: '100%', maxWidth: '1152px' }}>
 
-      {/* Content */}
-      <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto', paddingTop: '150px' }}>
-        {/* Two Column Layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: '24px', alignItems: 'start' }}>
-          {/* LEFT: Create Event Button - Fixed Position */}
-          <div style={{ position: 'sticky', top: '150px' }}>
-            <button
-              onClick={() => navigate('/create-event')}
+          {/* Header */}
+          <div style={{ marginBottom: '32px' }}>
+            <img
+              src="/assets/main-logo.png"
+              alt="Logo"
               style={{
-                width: '100%',
-                padding: '48px 32px',
-                backgroundColor: '#fff',
-                color: '#1f2937',
-                border: '2px dashed #e5e7eb',
-                borderRadius: '8px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
+                margin: '0 auto',
+                height: '80px',
+                width: 'auto',
+                display: 'block'
+              }}
+            />
+            <h2 style={{
+              marginTop: '24px',
+              textAlign: 'center',
+              fontSize: '30px',
+              fontWeight: '700',
+              letterSpacing: '-0.025em',
+              color: '#111827'
+            }}>
+              Event Setup
+            </h2>
+            <p style={{
+              marginTop: '8px',
+              textAlign: 'center',
+              fontSize: '14px',
+              color: '#6B7280'
+            }}>
+              Create a new event or continue with an existing one.
+            </p>
+          </div>
+
+          {/* Cards Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '32px',
+            alignItems: 'start'
+          }}>
+
+            {/* Create New Event Card */}
+            <div style={{
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              <div style={{
+                height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '12px'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.borderColor = '#fdba74';
-                e.target.style.backgroundColor = '#fff7ed';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.borderColor = '#e5e7eb';
-                e.target.style.backgroundColor = '#fff';
-              }}
-            >
-              <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
-                backgroundColor: '#fdba74',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '32px',
-                fontWeight: '300'
-              }}>+</div>
-              <span style={{ fontSize: '16px', fontWeight: '600' }}>Create New Event</span>
-              <p style={{ fontSize: '13px', fontWeight: 'normal', color: '#6b7280', margin: 0, textAlign: 'center' }}>
-                Professional customizable tabulation system
-              </p>
-            </button>
-          </div>
-
-          {/* RIGHT: Existing Events */}
-          <div>
-            <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#6b7280', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Existing Events
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {events.map((event) => (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  onContinue={continueEvent}
-                  onDelete={openDeleteModal}
-                  formatDate={formatDate}
-                />
-              ))}
-
-              {events.length === 0 && (
+                borderRadius: '24px',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                padding: '32px',
+                textAlign: 'center',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 20px rgba(255, 255, 255, 0.3)',
+                backdropFilter: 'blur(40px)',
+                WebkitBackdropFilter: 'blur(40px)',
+                transition: 'all 0.3s',
+              }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.2), 0 0 30px rgba(255, 255, 255, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 20px rgba(255, 255, 255, 0.3)';
+                }}
+              >
                 <div style={{
-                  textAlign: 'center',
-                  padding: '60px 20px',
-                  color: '#666',
-                  backgroundColor: '#f9fafb',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb'
+                  marginBottom: '16px',
+                  display: 'flex',
+                  height: '64px',
+                  width: '64px',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                  color: '#3B82F6'
                 }}>
-                  <p style={{ fontSize: '16px', marginBottom: '8px' }}>No events created yet</p>
-                  <p style={{ fontSize: '14px' }}>Create your first event to get started</p>
+                  <svg style={{ height: '32px', width: '32px' }} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                    <path d="M12 4.5v15m7.5-7.5h-15" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 </div>
-              )}
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  color: '#111827'
+                }}>
+                  Create New Event
+                </h3>
+                <p style={{
+                  marginTop: '4px',
+                  marginBottom: '24px',
+                  fontSize: '14px',
+                  color: '#6B7280'
+                }}>
+                  Set up a new competition from scratch.
+                </p>
+                <button
+                  onClick={() => navigate('/create-event')}
+                  style={{
+                    display: 'inline-flex',
+                    width: '100%',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '8px',
+                    backgroundColor: '#3B82F6',
+                    padding: '10px 20px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: 'white',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.3s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#2563EB'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#3B82F6'}
+                >
+                  Create Event
+                </button>
+              </div>
+            </div>
+
+            {/* Select Existing Event Card */}
+            <div style={{
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              borderRadius: '24px',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              backgroundColor: 'rgba(255, 255, 255, 0.5)',
+              padding: '32px',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 20px rgba(255, 255, 255, 0.3)',
+              backdropFilter: 'blur(40px)',
+              WebkitBackdropFilter: 'blur(40px)'
+            }}>
+              <h3 style={{
+                marginBottom: '16px',
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#111827'
+              }}>
+                Select Existing Event
+              </h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {events.length > 0 ? events.map((event) => (
+                  <div
+                    key={event.id}
+                    style={{
+                      borderRadius: '12px',
+                      border: '1px solid #E5E7EB',
+                      backgroundColor: 'rgba(255, 255, 255, 0.6)',
+                      padding: '16px',
+                      transition: 'all 0.3s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#D1D5DB';
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#E5E7EB';
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.6)';
+                    }}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '16px'
+                    }}>
+                      <div>
+                        <h4 style={{
+                          fontWeight: '600',
+                          color: '#111827'
+                        }}>
+                          {event.title}
+                        </h4>
+                        <p style={{
+                          fontSize: '14px',
+                          color: '#6B7280'
+                        }}>
+                          {event.year}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          onClick={() => continueEvent(event)}
+                          style={{
+                            borderRadius: '6px',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            color: '#3B82F6',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.3s'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.2)'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.1)'}
+                        >
+                          Continue
+                        </button>
+                        <button
+                          onClick={() => openDeleteModal(event)}
+                          style={{
+                            borderRadius: '6px',
+                            padding: '6px',
+                            color: '#EF4444',
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.3s'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = '#FEE2E2'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                        >
+                          <svg style={{ height: '16px', width: '16px' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path d="M6 18 18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )) : (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '40px 20px',
+                    color: '#9CA3AF'
+                  }}>
+                    <p style={{ fontSize: '14px', margin: 0 }}>No events created yet</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
+
+          <p style={{
+            paddingTop: '16px',
+            textAlign: 'center',
+            fontSize: '14px',
+            color: '#6B7280'
+          }}>
+            © Tabulation System Nacht. All rights reserved.
+          </p>
         </div>
-
-        {/* Delete Confirmation Modal */}
-        <DeleteConfirmationModal
-          isOpen={deleteModal.show}
-          event={deleteModal.event}
-          confirmText={deleteModal.confirmText}
-          onConfirmTextChange={(text) => setDeleteModal({ ...deleteModal, confirmText: text })}
-          onConfirm={confirmDelete}
-          onCancel={closeDeleteModal}
-        />
-
       </div>
-    </div>
+
+      <DeleteConfirmationModal
+        isOpen={deleteModal.show}
+        event={deleteModal.event}
+        confirmText={deleteModal.confirmText}
+        onConfirmTextChange={(text) => setDeleteModal({ ...deleteModal, confirmText: text })}
+        onConfirm={confirmDelete}
+        onCancel={closeDeleteModal}
+      />
+    </GradientBackground>
   );
 }

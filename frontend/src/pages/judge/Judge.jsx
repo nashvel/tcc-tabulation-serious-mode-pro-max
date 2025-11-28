@@ -59,9 +59,11 @@ const pointsAPI = {
 
     return response.json();
   },
-  getAll: async () => {
+  getAll: async (params = {}) => {
     try {
-      const response = await fetch(`${apiBase}/api/points`);
+      const queryString = new URLSearchParams(params).toString();
+      const url = `${apiBase}/api/points${queryString ? `?${queryString}` : ''}`;
+      const response = await fetch(url);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -120,7 +122,6 @@ export default function Judge() {
   const [showScoringInterface, setShowScoringInterface] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [eventId, setEventId] = useState(null);
-  const [eventName, setEventName] = useState('');
   const [activeRoundName, setActiveRoundName] = useState('Loading...');
 
   // Setup console command to exit judge
@@ -147,22 +148,7 @@ export default function Judge() {
           const eid = response.data.event_id;
           setEventId(eid);
 
-          // Try to get event name from voting state response first
-          if (response.data?.event?.name) {
-            setEventName(response.data.event.name);
-          } else {
-            // Fallback: Fetch event details to get event name
-            try {
-              const eventRes = await fetch(`${apiBase}/api/events/${eid}`);
-              if (eventRes.ok) {
-                const eventData = await eventRes.json();
-                setEventName(eventData.name || 'Event');
-              }
-            } catch (err) {
-              console.error('Error fetching event details:', err);
-              setEventName('Event');
-            }
-          }
+          // Event name fetch removed as it was unused
 
           await loadData(eid);
           await loadInitialVotingState(eid);
@@ -245,22 +231,29 @@ export default function Judge() {
 
   const loadData = async (eid) => {
     try {
-      // Add timeout to prevent infinite loading
+      // Add timeout to prevent infinite loading (increased to 30s)
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Data loading timeout')), 10000)
+        setTimeout(() => reject(new Error('Data loading timeout')), 30000)
       );
 
+      console.time('loadData');
+      console.time('fetchCandidates');
+      console.time('fetchRounds');
+      console.time('fetchCriteria');
+      console.time('fetchJudges');
+
       const dataPromise = Promise.all([
-        candidatesAPI.getAll(eid),
-        roundsAPI.getAll(eid),
-        criteriaAPI.getAll(eid),
-        judgesAPI.getAll(eid),
+        candidatesAPI.getAll(eid).then(res => { console.timeEnd('fetchCandidates'); return res; }),
+        roundsAPI.getAll(eid).then(res => { console.timeEnd('fetchRounds'); return res; }),
+        criteriaAPI.getAll(eid).then(res => { console.timeEnd('fetchCriteria'); return res; }),
+        judgesAPI.getAll(eid).then(res => { console.timeEnd('fetchJudges'); return res; }),
       ]);
 
       const [candidatesRes, roundsRes, criteriaRes, judgesRes] = await Promise.race([
         dataPromise,
         timeoutPromise
       ]);
+      console.timeEnd('loadData');
 
       setCandidates(candidatesRes.data || []);
       setRounds(roundsRes.data || []);
@@ -278,12 +271,17 @@ export default function Judge() {
   // Load existing scores for the current judge
   const loadJudgeScores = async (jid) => {
     try {
-      const pointsRes = await pointsAPI.getAll();
+      if (!eventId) return;
+
+      const pointsRes = await pointsAPI.getAll({
+        event_id: eventId,
+        judge_id: jid
+      });
 
       // Handle both direct array and wrapped response
       let allPoints = Array.isArray(pointsRes) ? pointsRes : (pointsRes.data || []);
 
-      // Filter points for this judge
+      // Filter points for this judge (redundant check but safe)
       const judgeId = parseInt(jid);
       const judgePoints = allPoints.filter(p => {
         return p.judge_id === judgeId;

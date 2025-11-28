@@ -23,9 +23,18 @@ class CandidateController extends Controller
      *     @OA\Response(response=200, description="Successful operation")
      * )
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $candidates = Candidate::with('points')->get();
+        $query = Candidate::query();
+
+        if ($request->has('event_id')) {
+            $query->where('event_id', $request->input('event_id'));
+        }
+
+        // Remove eager loading of points as it's too heavy and not needed for the list
+        // $candidates = Candidate::with('points')->get();
+        $candidates = $query->get();
+        
         return response()->json($candidates);
     }
 

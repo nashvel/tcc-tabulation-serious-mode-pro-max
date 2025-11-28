@@ -13,13 +13,33 @@ use Illuminate\Support\Facades\Event;
 
 class PointController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $points = Point::with(['candidate', 'round', 'criteria', 'judge'])->get();
-        Log::info('Fetching all points', ['count' => $points->count()]);
-        if ($points->count() > 0) {
-            Log::info('Sample point:', $points->first()->toArray());
+        $query = Point::with(['candidate', 'round', 'criteria', 'judge']);
+
+        // Filter by event_id if provided
+        if ($request->has('event_id')) {
+            // Since points table doesn't have event_id, we filter via related models
+            // Assuming candidates, rounds, or criteria belong to an event
+            // Let's filter by candidate's event_id
+            $eventId = $request->input('event_id');
+            $query->whereHas('candidate', function ($q) use ($eventId) {
+                $q->where('event_id', $eventId);
+            });
         }
+
+        // Filter by judge_id if provided
+        if ($request->has('judge_id')) {
+            $query->where('judge_id', $request->input('judge_id'));
+        }
+
+        $points = $query->get();
+        
+        Log::info('Fetching points', [
+            'count' => $points->count(),
+            'filters' => $request->all()
+        ]);
+
         return response()->json($points);
     }
 

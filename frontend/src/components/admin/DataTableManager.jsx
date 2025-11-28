@@ -7,18 +7,44 @@ import ResultsTab from './tabs/ResultsTab';
 import BestInTab from './tabs/BestInTab';
 import { Gavel, Users, List, BarChart2, Trophy } from 'lucide-react';
 
-export default function DataTableManager({ candidates, rounds, criteria, continuingEvent, onJudgesLoaded, isVotingActive = false }) {
-  const [activeTab, setActiveTab] = useState('judges');
+export default function DataTableManager({
+  candidates,
+  rounds,
+  criteria,
+  continuingEvent,
+  onJudgesLoaded,
+  // Control Props
+  isVotingActive,
+  eventSequence,
+  currentSequenceIndex,
+  onStartStop,
+  onNext,
+  // Navigation Props
+  activeTab: externalActiveTab,
+  onTabChange
+}) {
+  const [internalActiveTab, setInternalActiveTab] = useState('judges');
   const [judges, setJudges] = useState([]);
+
+  // Use external active tab if provided, otherwise use internal state
+  const activeTab = externalActiveTab || internalActiveTab;
+
+  const handleTabChange = (tab) => {
+    if (onTabChange) {
+      onTabChange(tab);
+    } else {
+      setInternalActiveTab(tab);
+    }
+  };
 
   useEffect(() => {
     const fetchJudges = async () => {
       try {
         const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
         const eventId = continuingEvent?.id;
-        
+
         if (!eventId) return;
-        
+
         const response = await fetch(`${apiBase}/api/judges?event_id=${eventId}`);
         if (response.ok) {
           const data = await response.json();
@@ -36,70 +62,91 @@ export default function DataTableManager({ candidates, rounds, criteria, continu
     fetchJudges();
   }, [continuingEvent, onJudgesLoaded]);
 
-  const tabColors = {
-    judges: { bg: 'bg-emerald-500', icon: 'text-emerald-500' },
-    candidates: { bg: 'bg-purple-500', icon: 'text-purple-500' },
-    categories: { bg: 'bg-orange-500', icon: 'text-orange-500' },
-    results: { bg: 'bg-pink-500', icon: 'text-pink-500' },
-    bestin: { bg: 'bg-indigo-500', icon: 'text-indigo-500' }
-  };
-
-  const tabButtonClass = "flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-[10px] uppercase tracking-wide transition-all duration-200 text-white";
-
   return (
-    <div className="bg-white border border-slate-200 overflow-hidden mt-8 rounded-lg shadow-lg">
-      {/* Tabs */}
-      <div className="bg-slate-50 border-b border-slate-200 p-3 flex flex-wrap items-center justify-center gap-2">
+    <div className="bg-white overflow-hidden mt-8">
+      {/* Tabs - Clean Design */}
+      <div className="bg-gray-50 border-b border-gray-200 px-6 py-3 flex flex-wrap items-center justify-center gap-2">
         <button
-          onClick={() => setActiveTab('judges')}
-          className={`${tabButtonClass} ${activeTab === 'judges' ? tabColors.judges.bg : 'bg-slate-400'} hover:opacity-90`}
-        > 
-          <div className="bg-white rounded-full p-1">
-            <Gavel size={12} className={tabColors.judges.icon} />
-          </div>
+          onClick={() => handleTabChange('judges')}
+          className={`
+            flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200
+            ${activeTab === 'judges'
+              ? 'bg-blue-500 text-white shadow-sm'
+              : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+            }
+          `}
+        >
+          <Gavel size={16} />
           Judges Scoring
         </button>
         <button
-          onClick={() => setActiveTab('candidates')}
-          className={`${tabButtonClass} ${activeTab === 'candidates' ? tabColors.candidates.bg : 'bg-slate-400'} hover:opacity-90`}
+          onClick={() => handleTabChange('candidates')}
+          className={`
+            flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200
+            ${activeTab === 'candidates'
+              ? 'bg-blue-500 text-white shadow-sm'
+              : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+            }
+          `}
         >
-          <div className="bg-white rounded-full p-1">
-            <Users size={12} className={tabColors.candidates.icon} />
-          </div>
+          <Users size={16} />
           Candidates
         </button>
         <button
-          onClick={() => setActiveTab('categories')}
-          className={`${tabButtonClass} ${activeTab === 'categories' ? tabColors.categories.bg : 'bg-slate-400'} hover:opacity-90`}
+          onClick={() => handleTabChange('categories')}
+          className={`
+            flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200
+            ${activeTab === 'categories'
+              ? 'bg-blue-500 text-white shadow-sm'
+              : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+            }
+          `}
         >
-          <div className="bg-white rounded-full p-1">
-            <List size={12} className={tabColors.categories.icon} />
-          </div>
+          <List size={16} />
           Categories
         </button>
         <button
-          onClick={() => setActiveTab('results')}
-          className={`${tabButtonClass} ${activeTab === 'results' ? tabColors.results.bg : 'bg-slate-400'} hover:opacity-90`}
+          onClick={() => handleTabChange('results')}
+          className={`
+            flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200
+            ${activeTab === 'results'
+              ? 'bg-blue-500 text-white shadow-sm'
+              : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+            }
+          `}
         >
-          <div className="bg-white rounded-full p-1">
-            <BarChart2 size={12} className={tabColors.results.icon} />
-          </div>
+          <BarChart2 size={16} />
           Results
         </button>
         <button
-          onClick={() => setActiveTab('bestin')}
-          className={`${tabButtonClass} ${activeTab === 'bestin' ? tabColors.bestin.bg : 'bg-slate-400'} hover:opacity-90`}
+          onClick={() => handleTabChange('bestin')}
+          className={`
+            flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200
+            ${activeTab === 'bestin'
+              ? 'bg-blue-500 text-white shadow-sm'
+              : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+            }
+          `}
         >
-          <div className="bg-white rounded-full p-1">
-            <Trophy size={12} className={tabColors.bestin.icon} />
-          </div>
+          <Trophy size={16} />
           Best In
         </button>
       </div>
 
       {/* Table Content */}
       <div className="overflow-x-auto">
-        {activeTab === 'judges' && <JudgesScoringTab candidates={candidates} continuingEvent={continuingEvent} />}
+        {activeTab === 'judges' && (
+          <JudgesScoringTab
+            candidates={candidates}
+            continuingEvent={continuingEvent}
+            // Control Props
+            isVotingActive={isVotingActive}
+            eventSequence={eventSequence}
+            currentSequenceIndex={currentSequenceIndex}
+            onStartStop={onStartStop}
+            onNext={onNext}
+          />
+        )}
         {activeTab === 'candidates' && <CandidatesTab candidates={candidates} />}
         {activeTab === 'categories' && <CategoriesTab />}
         {activeTab === 'results' && <ResultsTab candidates={candidates} />}

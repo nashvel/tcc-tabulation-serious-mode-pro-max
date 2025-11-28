@@ -9,9 +9,18 @@ use Illuminate\Http\JsonResponse;
 
 class RoundController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $rounds = Round::with('criteria')->get();
+        $query = Round::query();
+
+        if ($request->has('event_id')) {
+            $query->where('event_id', $request->input('event_id'));
+        }
+
+        // Keep eager loading of criteria as it's likely needed, but filter it if possible?
+        // For now, just filtering rounds by event_id is the biggest win.
+        $rounds = $query->with('criteria')->get();
+        
         return response()->json($rounds);
     }
 

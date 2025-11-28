@@ -9,7 +9,16 @@ import EmptyState from '../scoring/EmptyState';
 import TableSkeleton from '../scoring/TableSkeleton';
 import AdminPreloader from '../AdminPreloader';
 
-export default function JudgesScoringTab({ candidates, continuingEvent }) {
+export default function JudgesScoringTab({
+  candidates,
+  continuingEvent,
+  // Control Props
+  isVotingActive,
+  eventSequence,
+  currentSequenceIndex,
+  onStartStop,
+  onNext
+}) {
   const [selectedCategory, setSelectedCategory] = useState(1);
   const [scores, setScores] = useState({});
   const [partnerScores, setPartnerScores] = useState({});
@@ -195,7 +204,7 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
     const fetchScores = async () => {
       try {
         const apiBase = getApiBase();
-        const response = await fetch(`${apiBase}/api/points`);
+        const response = await fetch(`${apiBase}/api/points?event_id=${eventId}`);
         if (response.ok) {
           const pointsData = await response.json();
 
@@ -279,12 +288,23 @@ export default function JudgesScoringTab({ candidates, continuingEvent }) {
   const maleCandidates = activeCandidates.filter(c => c.gender && c.gender.toLowerCase() === 'male');
 
   return (
-    <div className="font-sans antialiased bg-slate-50/50 min-h-screen pb-20">
-      {isLive && <LiveIndicator />}
+    <div className="font-sans antialiased min-h-screen bg-gray-50 pb-20">
+      {/* Round Header */}
+      {activeRound && (
+        <RoundHeader
+          roundName={activeRound.name}
+          eventId={eventId}
+          // Control Props
+          isVotingActive={isVotingActive}
+          eventSequence={eventSequence}
+          currentSequenceIndex={currentSequenceIndex}
+          onStartStop={onStartStop}
+          onNext={onNext}
+        />
+      )}
 
-      <div className="px-4 py-6 max-w-[1600px] mx-auto">
-        {activeRound && <RoundHeader roundName={activeRound.name} />}
-
+      {/* Main Content */}
+      <div className="max-w-[1400px] mx-auto px-6 py-8">
         {femaleCandidates.length > 0 && (
           <ScoreTable
             title="Female Candidates"

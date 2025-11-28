@@ -9,9 +9,18 @@ use Illuminate\Http\JsonResponse;
 
 class CriteriaController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $criteria = Criteria::with('round')->get();
+        $query = Criteria::with('round');
+
+        if ($request->has('event_id')) {
+            $eventId = $request->input('event_id');
+            $query->whereHas('round', function ($q) use ($eventId) {
+                $q->where('event_id', $eventId);
+            });
+        }
+
+        $criteria = $query->get();
         return response()->json($criteria);
     }
 
