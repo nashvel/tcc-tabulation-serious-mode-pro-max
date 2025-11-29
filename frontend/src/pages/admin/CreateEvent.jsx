@@ -64,7 +64,7 @@ export default function CreateEvent() {
     const loadDraft = async () => {
       // Check if there's a draft_id in localStorage or URL
       const draftId = searchParams.get('draft_id') || localStorage.getItem('current_draft_id');
-      
+
       if (draftId) {
         try {
           const response = await fetch(`http://localhost:8000/api/events/${draftId}`, {
@@ -75,23 +75,23 @@ export default function CreateEvent() {
 
           if (response.ok) {
             const event = await response.json();
-            
+
             console.log('Loaded event:', event);
             console.log('Candidates:', event.candidates);
             console.log('Categories:', event.categories);
             console.log('Criteria:', event.criteria);
             console.log('Criteria count:', event.criteria ? event.criteria.length : 0);
-            
+
             // Populate form with draft data
             setEventId(event.id);
-            
+
             // Format event_date properly (Laravel returns it as "2025-11-08T00:00:00.000000Z")
             let formattedDate = '';
             if (event.event_date) {
               // Extract just the date part (YYYY-MM-DD)
               formattedDate = event.event_date.split('T')[0];
             }
-            
+
             setBasicInfo({
               title: event.title,
               event_date: formattedDate,
@@ -147,7 +147,7 @@ export default function CreateEvent() {
                   const catIndex = event.categories.findIndex(cat => cat.id === crit.category_id);
                   if (catIndex !== -1) categoryIndex = catIndex;
                 }
-                
+
                 return {
                   name: crit.name,
                   max_score: crit.max_score || 100,
@@ -171,7 +171,7 @@ export default function CreateEvent() {
           console.error('Error loading draft:', error);
         }
       }
-      
+
       setIsLoadingDraft(false);
     };
 
@@ -422,7 +422,7 @@ export default function CreateEvent() {
   // Handle Next button with auto-save
   const handleNext = async () => {
     let saved = false;
-    
+
     switch (currentStep) {
       case 1:
         saved = await saveStep1();
@@ -463,7 +463,7 @@ export default function CreateEvent() {
     const dayCandidates = candidatesByDay[dayIndex] || [];
     const dayPartnerships = partnershipsByDay[dayIndex] || [];
     const nextNumber = dayCandidates.length + 1;
-    
+
     setCandidatesByDay({
       ...candidatesByDay,
       [dayIndex]: [...dayCandidates, {
@@ -523,22 +523,22 @@ export default function CreateEvent() {
     try {
       const templateCategories = JSON.parse(template.categories);
       const templateCriteria = JSON.parse(template.criteria);
-      
+
       // Set categories
       setCategories(templateCategories.map(cat => ({
         name: cat.name,
         description: cat.description || ''
       })));
-      
+
       // Set criteria with category references
       const criteriaWithCategories = templateCriteria.map(crit => ({
         name: crit.name,
         percentage: crit.percentage,
         category_index: crit.category_index
       }));
-      
+
       setCriteria(criteriaWithCategories);
-      
+
       toast.success(`Template "${template.name}" loaded!`, { duration: 3000 });
     } catch (error) {
       console.error('Error loading template:', error);
@@ -658,7 +658,7 @@ export default function CreateEvent() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
       <AdminSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      
+
       {/* Toast Notifications */}
       <Toaster
         position="top-right"
@@ -670,7 +670,7 @@ export default function CreateEvent() {
           },
         }}
       />
-      
+
       {/* Header */}
       <div style={{
         position: 'fixed',
@@ -826,7 +826,7 @@ export default function CreateEvent() {
                             'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
                           }
                         });
-                        
+
                         if (response.ok) {
                           toast.success('Event activated successfully!', { duration: 3000 });
                           setTimeout(() => navigate('/get_started'), 1500);

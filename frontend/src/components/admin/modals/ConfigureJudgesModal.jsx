@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
 import { UserCircle, X, Plus, Edit, Trash2 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
+import { showSuccess, showError } from '../../../utils/alerts';
 
 export default function ConfigureJudgesModal({ isOpen, onClose, eventId }) {
     const [judges, setJudges] = useState([]);
@@ -32,7 +32,7 @@ export default function ConfigureJudgesModal({ isOpen, onClose, eventId }) {
             setJudges(data);
         } catch (error) {
             console.error('Error fetching judges:', error);
-            toast.error('Failed to load judges');
+            showError('Failed to load judges');
         } finally {
             setIsLoading(false);
         }
@@ -72,12 +72,12 @@ export default function ConfigureJudgesModal({ isOpen, onClose, eventId }) {
 
             if (!response.ok) throw new Error('Failed to save judge');
 
-            toast.success(editingId ? 'Judge updated successfully' : 'Judge added successfully');
+            showSuccess(editingId ? 'Judge updated successfully' : 'Judge added successfully');
             fetchJudges();
             resetForm();
         } catch (error) {
             console.error('Error saving judge:', error);
-            toast.error('Failed to save judge');
+            showError('Failed to save judge');
         }
     };
 
@@ -89,12 +89,12 @@ export default function ConfigureJudgesModal({ isOpen, onClose, eventId }) {
 
             if (!response.ok) throw new Error('Failed to delete judge');
 
-            toast.success('Judge deleted successfully');
+            showSuccess('Judge deleted successfully');
             fetchJudges();
             setDeleteConfirm({ isOpen: false, judgeId: null, judgeName: '' });
         } catch (error) {
             console.error('Error deleting judge:', error);
-            toast.error('Failed to delete judge');
+            showError('Failed to delete judge');
         }
     };
 
@@ -254,16 +254,16 @@ export default function ConfigureJudgesModal({ isOpen, onClose, eventId }) {
                                                     <td className="px-6 py-4 font-medium">{judge.name}</td>
                                                     <td className="px-6 py-4">
                                                         <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium ${judge.status === 'active'
-                                                                ? 'bg-green-100 text-green-700'
-                                                                : judge.status === 'locked'
-                                                                    ? 'bg-red-100 text-red-700'
-                                                                    : 'bg-gray-100 text-gray-700'
+                                                            ? 'bg-green-100 text-green-700'
+                                                            : judge.status === 'locked'
+                                                                ? 'bg-red-100 text-red-700'
+                                                                : 'bg-gray-100 text-gray-700'
                                                             }`}>
                                                             <span className={`size-1.5 rounded-full ${judge.status === 'active'
-                                                                    ? 'bg-green-500'
-                                                                    : judge.status === 'locked'
-                                                                        ? 'bg-red-500'
-                                                                        : 'bg-gray-500'
+                                                                ? 'bg-green-500'
+                                                                : judge.status === 'locked'
+                                                                    ? 'bg-red-500'
+                                                                    : 'bg-gray-500'
                                                                 }`}></span>
                                                             {judge.status.charAt(0).toUpperCase() + judge.status.slice(1)}
                                                         </span>

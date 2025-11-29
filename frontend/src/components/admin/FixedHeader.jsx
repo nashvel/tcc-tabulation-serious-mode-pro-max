@@ -66,17 +66,26 @@ export default function FixedHeader({
           {/* Center: Navigation Buttons */}
           <div className="flex items-center justify-center gap-2 flex-1">
             <button
-              onClick={() => navigate('/admin')}
+              onClick={() => {
+                const eventTitle = continuingEvent?.title || continuingEvent?.name;
+                if (eventTitle) {
+                  navigate(`/admin?event_title=${encodeURIComponent(eventTitle)}`);
+                } else {
+                  navigate('/admin');
+                }
+              }}
               className={`px-4 py-2 text-sm font-medium transition-colors ${isActivePath('/admin') || isActivePath('/get_started')
                   ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-gray-700 hover:text-gray-900'
                 }`}
+              style={{ color: isActivePath('/admin') || isActivePath('/get_started') ? undefined : '#374151' }}
             >
               Home
             </button>
             <button
               onClick={onEditClick}
-              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+              style={{ color: '#374151' }}
             >
               Edit
             </button>
@@ -84,16 +93,17 @@ export default function FixedHeader({
               onClick={() => navigate('/admin/documentation')}
               className={`px-4 py-2 text-sm font-medium transition-colors ${isActivePath('/admin/documentation')
                   ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-gray-700 hover:text-gray-900'
                 }`}
+              style={{ color: isActivePath('/admin/documentation') ? undefined : '#374151' }}
             >
               Documentation
             </button>
             <button
               onClick={() => navigate('/judges/configure')}
               className={`px-4 py-2 text-sm font-medium transition-colors ${isActivePath('/judges/configure')
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
                 }`}
             >
               Judges
@@ -101,8 +111,8 @@ export default function FixedHeader({
             <button
               onClick={() => navigate('/admin/certificates')}
               className={`px-4 py-2 text-sm font-medium transition-colors ${isActivePath('/admin/certificates')
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
                 }`}
             >
               Certificates

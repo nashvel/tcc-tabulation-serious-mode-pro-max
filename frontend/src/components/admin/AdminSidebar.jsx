@@ -13,8 +13,8 @@ export default function AdminSidebar({ isOpen, onClose, onNavigate, continuingEv
     } else if (path) {
       navigate(path);
     }
-    // Don't close sidebar when opening modal
-    if (itemId !== 'judges-modal') {
+    // Don't close sidebar when opening modals
+    if (itemId !== 'judges-modal' && itemId !== 'event-details' && itemId !== 'theme' && itemId !== 'settings') {
       onClose();
     }
   };
@@ -61,7 +61,7 @@ export default function AdminSidebar({ isOpen, onClose, onNavigate, continuingEv
               icon={<Calendar size={18} />}
               label="Manage Event Details"
               isActive={activeItem === 'event-details'}
-              onClick={() => handleNavigation(`/admin/events/${continuingEvent?.id}/details`, 'event-details')}
+              onClick={() => handleNavigation('event-details-modal', 'event-details')}
             />
             <NavItem
               icon={<Users size={18} />}
@@ -90,7 +90,7 @@ export default function AdminSidebar({ isOpen, onClose, onNavigate, continuingEv
               icon={<UserCircle size={18} />}
               label="Configure Judges"
               isActive={activeItem === 'judges-modal'}
-              onClick={() => handleNavigation(null, 'judges-modal')}
+              onClick={() => handleNavigation('judges-modal', 'judges-modal')}
             />
             <NavItem
               icon={<Shield size={18} />}
@@ -130,13 +130,13 @@ export default function AdminSidebar({ isOpen, onClose, onNavigate, continuingEv
               icon={<Settings size={18} />}
               label="General Settings"
               isActive={activeItem === 'settings'}
-              onClick={() => handleNavigation('/setup', 'settings')}
+              onClick={() => handleNavigation('settings-modal', 'settings')}
             />
             <NavItem
               icon={<Palette size={18} />}
               label="Theme Preferences"
               isActive={activeItem === 'theme'}
-              onClick={() => handleNavigation(null, 'theme')}
+              onClick={() => handleNavigation('theme-modal', 'theme')}
             />
           </div>
         </nav>

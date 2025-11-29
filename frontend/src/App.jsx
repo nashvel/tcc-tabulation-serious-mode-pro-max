@@ -17,11 +17,12 @@ import Scoreboard from './pages/Scoreboard';
 import PrintResults from './pages/PrintResults';
 import NotFound from './pages/NotFound';
 import './index.css';
+import './theme.css';
 
 function App() {
   return (
     <Router>
-      <Toaster 
+      <Toaster
         position="top-right"
         containerStyle={{
           zIndex: 99999,
@@ -47,7 +48,7 @@ function App() {
         <Route path="/" element={<Navigate to="/admin/login" replace />} />
         <Route path="/judge" element={<JudgeLayout><Judge /></JudgeLayout>} />
         <Route path="/admin/login" element={<AdminLogin />} />
-        
+
         {/* Protected Admin Routes */}
         <Route path="/setup" element={
           <ProtectedRoute>
@@ -89,12 +90,12 @@ function App() {
             <JudgeConfigure />
           </ProtectedRoute>
         } />
-        
+
         {/* Public Routes */}
         <Route path="/event/:eventId/summary" element={<EventSummary />} />
         <Route path="/scoreboard" element={<Layout><Scoreboard /></Layout>} />
         <Route path="/print" element={<PrintResults />} />
-        
+
         {/* 404 Catch-all Route - Must be last */}
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -14,6 +14,9 @@ import { useEventSequence } from '../../hooks/useEventSequence';
 import { useVotingWebSocket } from '../../hooks/useVotingWebSocket';
 
 import ConfigureJudgesModal from '../../components/admin/modals/ConfigureJudgesModal';
+import EventDetailsModal from '../../components/admin/modals/EventDetailsModal';
+import ThemePreferencesModal from '../../components/admin/modals/ThemePreferencesModal';
+import GeneralSettingsModal from '../../components/admin/modals/GeneralSettingsModal';
 
 export default function AdminTools() {
   const location = useLocation();
@@ -23,6 +26,9 @@ export default function AdminTools() {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isJudgesModalOpen, setIsJudgesModalOpen] = useState(false);
+  const [isEventDetailsModalOpen, setIsEventDetailsModalOpen] = useState(false);
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [realtimeCategory, setRealtimeCategory] = useState(null);
   const [continuingEvent, setContinuingEvent] = useState(null);
   const [isLoadingEvent, setIsLoadingEvent] = useState(true);
@@ -31,6 +37,15 @@ export default function AdminTools() {
   const handleSidebarNavigation = (tabOrPath) => {
     if (tabOrPath === 'judges-modal') {
       setIsJudgesModalOpen(true);
+      // Don't close sidebar when opening modal
+    } else if (tabOrPath === 'event-details-modal') {
+      setIsEventDetailsModalOpen(true);
+      // Don't close sidebar when opening modal
+    } else if (tabOrPath === 'theme-modal') {
+      setIsThemeModalOpen(true);
+      // Don't close sidebar when opening modal
+    } else if (tabOrPath === 'settings-modal') {
+      setIsSettingsModalOpen(true);
       // Don't close sidebar when opening modal
     } else if (tabOrPath.startsWith('/')) {
       navigate(tabOrPath);
@@ -321,6 +336,25 @@ export default function AdminTools() {
             isOpen={isJudgesModalOpen}
             onClose={() => setIsJudgesModalOpen(false)}
             eventId={continuingEvent?.id}
+          />
+
+          {/* Event Details Modal */}
+          <EventDetailsModal
+            isOpen={isEventDetailsModalOpen}
+            onClose={() => setIsEventDetailsModalOpen(false)}
+            eventId={continuingEvent?.id}
+          />
+
+          {/* Theme Preferences Modal */}
+          <ThemePreferencesModal
+            isOpen={isThemeModalOpen}
+            onClose={() => setIsThemeModalOpen(false)}
+          />
+
+          {/* General Settings Modal */}
+          <GeneralSettingsModal
+            isOpen={isSettingsModalOpen}
+            onClose={() => setIsSettingsModalOpen(false)}
           />
         </>
       )}

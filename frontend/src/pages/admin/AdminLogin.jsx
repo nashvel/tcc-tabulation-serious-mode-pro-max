@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import axios from 'axios';
+import { showSuccess } from '../../utils/alerts';
 
 export default function AdminLogin() {
   const [pin, setPin] = useState('');
@@ -36,17 +36,10 @@ export default function AdminLogin() {
         localStorage.setItem('adminToken', response.data.token);
         localStorage.setItem('adminPin', pin);
         localStorage.setItem('isAdmin', 'true');
-        
+
         // Show welcome toast
-        toast.success('Welcome Admin', {
-          duration: 2000,
-          style: {
-            background: '#10b981',
-            color: '#fff',
-            fontWeight: '600',
-          },
-        });
-        
+        showSuccess('Welcome Admin', { duration: 2000 });
+
         // Redirect to the page they were trying to access, or setup
         const from = location.state?.from?.pathname || '/setup';
         navigate(from, { replace: true });
