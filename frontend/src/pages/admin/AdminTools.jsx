@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { showSuccess, showError } from '../../utils/alerts';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import FixedHeader from '../../components/admin/FixedHeader';
 import EventSequenceSidebar from '../../components/admin/EventSequenceSidebar';
@@ -77,20 +76,14 @@ export default function AdminTools() {
         const events = await response.json();
 
         if (events.length === 0) {
-          toast.error(`Event "${title}" not found`, {
-            position: 'top-right',
-            autoClose: 3000,
-          });
+          showError(`Event "${title}" not found`, { duration: 3000 });
           return null;
         }
 
         return events[0]; // Return the first matching event
       } catch (error) {
         console.error('Error fetching event by title:', error);
-        toast.error('Failed to load event from URL parameter', {
-          position: 'top-right',
-          autoClose: 3000,
-        });
+        showError('Failed to load event from URL parameter', { duration: 3000 });
         return null;
       }
     };
@@ -197,10 +190,7 @@ export default function AdminTools() {
       console.log('Event sequence:', eventSequence);
 
       if (eventSequence.length === 0) {
-        toast.error('Please add rounds to the sequence first!', {
-          position: 'top-right',
-          autoClose: 3000,
-        });
+        showError('Please add rounds to the sequence first!', { duration: 3000 });
         return;
       }
 
@@ -217,10 +207,7 @@ export default function AdminTools() {
       console.log('First round activated successfully');
 
       // Step 3: Show success message
-      toast.success(`${firstRound.name} is now active!`, {
-        position: 'top-right',
-        autoClose: 4000,
-      });
+      showSuccess(`${firstRound.name} is now active!`, { duration: 4000 });
 
       console.log('=== Event Started Successfully ===');
     } catch (error) {
@@ -228,10 +215,7 @@ export default function AdminTools() {
       console.error('Error details:', error);
       console.error('Error response:', error.response?.data);
 
-      toast.error('Failed to start event: ' + (error.response?.data?.error || error.message), {
-        position: 'top-right',
-        autoClose: 5000,
-      });
+      showError('Failed to start event: ' + (error.response?.data?.error || error.message), { duration: 5000 });
     }
   };
 
@@ -265,8 +249,7 @@ export default function AdminTools() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#fff', position: 'relative' }}>
-      {/* Toast Container - Always render */}
-      <ToastContainer />
+
 
       {(loading || isLoadingEvent) ? (
         <AdminPreloader />
@@ -308,6 +291,7 @@ export default function AdminTools() {
                     currentSequenceIndex={currentSequenceIndex}
                     onStartStop={handleStartStopButtonClick}
                     onNext={handleNextCategory}
+                    onOpenEventDetails={() => setIsEventDetailsModalOpen(true)}
                     // Navigation Props
                     activeTab={activeTab}
                     onTabChange={setActiveTab}

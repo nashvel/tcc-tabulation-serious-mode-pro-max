@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import toast, { Toaster } from 'react-hot-toast';
+import { showSuccess, showError } from '../../utils/alerts';
 import AdminHeaderButtons from '../../components/admin/AdminHeaderButtons';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import ProgressSteps from '../../components/admin/createEvent/ProgressSteps';
@@ -165,7 +165,7 @@ export default function CreateEvent() {
             else if (event.step2_completed) setCurrentStep(2);
             else setCurrentStep(1);
 
-            toast.success('Draft loaded!', { duration: 2000 });
+            showSuccess('Draft loaded!', { duration: 2000 });
           }
         } catch (error) {
           console.error('Error loading draft:', error);
@@ -188,7 +188,7 @@ export default function CreateEvent() {
   // Auto-save Step 1 (Basic Info)
   const saveStep1 = async () => {
     if (!eventData.title) {
-      toast.error('Please enter event name before proceeding');
+      showError('Please enter event name before proceeding');
       return false;
     }
 
@@ -212,15 +212,15 @@ export default function CreateEvent() {
       if (response.ok) {
         const result = await response.json();
         setEventId(result.event_id);
-        toast.success('Step 1 saved!', { duration: 2000 });
+        showSuccess('Step 1 saved!', { duration: 2000 });
         return true;
       } else {
-        toast.error('Failed to save step 1');
+        showError('Failed to save step 1');
         return false;
       }
     } catch (error) {
       console.error('Error saving step 1:', error);
-      toast.error('Error saving step 1');
+      showError('Error saving step 1');
       return false;
     } finally {
       setIsLoading(false);
@@ -230,7 +230,7 @@ export default function CreateEvent() {
   // Auto-save Step 2 (Participants)
   const saveStep2 = async () => {
     if (!eventId) {
-      toast.error('Please complete Step 1 first');
+      showError('Please complete Step 1 first');
       return false;
     }
 
@@ -243,7 +243,7 @@ export default function CreateEvent() {
     });
 
     if (!hasParticipants) {
-      toast.error('Please add at least one participant with a name');
+      showError('Please add at least one participant with a name');
       return false;
     }
 
@@ -260,7 +260,7 @@ export default function CreateEvent() {
     });
 
     if (missingNumbers) {
-      toast.error('Please provide numbers for all participants with names');
+      showError('Please provide numbers for all participants with names');
       return false;
     }
 
@@ -281,16 +281,16 @@ export default function CreateEvent() {
       });
 
       if (response.ok) {
-        toast.success('Step 2 saved!', { duration: 2000 });
+        showSuccess('Step 2 saved!', { duration: 2000 });
         return true;
       } else {
         const errorData = await response.json();
-        toast.error(errorData.message || 'Failed to save step 2');
+        showError(errorData.message || 'Failed to save step 2');
         return false;
       }
     } catch (error) {
       console.error('Error saving step 2:', error);
-      toast.error('Error saving step 2: ' + error.message);
+      showError('Error saving step 2: ' + error.message);
       return false;
     } finally {
       setIsLoading(false);
@@ -300,14 +300,14 @@ export default function CreateEvent() {
   // Auto-save Step 3 (Categories)
   const saveStep3 = async () => {
     if (!eventId) {
-      toast.error('Please complete Step 1 first');
+      showError('Please complete Step 1 first');
       return false;
     }
 
     // Validation: Check if at least one category exists
     const validCategories = categories.filter(c => c.name && c.name.trim() !== '');
     if (validCategories.length === 0) {
-      toast.error('Please add at least one category');
+      showError('Please add at least one category');
       return false;
     }
 
@@ -328,16 +328,16 @@ export default function CreateEvent() {
       });
 
       if (response.ok) {
-        toast.success('Step 3 saved!', { duration: 2000 });
+        showSuccess('Step 3 saved!', { duration: 2000 });
         return true;
       } else {
         const errorData = await response.json();
-        toast.error(errorData.message || 'Failed to save step 3');
+        showError(errorData.message || 'Failed to save step 3');
         return false;
       }
     } catch (error) {
       console.error('Error saving step 3:', error);
-      toast.error('Error saving step 3: ' + error.message);
+      showError('Error saving step 3: ' + error.message);
       return false;
     } finally {
       setIsLoading(false);
@@ -347,14 +347,14 @@ export default function CreateEvent() {
   // Auto-save Step 4 (Score Rules)
   const saveStep4 = async () => {
     if (!eventId) {
-      toast.error('Please complete Step 1 first');
+      showError('Please complete Step 1 first');
       return false;
     }
 
     // Validation: Check if at least one criterion exists
     const validCriteria = criteria.filter(c => c.name && c.name.trim() !== '');
     if (validCriteria.length === 0) {
-      toast.error('Please add at least one scoring criterion');
+      showError('Please add at least one scoring criterion');
       return false;
     }
 
@@ -365,7 +365,7 @@ export default function CreateEvent() {
     });
 
     if (hasInvalidPercentage) {
-      toast.error('All criteria must have valid percentages greater than 0');
+      showError('All criteria must have valid percentages greater than 0');
       return false;
     }
 
@@ -382,7 +382,7 @@ export default function CreateEvent() {
     });
 
     if (!categoriesValid && invalidCategory) {
-      toast.error(`"${invalidCategory.name}" criteria must total 100% (currently ${invalidCategory.total}%)`);
+      showError(`"${invalidCategory.name}" criteria must total 100% (currently ${invalidCategory.total}%)`);
       return false;
     }
 
@@ -403,16 +403,16 @@ export default function CreateEvent() {
       });
 
       if (response.ok) {
-        toast.success('Step 4 saved!', { duration: 2000 });
+        showSuccess('Step 4 saved!', { duration: 2000 });
         return true;
       } else {
         const errorData = await response.json();
-        toast.error(errorData.message || 'Failed to save step 4');
+        showError(errorData.message || 'Failed to save step 4');
         return false;
       }
     } catch (error) {
       console.error('Error saving step 4:', error);
-      toast.error('Error saving step 4: ' + error.message);
+      showError('Error saving step 4: ' + error.message);
       return false;
     } finally {
       setIsLoading(false);
@@ -538,11 +538,10 @@ export default function CreateEvent() {
       }));
 
       setCriteria(criteriaWithCategories);
-
-      toast.success(`Template "${template.name}" loaded!`, { duration: 3000 });
+      showSuccess(`Template "${template.name}" loaded!`, { duration: 3000 });
     } catch (error) {
       console.error('Error loading template:', error);
-      toast.error('Error loading template');
+      showError('Error loading template');
     }
   };
 
@@ -564,12 +563,12 @@ export default function CreateEvent() {
   const handleSubmit = async () => {
     // Validation
     if (!eventData.title || !eventData.event_date) {
-      toast.error('Please fill in event name and date');
+      showError('Please fill in event name and date');
       return;
     }
 
     if (totalPercentage !== 100) {
-      toast.error(`Score percentages must total 100% (currently ${totalPercentage}%)`);
+      showError(`Score percentages must total 100% (currently ${totalPercentage}%)`);
       return;
     }
 
@@ -613,63 +612,21 @@ export default function CreateEvent() {
 
       if (response.ok) {
         const result = await response.json();
-        toast.success(
-          (t) => (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span className="material-icons" style={{ fontSize: '32px', color: '#10b981' }}>
-                check_circle
-              </span>
-              <div>
-                <p style={{ margin: 0, fontWeight: 'bold', fontSize: '16px' }}>
-                  Event Created Successfully!
-                </p>
-                <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
-                  {eventData.title}
-                </p>
-              </div>
-            </div>
-          ),
-          {
-            duration: 4000,
-            style: {
-              padding: '16px',
-              borderRadius: '8px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            },
-          }
-        );
+        showSuccess(`Event Created Successfully!\n${eventData.title}`, { duration: 4000 });
         setTimeout(() => navigate('/get_started'), 1500);
       } else {
         const error = await response.json();
-        toast.error(error.message || 'Failed to create event', {
-          duration: 4000,
-          icon: '❌',
-        });
+        showError(error.message || 'Failed to create event', { duration: 4000 });
       }
     } catch (error) {
       console.error('Error creating event:', error);
-      toast.error('Error creating event. Please try again.', {
-        duration: 4000,
-        icon: '❌',
-      });
+      showError('Error creating event. Please try again.', { duration: 4000 });
     }
   };
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
       <AdminSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-
-      {/* Toast Notifications */}
-      <Toaster
-        position="top-right"
-        reverseOrder={false}
-        toastOptions={{
-          style: {
-            background: '#fff',
-            color: '#363636',
-          },
-        }}
-      />
 
       {/* Header */}
       <div style={{

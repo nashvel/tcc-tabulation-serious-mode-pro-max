@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { UserX, AlertCircle, AlertTriangle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useState } from 'react';
+import { UserX } from 'lucide-react';
+import { showSuccess, showError } from '../../utils/alerts';
 
 export default function ClearJudgesSubmenu({ eventId, onClear }) {
   const [isHovering, setIsHovering] = useState(false);
@@ -32,17 +32,17 @@ export default function ClearJudgesSubmenu({ eventId, onClear }) {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        const message = clearOption === 'judges' 
-          ? 'All judge selections cleared!' 
+        const message = clearOption === 'judges'
+          ? 'All judge selections cleared!'
           : 'All scores and event sequence cleared!';
-        toast.success(message, { duration: 2000 });
+        showSuccess(message, { duration: 2000 });
         if (onClear) await onClear();
       } else {
-        toast.error(data.message || 'Failed to clear');
+        showError(data.message || 'Failed to clear');
       }
     } catch (error) {
       console.error('Error clearing:', error);
-      toast.error('Error clearing data');
+      showError('Error clearing data');
     } finally {
       setIsLoading(false);
       setIsHovering(false);
@@ -75,7 +75,7 @@ export default function ClearJudgesSubmenu({ eventId, onClear }) {
           }}
         >
           {/* Arrow pointing left - connected */}
-          <div 
+          <div
             className="absolute -left-2 w-0 h-0 border-t-5 border-b-5 border-r-5 border-t-transparent border-b-transparent border-r-white"
             style={{
               top: '12px'
@@ -129,11 +129,10 @@ export default function ClearJudgesSubmenu({ eventId, onClear }) {
             <button
               onClick={handleClear}
               disabled={isLoading}
-              className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wide transition-all ${
-                isLoading
-                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                  : 'bg-red-500 text-white border border-red-600 hover:bg-red-600'
-              }`}
+              className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wide transition-all ${isLoading
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                : 'bg-red-500 text-white border border-red-600 hover:bg-red-600'
+                }`}
             >
               {isLoading ? (
                 <>

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Clock, Eye, EyeOff } from 'lucide-react';
-import toast from 'react-hot-toast';
 import { getApiBase, getCurrentEventId } from '../../config/api';
 import { useVotingWebSocket } from '../../hooks/useVotingWebSocket';
 import JudgePreloader from '../../components/judge/JudgePreloader';

@@ -1,9 +1,39 @@
 import { useState, useEffect } from 'react';
-import { votingAPI } from '../../api/services';
-import toast from 'react-hot-toast';
+import { showSuccess, showError } from '../../utils/alerts';
 import NextCategorySubmenu from './NextCategorySubmenu';
 import ClearJudgesSubmenu from './ClearJudgesSubmenu';
 import { ClipboardList, Lock, Unlock, Activity } from 'lucide-react';
+import { getApiBase } from '../../config/api';
+
+// API helper for voting state
+const votingAPI = {
+  getState: async (params) => {
+    const apiBase = getApiBase();
+    const response = await fetch(`${apiBase}/api/voting/state?event_id=${params.event_id || 1}`);
+    if (!response.ok) throw new Error('Failed to fetch voting state');
+    return { data: await response.json() };
+  },
+  lock: async (params) => {
+    const apiBase = getApiBase();
+    const response = await fetch(`${apiBase}/api/voting/lock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_id: params.event_id || 1 })
+    });
+    if (!response.ok) throw new Error('Failed to lock');
+    return { data: await response.json() };
+  },
+  unlock: async (params) => {
+    const apiBase = getApiBase();
+    const response = await fetch(`${apiBase}/api/voting/unlock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_id: params.event_id || 1 })
+    });
+    if (!response.ok) throw new Error('Failed to unlock');
+    return { data: await response.json() };
+  }
+};
 
 export default function ControlButtons({
   eventId,
@@ -11,7 +41,8 @@ export default function ControlButtons({
   eventSequence,
   currentSequenceIndex,
   onStartStop,
-  onNext
+  onNext,
+  onOpenEventDetails
 }) {
   const [isLocked, setIsLocked] = useState(false);
 
@@ -41,42 +72,22 @@ export default function ControlButtons({
       if (isLocked) {
         await votingAPI.unlock({ event_id: eventId || 1 });
         setIsLocked(false);
-        toast.success('Screen Unlocked!', { duration: 2000 });
+        showSuccess('Screen Unlocked!', { duration: 2000 });
       } else {
         await votingAPI.lock({ event_id: eventId || 1 });
         setIsLocked(true);
-        toast.success('Screen Locked!', { duration: 2000 });
+        showSuccess('Screen Locked!', { duration: 2000 });
       }
     } catch (error) {
       console.error('Error toggling lock:', error);
-      toast.error('Failed to toggle lock');
+      showError('Failed to toggle lock');
     }
   };
 
   const handleClearJudges = async () => {
-    if (!confirm('Are you sure you want to clear all occupied judges? This will allow judges to be selected again.')) {
-      return;
-    }
-
-    try {
-      const apiUrl = `http://${window.location.hostname}:8000/api/clear-occupied-judges`;
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event_id: eventId || 1 })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        toast.success('All judge selections cleared!', { duration: 2000 });
-      } else {
-        toast.error('Failed to clear judges');
-      }
-    } catch (error) {
-      console.error('Error clearing judges:', error);
-      toast.error('Error clearing judges');
-    }
+    // This function might be redundant if ClearJudgesSubmenu handles it, 
+    // but keeping it for compatibility if passed as prop
+    // For now, we'll just log or leave empty as logic is in Submenu
   };
 
   const pillButtonClass = "flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-[10px] uppercase tracking-wide transition-all duration-200 active:scale-95 group";
@@ -85,12 +96,12 @@ export default function ControlButtons({
     <div className="flex items-center justify-center gap-2">
       {/* Details Button - Blue */}
       <button
-        onClick={() => window.location.href = `/admin/events/${eventId || 'active'}/details`}
-        className={`${pillButtonClass} bg-blue-500 text-white hover:bg-blue-600`}
+        onClick={onOpenEventDetails}
+        className={`${pillButtonClass} bg-theme-primary text-theme-text hover:bg-theme-hover border border-theme-border`}
         title="View Event Details"
       >
         <div className="bg-white rounded-full p-1">
-          <ClipboardList size={14} className="text-blue-500" />
+          <ClipboardList size={14} className="text-theme-primary" />
         </div>
         <span>Details</span>
       </button>

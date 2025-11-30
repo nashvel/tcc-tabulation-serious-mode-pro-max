@@ -10,7 +10,8 @@ export default function RoundHeader({
   eventSequence,
   currentSequenceIndex,
   onStartStop,
-  onNext
+  onNext,
+  onOpenEventDetails
 }) {
   const [currentRound, setCurrentRound] = useState(roundName);
 
@@ -61,6 +62,7 @@ export default function RoundHeader({
             currentSequenceIndex={currentSequenceIndex}
             onStartStop={onStartStop}
             onNext={onNext}
+            onOpenEventDetails={onOpenEventDetails}
           />
         </div>
       </div>

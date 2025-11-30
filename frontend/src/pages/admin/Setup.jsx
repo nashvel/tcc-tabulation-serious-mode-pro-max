@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import toast, { Toaster } from 'react-hot-toast';
 import { getApiBase } from '../../config/api';
+import { showSuccess, showError } from '../../utils/alerts';
 import GradientBackground from '../../components/common/GradientBackground';
 import DeleteConfirmationModal from '../../components/admin/DeleteConfirmationModal';
 
@@ -26,13 +25,13 @@ export default function Setup() {
       const response = await fetch(`${apiBase}/api/events`);
 
       if (!response.ok) {
-        toast.error(`API Error: ${response.status} ${response.statusText}`);
+        showError(`API Error: ${response.status} ${response.statusText}`);
         return;
       }
 
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        toast.error('Backend returned invalid response (not JSON)');
+        showError('Backend returned invalid response (not JSON)');
         return;
       }
 
@@ -40,7 +39,7 @@ export default function Setup() {
       setEvents(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching events:', error);
-      toast.error('Failed to fetch events - Check backend is running');
+      showError('Failed to fetch events - Check backend is running');
     }
   };
 
@@ -54,7 +53,7 @@ export default function Setup() {
 
   const confirmDelete = async () => {
     if (deleteModal.confirmText !== deleteModal.event.title) {
-      toast.error('Event title does not match');
+      showError('Event title does not match');
       return;
     }
 
@@ -68,15 +67,15 @@ export default function Setup() {
       });
 
       if (response.ok) {
-        toast.success('Event deleted successfully');
+        showSuccess('Event deleted successfully');
         closeDeleteModal();
         fetchEvents();
       } else {
-        toast.error('Failed to delete event');
+        showError('Failed to delete event');
       }
     } catch (error) {
       console.error('Error deleting event:', error);
-      toast.error('Error deleting event');
+      showError('Error deleting event');
     }
   };
 
@@ -87,7 +86,6 @@ export default function Setup() {
 
   return (
     <GradientBackground>
-      <Toaster position="top-right" />
 
       <div style={{
         display: 'flex',

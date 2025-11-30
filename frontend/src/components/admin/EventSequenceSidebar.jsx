@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, Lock, Unlock, Shuffle } from 'lucide-react';
 import CriteriaChart from './CriteriaChart';
-import toast from 'react-hot-toast';
+import { showSuccess, showError } from '../../utils/alerts';
 import { getApiBase } from '../../config/api';
 
 export default function EventSequenceSidebar({
@@ -13,7 +13,7 @@ export default function EventSequenceSidebar({
   const [judgesList, setJudgesList] = useState(judges);
   const [isLoading, setIsLoading] = useState({});
   const [swapDropdown, setSwapDropdown] = useState(null); // Track which judge's swap dropdown is open
-  
+
   // Open sidebar when shouldOpen prop changes to true
   useEffect(() => {
     if (shouldOpen) {
@@ -32,7 +32,7 @@ export default function EventSequenceSidebar({
     try {
       const apiBase = getApiBase();
       const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-      
+
       const response = await fetch(`${apiBase}/api/judges/${judgeId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -40,15 +40,16 @@ export default function EventSequenceSidebar({
       });
 
       if (response.ok) {
-        setJudgesList(prev => 
+        setJudgesList(prev =>
           prev.map(j => j.id === judgeId ? { ...j, status: newStatus } : j)
         );
-        toast.success(newStatus === 'active' ? 'Judge unlocked' : 'Judge locked', { duration: 2000 });
+        showSuccess(newStatus === 'active' ? 'Judge unlocked' : 'Judge locked', { duration: 2000 });
       } else {
-        toast.error('Failed to update judge status');
+        showError('Failed to update judge status');
       }
     } catch (error) {
-      toast.error('Error updating judge');
+      console.error('Error updating judge:', error);
+      showError('Error updating judge');
     } finally {
       setIsLoading(prev => ({ ...prev, [judgeId]: false }));
     }
@@ -74,10 +75,10 @@ export default function EventSequenceSidebar({
     localStorage.setItem(`judge_${judgeId}_chair`, judge2.chair_number);
     localStorage.setItem(`judge_${targetJudgeId}_chair`, judge1.chair_number);
 
-    toast.success(`Swapped ${judge1.name} ↔ ${judge2.name}`, { duration: 2000 });
+    showSuccess(`Swapped ${judge1.name} ↔ ${judge2.name}`, { duration: 2000 });
     setSwapDropdown(null);
   };
-  
+
   // Handle keyboard shortcuts for < > keys
   useEffect(() => {
     const handleKeyPress = (e) => {
@@ -85,18 +86,18 @@ export default function EventSequenceSidebar({
       if ((e.shiftKey && e.key === '<') || e.key === ',') {
         e.preventDefault();
         setIsOpen(false);
-      } 
+      }
       // Check for > or . key (shift+period)
       else if ((e.shiftKey && e.key === '>') || e.key === '.') {
         e.preventDefault();
         setIsOpen(true);
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, []);
-  
+
   const handleToggle = () => {
     setIsOpen(!isOpen);
   };
@@ -114,12 +115,12 @@ export default function EventSequenceSidebar({
         <div className="grid grid-cols-2 gap-0 sticky top-0 z-10 bg-white border-b border-slate-100">
           {/* Minimal Accent Line */}
           <div className="absolute top-0 left-0 w-full h-0.5 bg-slate-900"></div>
-          
+
           {/* Judge Control Header */}
           <div className="bg-white text-slate-900 px-4 py-3 border-r border-slate-100">
             <h3 className="text-xs font-bold uppercase tracking-widest text-slate-600">Judge Control</h3>
           </div>
-          
+
           {/* Criteria Overview Header */}
           <div className="bg-white text-slate-900 px-4 py-3">
             <h3 className="text-xs font-bold uppercase tracking-widest text-slate-600">Criteria Overview</h3>
@@ -149,7 +150,7 @@ export default function EventSequenceSidebar({
                           >
                             <Shuffle size={14} />
                           </button>
-                          
+
                           {/* Swap Dropdown */}
                           {swapDropdown === judge.id && (
                             <div className="absolute top-full mt-1 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-50 min-w-max">
@@ -174,11 +175,10 @@ export default function EventSequenceSidebar({
                         <button
                           onClick={() => handleLockUnlock(judge.id, judge.status)}
                           disabled={isLoading[judge.id]}
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            judge.status === 'active'
-                              ? 'bg-green-100 text-green-600 hover:bg-green-200'
-                              : 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          className={`p-1.5 rounded-lg transition-colors ${judge.status === 'active'
+                            ? 'bg-green-100 text-green-600 hover:bg-green-200'
+                            : 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                           title={judge.status === 'active' ? 'Lock judge' : 'Unlock judge'}
                         >
                           {judge.status === 'active' ? (
@@ -196,7 +196,7 @@ export default function EventSequenceSidebar({
               )}
             </div>
           </div>
-          
+
           {/* Right Column - Criteria Chart */}
           <div>
             <div className="p-5">

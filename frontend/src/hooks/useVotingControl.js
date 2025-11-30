@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
 import { votingAPI } from '../api/services';
+import { showSuccess, showError } from '../utils/alerts';
 
 export const useVotingControl = (continuingEvent) => {
   const [isVotingActive, setIsVotingActive] = useState(false);
@@ -19,16 +19,16 @@ export const useVotingControl = (continuingEvent) => {
 
   const loadVotingState = async () => {
     try {
-      const response = await votingAPI.getState({ 
-        event_id: continuingEvent?.id || 1 
+      const response = await votingAPI.getState({
+        event_id: continuingEvent?.id || 1
       });
-      
+
       // Voting state loaded
-      
+
       if (response.data) {
         const { is_active, active_round } = response.data;
         setIsVotingActive(is_active || false);
-        
+
         // If there's an active round, set it directly from the response
         if (active_round && active_round.id) {
           const category = {
@@ -59,23 +59,16 @@ export const useVotingControl = (continuingEvent) => {
         setIsVotingActive(false);
         setShowCategoryGrid(false);
         setActiveCategory(null);
-        
-        toast.success('Event Documented! 📋', {
-          duration: 4000,
-          style: {
-            background: '#10b981',
-            color: '#fff',
-            fontWeight: '600',
-          },
-        });
+
+        showSuccess('Event Documented! 📋', { duration: 4000 });
       } else {
         // Start voting - show category grid
         // Get current day from event or default to Day 1
         const dayNumber = continuingEvent?.current_day || 1;
         const dayName = `Day ${dayNumber}`;
-        
+
         // Starting voting session
-        
+
         await votingAPI.start({
           event_id: continuingEvent?.id || 1,
           day_number: dayNumber,
@@ -83,22 +76,13 @@ export const useVotingControl = (continuingEvent) => {
         });
         setIsVotingActive(true);
         setShowCategoryGrid(true);
-        
-        toast.success('Event Started! 🎯', {
-          duration: 4000,
-          style: {
-            background: '#16a34a',
-            color: '#fff',
-            fontWeight: '600',
-          },
-        });
+
+        showSuccess('Event Started! 🎯', { duration: 4000 });
       }
       setShowStartStopModal(false);
     } catch (error) {
       console.error('Error toggling voting:', error);
-      toast.error('Failed to toggle voting status: ' + (error.response?.data?.error || error.message), {
-        duration: 5000,
-      });
+      showError('Failed to toggle voting status: ' + (error.response?.data?.error || error.message), { duration: 5000 });
     }
   };
 
@@ -107,16 +91,16 @@ export const useVotingControl = (continuingEvent) => {
       // Use the actual category ID directly - no mapping needed
       // Activating category
 
-      await votingAPI.activateRound({ 
+      await votingAPI.activateRound({
         event_id: continuingEvent?.id || 1,
         round_id: category.id
       });
       setActiveCategory(category);
       setShowCategoryGrid(false);
-      toast.success(`Category "${category.name}" activated!`, { duration: 3000 });
+      showSuccess(`Category "${category.name}" activated!`, { duration: 3000 });
     } catch (error) {
       console.error('Error activating category:', error);
-      toast.error('Failed to activate category: ' + (error.response?.data?.error || error.message));
+      showError('Failed to activate category: ' + (error.response?.data?.error || error.message));
     }
   };
 

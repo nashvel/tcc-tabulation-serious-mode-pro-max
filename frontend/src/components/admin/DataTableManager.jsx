@@ -19,6 +19,7 @@ export default function DataTableManager({
   currentSequenceIndex,
   onStartStop,
   onNext,
+  onOpenEventDetails,
   // Navigation Props
   activeTab: externalActiveTab,
   onTabChange
@@ -71,7 +72,7 @@ export default function DataTableManager({
           className={`
             flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200
             ${activeTab === 'judges'
-              ? 'bg-blue-500 text-white shadow-sm'
+              ? 'bg-theme-primary text-theme-text shadow-sm'
               : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
             }
           `}
@@ -84,7 +85,7 @@ export default function DataTableManager({
           className={`
             flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200
             ${activeTab === 'candidates'
-              ? 'bg-blue-500 text-white shadow-sm'
+              ? 'bg-theme-primary text-theme-text shadow-sm'
               : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
             }
           `}
@@ -97,7 +98,7 @@ export default function DataTableManager({
           className={`
             flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200
             ${activeTab === 'categories'
-              ? 'bg-blue-500 text-white shadow-sm'
+              ? 'bg-theme-primary text-theme-text shadow-sm'
               : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
             }
           `}
@@ -110,7 +111,7 @@ export default function DataTableManager({
           className={`
             flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200
             ${activeTab === 'results'
-              ? 'bg-blue-500 text-white shadow-sm'
+              ? 'bg-theme-primary text-theme-text shadow-sm'
               : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
             }
           `}
@@ -123,7 +124,7 @@ export default function DataTableManager({
           className={`
             flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200
             ${activeTab === 'bestin'
-              ? 'bg-blue-500 text-white shadow-sm'
+              ? 'bg-theme-primary text-theme-text shadow-sm'
               : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
             }
           `}
@@ -145,6 +146,7 @@ export default function DataTableManager({
             currentSequenceIndex={currentSequenceIndex}
             onStartStop={onStartStop}
             onNext={onNext}
+            onOpenEventDetails={onOpenEventDetails}
           />
         )}
         {activeTab === 'candidates' && <CandidatesTab candidates={candidates} />}

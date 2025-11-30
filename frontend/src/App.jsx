@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
 import JudgeLayout from './components/JudgeLayout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -8,7 +7,7 @@ import AdminTools from './pages/admin/AdminTools';
 import AdminLogin from './pages/admin/AdminLogin';
 import Setup from './pages/admin/Setup';
 import CreateEvent from './pages/admin/CreateEvent';
-import EventDetails from './pages/admin/EventDetails';
+
 import Certificates from './pages/admin/Certificates';
 import Documentation from './pages/admin/Documentation';
 import JudgeConfigure from './pages/judges/JudgeConfigure';
@@ -22,28 +21,6 @@ import './theme.css';
 function App() {
   return (
     <Router>
-      <Toaster
-        position="top-right"
-        containerStyle={{
-          zIndex: 99999,
-        }}
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: '#fff',
-            color: '#333',
-            padding: '16px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          },
-          success: {
-            iconTheme: {
-              primary: '#10b981',
-              secondary: '#fff',
-            },
-          },
-        }}
-      />
       <Routes>
         <Route path="/" element={<Navigate to="/admin/login" replace />} />
         <Route path="/judge" element={<JudgeLayout><Judge /></JudgeLayout>} />
@@ -70,11 +47,7 @@ function App() {
             <AdminTools />
           </ProtectedRoute>
         } />
-        <Route path="/admin/events/:eventId/details" element={
-          <ProtectedRoute>
-            <EventDetails />
-          </ProtectedRoute>
-        } />
+
         <Route path="/admin/certificates" element={
           <ProtectedRoute>
             <Certificates />

@@ -9,6 +9,12 @@ export default {
       colors: {
         primary: '#8B5CF6',
         secondary: '#EC4899',
+        theme: {
+          primary: 'var(--theme-primary)',
+          hover: 'var(--theme-hover)',
+          text: 'var(--theme-text)',
+          border: 'var(--theme-border)',
+        }
       }
     },
   },

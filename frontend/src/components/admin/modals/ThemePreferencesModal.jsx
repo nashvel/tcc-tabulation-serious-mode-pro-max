@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Palette, X, Check } from 'lucide-react';
+import { Palette, X, Check, Settings } from 'lucide-react';
+import { Checkbox } from '@headlessui/react';
 import ConfirmDialog from './ConfirmDialog';
 
 const THEME_COLORS = [
@@ -20,6 +21,15 @@ export default function ThemePreferencesModal({ isOpen, onClose }) {
     const [selectedTheme, setSelectedTheme] = useState('default');
     const [currentTheme, setCurrentTheme] = useState('default');
     const [showConfirm, setShowConfirm] = useState(false);
+    const [activeTab, setActiveTab] = useState('colors'); // 'colors' or 'advanced'
+    
+    // Mock customization options
+    const [customizations, setCustomizations] = useState({
+        fillButtons: true,
+        fillColumns: false,
+        fillRowsBackground: false,
+        enterEditMode: true
+    });
 
     useEffect(() => {
         // Load saved theme from localStorage
@@ -80,8 +90,35 @@ export default function ThemePreferencesModal({ isOpen, onClose }) {
                         </button>
                     </header>
 
+                    {/* Tab Navigation */}
+                    <div className="flex gap-0 border-b border-gray-200 bg-white">
+                        <button
+                            onClick={() => setActiveTab('colors')}
+                            className={`flex-1 px-4 py-3 text-sm font-semibold transition-all ${
+                                activeTab === 'colors'
+                                    ? 'border-b-2 border-blue-500 text-blue-600'
+                                    : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                        >
+                            <Palette size={16} className="inline mr-2" />
+                            Colors
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('advanced')}
+                            className={`flex-1 px-4 py-3 text-sm font-semibold transition-all ${
+                                activeTab === 'advanced'
+                                    ? 'border-b-2 border-blue-500 text-blue-600'
+                                    : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                        >
+                            <Settings size={16} className="inline mr-2" />
+                            Advanced
+                        </button>
+                    </div>
+
                     {/* Main Content */}
                     <main className="p-6 flex-grow overflow-y-auto">
+                        {activeTab === 'colors' ? (
                         <div className="space-y-6">
                             <div>
                                 <h3 className="text-sm font-semibold text-gray-900 mb-2">Choose Your Theme Color</h3>
@@ -129,6 +166,18 @@ export default function ThemePreferencesModal({ isOpen, onClose }) {
                                     </button>
                                 ))}
                             </div>
+
+                            {/* TODO: Customization Options Section
+                                - Add checkboxes for theme application targets:
+                                  1. Fill Buttons - Apply theme color to all buttons
+                                  2. Fill Columns - Apply theme color to table columns/headers
+                                  3. Fill Rows Background - Apply theme color to table row backgrounds
+                                  4. Enter Edit Mode - Apply theme color to edit mode elements
+                                - Use a good UI checkbox library (e.g., Headless UI, Radix UI)
+                                - Store preferences in localStorage as 'themeCustomizations'
+                                - Apply customizations dynamically based on selected options
+                                - Update all affected components (buttons, tables, forms) to respect these settings
+                            */}
 
                             {/* Preview Section */}
                             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
@@ -194,6 +243,107 @@ export default function ThemePreferencesModal({ isOpen, onClose }) {
                                 </div>
                             </div>
                         </div>
+                        ) : (
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="text-sm font-semibold text-gray-900 mb-2">Customization Options</h3>
+                                <p className="text-xs text-gray-600 mb-6">
+                                    Choose which elements should use the theme color
+                                </p>
+                            </div>
+
+                            {/* Customization Checkboxes */}
+                            <div className="space-y-3">
+                                {/* Fill Buttons */}
+                                <button
+                                    onClick={() => setCustomizations({ ...customizations, fillButtons: !customizations.fillButtons })}
+                                    className="w-full flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all group"
+                                >
+                                    <Checkbox
+                                        checked={customizations.fillButtons}
+                                        onChange={() => {}}
+                                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                                            customizations.fillButtons
+                                                ? 'bg-blue-600 border-blue-600'
+                                                : 'border-gray-300 group-hover:border-blue-400'
+                                        }`}
+                                    >
+                                        {customizations.fillButtons && <Check size={16} className="text-white" />}
+                                    </Checkbox>
+                                    <div className="flex-1 text-left">
+                                        <p className="text-sm font-semibold text-gray-900">Fill Buttons</p>
+                                        <p className="text-xs text-gray-600">Apply theme color to all buttons</p>
+                                    </div>
+                                </button>
+
+                                {/* Fill Columns */}
+                                <button
+                                    onClick={() => setCustomizations({ ...customizations, fillColumns: !customizations.fillColumns })}
+                                    className="w-full flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all group"
+                                >
+                                    <Checkbox
+                                        checked={customizations.fillColumns}
+                                        onChange={() => {}}
+                                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                                            customizations.fillColumns
+                                                ? 'bg-blue-600 border-blue-600'
+                                                : 'border-gray-300 group-hover:border-blue-400'
+                                        }`}
+                                    >
+                                        {customizations.fillColumns && <Check size={16} className="text-white" />}
+                                    </Checkbox>
+                                    <div className="flex-1 text-left">
+                                        <p className="text-sm font-semibold text-gray-900">Fill Columns</p>
+                                        <p className="text-xs text-gray-600">Apply theme color to table columns/headers</p>
+                                    </div>
+                                </button>
+
+                                {/* Fill Rows Background */}
+                                <button
+                                    onClick={() => setCustomizations({ ...customizations, fillRowsBackground: !customizations.fillRowsBackground })}
+                                    className="w-full flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all group"
+                                >
+                                    <Checkbox
+                                        checked={customizations.fillRowsBackground}
+                                        onChange={() => {}}
+                                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                                            customizations.fillRowsBackground
+                                                ? 'bg-blue-600 border-blue-600'
+                                                : 'border-gray-300 group-hover:border-blue-400'
+                                        }`}
+                                    >
+                                        {customizations.fillRowsBackground && <Check size={16} className="text-white" />}
+                                    </Checkbox>
+                                    <div className="flex-1 text-left">
+                                        <p className="text-sm font-semibold text-gray-900">Fill Rows Background</p>
+                                        <p className="text-xs text-gray-600">Apply theme color to table row backgrounds</p>
+                                    </div>
+                                </button>
+
+                                {/* Enter Edit Mode */}
+                                <button
+                                    onClick={() => setCustomizations({ ...customizations, enterEditMode: !customizations.enterEditMode })}
+                                    className="w-full flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all group"
+                                >
+                                    <Checkbox
+                                        checked={customizations.enterEditMode}
+                                        onChange={() => {}}
+                                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                                            customizations.enterEditMode
+                                                ? 'bg-blue-600 border-blue-600'
+                                                : 'border-gray-300 group-hover:border-blue-400'
+                                        }`}
+                                    >
+                                        {customizations.enterEditMode && <Check size={16} className="text-white" />}
+                                    </Checkbox>
+                                    <div className="flex-1 text-left">
+                                        <p className="text-sm font-semibold text-gray-900">Enter Edit Mode</p>
+                                        <p className="text-xs text-gray-600">Apply theme color to edit mode elements</p>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                        )}
                     </main>
 
                     {/* Footer */}

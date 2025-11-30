@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+
+import { showSuccess, showError } from '../../utils/alerts';
 
 export default function JudgeConfigure() {
   const navigate = useNavigate();
@@ -19,19 +19,19 @@ export default function JudgeConfigure() {
     try {
       const response = await fetch('http://localhost:8000/api/judge-screens');
       const data = await response.json();
-      
+
       setHeaderImages(data.header || []);
       setLoadingImages(data.loading || []);
       setLockedImages(data.locked || []);
     } catch (error) {
       console.error('Error loading images:', error);
-      toast.error('Failed to load images');
+      showError('Failed to load images');
     }
   };
 
   const handleFileUpload = async (event, type) => {
     const files = Array.from(event.target.files);
-    
+
     if (files.length === 0) return;
 
     const formData = new FormData();
@@ -47,14 +47,14 @@ export default function JudgeConfigure() {
       });
 
       if (response.ok) {
-        toast.success(`${files.length} image(s) uploaded successfully!`);
+        showSuccess(`${files.length} image(s) uploaded successfully!`);
         loadImages();
       } else {
-        toast.error('Failed to upload images');
+        showError('Failed to upload images');
       }
     } catch (error) {
       console.error('Error uploading:', error);
-      toast.error('Error uploading images');
+      showError('Error uploading images');
     }
   };
 
@@ -69,14 +69,14 @@ export default function JudgeConfigure() {
       });
 
       if (response.ok) {
-        toast.success('Image deleted successfully!');
+        showSuccess('Image deleted successfully!');
         loadImages();
       } else {
-        toast.error('Failed to delete image');
+        showError('Failed to delete image');
       }
     } catch (error) {
       console.error('Error deleting:', error);
-      toast.error('Error deleting image');
+      showError('Error deleting image');
     }
   };
 
@@ -97,8 +97,7 @@ export default function JudgeConfigure() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#fafafa' }}>
-      <ToastContainer />
-      
+
       {/* Header */}
       <div style={{
         position: 'fixed',
@@ -144,11 +143,11 @@ export default function JudgeConfigure() {
       {/* Content */}
       <div style={{ paddingTop: '80px', padding: '80px 32px 40px 32px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          
+
           {/* Tabs */}
-          <div style={{ 
-            display: 'flex', 
-            gap: '8px', 
+          <div style={{
+            display: 'flex',
+            gap: '8px',
             marginBottom: '24px',
             backgroundColor: '#fff',
             padding: '8px',
@@ -190,10 +189,10 @@ export default function JudgeConfigure() {
             padding: '32px',
             marginBottom: '24px'
           }}>
-            <h2 style={{ 
-              fontSize: '16px', 
-              fontWeight: '600', 
-              color: '#1f2937', 
+            <h2 style={{
+              fontSize: '16px',
+              fontWeight: '600',
+              color: '#1f2937',
               marginBottom: '16px',
               display: 'flex',
               alignItems: 'center',
@@ -268,10 +267,10 @@ export default function JudgeConfigure() {
             padding: '32px',
             marginBottom: '24px'
           }}>
-            <h2 style={{ 
-              fontSize: '16px', 
-              fontWeight: '600', 
-              color: '#1f2937', 
+            <h2 style={{
+              fontSize: '16px',
+              fontWeight: '600',
+              color: '#1f2937',
               marginBottom: '16px',
               display: 'flex',
               alignItems: 'center',
@@ -280,7 +279,7 @@ export default function JudgeConfigure() {
               <span className="material-icons" style={{ fontSize: '20px', color: '#fdba74' }}>cloud_upload</span>
               Upload Images
             </h2>
-            
+
             <div style={{
               border: '2px dashed #e5e7eb',
               borderRadius: '8px',
@@ -290,23 +289,23 @@ export default function JudgeConfigure() {
               cursor: 'pointer',
               transition: 'all 0.2s'
             }}
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.currentTarget.style.borderColor = '#fdba74';
-              e.currentTarget.style.backgroundColor = '#fff7ed';
-            }}
-            onDragLeave={(e) => {
-              e.currentTarget.style.borderColor = '#e5e7eb';
-              e.currentTarget.style.backgroundColor = '#fafafa';
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              e.currentTarget.style.borderColor = '#e5e7eb';
-              e.currentTarget.style.backgroundColor = '#fafafa';
-              const files = Array.from(e.dataTransfer.files);
-              handleFileUpload({ target: { files } }, activeTab);
-            }}
-            onClick={() => document.getElementById('fileInput').click()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.currentTarget.style.borderColor = '#fdba74';
+                e.currentTarget.style.backgroundColor = '#fff7ed';
+              }}
+              onDragLeave={(e) => {
+                e.currentTarget.style.borderColor = '#e5e7eb';
+                e.currentTarget.style.backgroundColor = '#fafafa';
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.currentTarget.style.borderColor = '#e5e7eb';
+                e.currentTarget.style.backgroundColor = '#fafafa';
+                const files = Array.from(e.dataTransfer.files);
+                handleFileUpload({ target: { files } }, activeTab);
+              }}
+              onClick={() => document.getElementById('fileInput').click()}
             >
               <span className="material-icons" style={{ fontSize: '48px', color: '#fdba74', marginBottom: '16px' }}>
                 add_photo_alternate
@@ -335,10 +334,10 @@ export default function JudgeConfigure() {
             border: '1px solid #e5e7eb',
             padding: '32px'
           }}>
-            <h2 style={{ 
-              fontSize: '16px', 
-              fontWeight: '600', 
-              color: '#1f2937', 
+            <h2 style={{
+              fontSize: '16px',
+              fontWeight: '600',
+              color: '#1f2937',
               marginBottom: '16px',
               display: 'flex',
               alignItems: 'center',

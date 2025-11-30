@@ -75,8 +75,8 @@ export default function FixedHeader({
                 }
               }}
               className={`px-4 py-2 text-sm font-medium transition-colors ${isActivePath('/admin') || isActivePath('/get_started')
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-700 hover:text-gray-900'
+                ? 'text-theme-primary border-b-2 border-theme-primary'
+                : 'text-gray-700 hover:text-gray-900'
                 }`}
               style={{ color: isActivePath('/admin') || isActivePath('/get_started') ? undefined : '#374151' }}
             >
@@ -92,8 +92,8 @@ export default function FixedHeader({
             <button
               onClick={() => navigate('/admin/documentation')}
               className={`px-4 py-2 text-sm font-medium transition-colors ${isActivePath('/admin/documentation')
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-700 hover:text-gray-900'
+                ? 'text-theme-primary border-b-2 border-theme-primary'
+                : 'text-gray-700 hover:text-gray-900'
                 }`}
               style={{ color: isActivePath('/admin/documentation') ? undefined : '#374151' }}
             >

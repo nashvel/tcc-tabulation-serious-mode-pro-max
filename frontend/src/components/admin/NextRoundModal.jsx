@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { showSuccess } from '../../utils/alerts';
 
-export default function NextRoundModal({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
+export default function NextRoundModal({
+  isOpen,
+  onClose,
+  onConfirm,
   currentRound,
   nextRound,
   currentRoundId,
-  sequenceIndex 
+  sequenceIndex
 }) {
   const [confirmText, setConfirmText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -16,15 +16,10 @@ export default function NextRoundModal({
   // Testing function - UI ONLY, does NOT record in database
   const handleTestMarkCompleted = () => {
     // Just show a toast notification for testing UI
-    toast.success(`🧪 Test Mode: Round "${currentRound}" would be marked as completed`, {
-      duration: 4000,
-      style: {
-        background: '#f59e0b',
-        color: '#fff',
-        fontWeight: '600',
-      },
+    showSuccess(` Test Mode: Round "${currentRound}" would be marked as completed`, {
+      duration: 3000
     });
-    
+
     console.log('TEST MODE - No database record created:', {
       event_id: 1,
       round_id: currentRoundId,
@@ -74,8 +69,8 @@ export default function NextRoundModal({
       }}>
         {/* Warning Icon */}
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <span className="material-icons" style={{ 
-            fontSize: '64px', 
+          <span className="material-icons" style={{
+            fontSize: '64px',
             color: '#f59e0b'
           }}>
             warning
@@ -83,9 +78,9 @@ export default function NextRoundModal({
         </div>
 
         {/* Title */}
-        <h3 style={{ 
-          fontSize: '20px', 
-          fontWeight: '700', 
+        <h3 style={{
+          fontSize: '20px',
+          fontWeight: '700',
           marginBottom: '16px',
           textAlign: 'center',
           color: '#111827'
@@ -101,8 +96,8 @@ export default function NextRoundModal({
           padding: '16px',
           marginBottom: '20px'
         }}>
-          <p style={{ 
-            fontSize: '14px', 
+          <p style={{
+            fontSize: '14px',
             color: '#92400e',
             lineHeight: '1.6',
             margin: 0
@@ -113,8 +108,8 @@ export default function NextRoundModal({
 
         {/* Current and Next Round Info */}
         <div style={{ marginBottom: '24px' }}>
-          <div style={{ 
-            display: 'flex', 
+          <div style={{
+            display: 'flex',
             justifyContent: 'space-between',
             padding: '12px',
             backgroundColor: '#f3f4f6',
@@ -128,8 +123,8 @@ export default function NextRoundModal({
               {currentRound}
             </span>
           </div>
-          <div style={{ 
-            display: 'flex', 
+          <div style={{
+            display: 'flex',
             justifyContent: 'space-between',
             padding: '12px',
             backgroundColor: '#ecfdf5',
@@ -147,7 +142,7 @@ export default function NextRoundModal({
 
         {/* Confirmation Input */}
         <div style={{ marginBottom: '24px' }}>
-          <label style={{ 
+          <label style={{
             display: 'block',
             fontSize: '13px',
             fontWeight: '600',
@@ -181,11 +176,11 @@ export default function NextRoundModal({
             }}
           />
           {confirmText && confirmText.toLowerCase() !== 'yes' && (
-            <p style={{ 
-              fontSize: '12px', 
-              color: '#ef4444', 
+            <p style={{
+              fontSize: '12px',
+              color: '#ef4444',
               marginTop: '6px',
-              marginBottom: 0 
+              marginBottom: 0
             }}>
               Please type "yes" exactly to proceed
             </p>
@@ -193,7 +188,7 @@ export default function NextRoundModal({
         </div>
 
         {/* Beta Testing Button */}
-        <div style={{ 
+        <div style={{
           marginBottom: '20px',
           padding: '12px',
           backgroundColor: '#fef3c7',
@@ -202,13 +197,13 @@ export default function NextRoundModal({
           textAlign: 'center'
         }}>
           <div style={{ marginBottom: '8px' }}>
-            <span style={{ 
-              fontSize: '11px', 
-              fontWeight: '600', 
+            <span style={{
+              fontSize: '11px',
+              fontWeight: '600',
               color: '#92400e',
               textTransform: 'uppercase'
             }}>
-               UI Testing Only
+              UI Testing Only
             </span>
           </div>
           <button
@@ -235,11 +230,11 @@ export default function NextRoundModal({
             <span className="material-icons" style={{ fontSize: '14px' }}>science</span>
             Test UI (No Database)
           </button>
-          <p style={{ 
-            fontSize: '10px', 
-            color: '#78350f', 
+          <p style={{
+            fontSize: '10px',
+            color: '#78350f',
             marginTop: '6px',
-            marginBottom: 0 
+            marginBottom: 0
           }}>
             Shows toast only - no database record
           </p>

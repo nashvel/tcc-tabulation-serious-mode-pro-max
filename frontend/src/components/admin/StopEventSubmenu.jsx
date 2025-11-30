@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { StopCircle, AlertTriangle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { showSuccess, showError } from '../../utils/alerts';
 import { getApiBase, getCurrentEventId } from '../../config/api';
 
 export default function StopEventSubmenu({ isVotingActive, onStop }) {
@@ -19,17 +19,16 @@ export default function StopEventSubmenu({ isVotingActive, onStop }) {
         body: JSON.stringify({ event_id: eventId })
       });
 
-      const data = await response.json();
-
       if (response.ok) {
-        toast.success('Event Marked as Completed!', { duration: 2000 });
+        showSuccess('Event Marked as Completed!', { duration: 2000 });
         if (onStop) await onStop();
       } else {
-        toast.error(data.message || 'Failed to stop event');
+        const data = await response.json();
+        showError(data.message || 'Failed to stop event');
       }
     } catch (error) {
       console.error('Error stopping event:', error);
-      toast.error('Error stopping event');
+      showError('Error stopping event');
     } finally {
       setIsLoading(false);
       setIsHovering(false);
@@ -76,7 +75,7 @@ export default function StopEventSubmenu({ isVotingActive, onStop }) {
           }}
         >
           {/* Arrow pointing left - connected */}
-          <div 
+          <div
             className="absolute -left-2 w-0 h-0 border-t-5 border-b-5 border-r-5 border-t-transparent border-b-transparent border-r-white"
             style={{
               top: '12px'
@@ -113,11 +112,10 @@ export default function StopEventSubmenu({ isVotingActive, onStop }) {
             <button
               onClick={handleStop}
               disabled={isLoading}
-              className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wide transition-all ${
-                isLoading
-                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                  : 'bg-red-500 text-white border border-red-600 hover:bg-red-600'
-              }`}
+              className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wide transition-all ${isLoading
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                : 'bg-red-500 text-white border border-red-600 hover:bg-red-600'
+                }`}
             >
               {isLoading ? (
                 <>
