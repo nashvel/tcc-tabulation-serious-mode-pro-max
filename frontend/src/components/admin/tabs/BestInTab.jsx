@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Star, Trophy, BarChart3, User } from 'lucide-react';
+import { Star, Trophy, BarChart3, User, ExternalLink, Edit3 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 export default function BestInTab({ candidates, continuingEvent }) {
@@ -159,6 +159,7 @@ export default function BestInTab({ candidates, continuingEvent }) {
 
   const handleTabContextMenu = (e, categoryId) => {
     e.preventDefault();
+    e.stopPropagation();
     setContextMenu({
       visible: true,
       x: e.clientX,
@@ -167,16 +168,29 @@ export default function BestInTab({ candidates, continuingEvent }) {
     });
   };
 
+  const closeContextMenu = () => {
+    setContextMenu({ visible: false, x: 0, y: 0, categoryId: null });
+  };
+
+  // Close context menu when clicking elsewhere
+  useEffect(() => {
+    const handleClick = () => closeContextMenu();
+    if (contextMenu.visible) {
+      document.addEventListener('click', handleClick);
+      return () => document.removeEventListener('click', handleClick);
+    }
+  }, [contextMenu.visible]);
+
   const handleOpenNewWindow = () => {
     if (contextMenu.categoryId) {
       const newWindow = window.open(`${window.location.pathname}?category=${contextMenu.categoryId}`, '_blank');
       if (newWindow) newWindow.focus();
     }
-    setContextMenu({ visible: false, x: 0, y: 0, categoryId: null });
+    closeContextMenu();
   };
 
   const handleEditBeta = () => {
-    setContextMenu({ visible: false, x: 0, y: 0, categoryId: null });
+    closeContextMenu();
     Swal.fire({
       icon: 'info',
       title: 'Edit Mode - Beta',
@@ -185,18 +199,6 @@ export default function BestInTab({ candidates, continuingEvent }) {
       confirmButtonColor: '#F59E0B'
     });
   };
-
-  // Close context menu when clicking elsewhere
-  useEffect(() => {
-    const handleClick = () => {
-      setContextMenu({ visible: false, x: 0, y: 0, categoryId: null });
-    };
-    
-    if (contextMenu.visible) {
-      document.addEventListener('click', handleClick);
-      return () => document.removeEventListener('click', handleClick);
-    }
-  }, [contextMenu.visible]);
 
   if (loading) {
     return (
@@ -412,59 +414,23 @@ export default function BestInTab({ candidates, continuingEvent }) {
       {/* Custom Context Menu */}
       {contextMenu.visible && (
         <div
-          style={{
-            position: 'fixed',
-            top: `${contextMenu.y}px`,
-            left: `${contextMenu.x}px`,
-            zIndex: 1000,
-            backgroundColor: 'white',
-            border: '1px solid #E5E7EB',
-            borderRadius: '8px',
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-            minWidth: '200px',
-            overflow: 'hidden'
-          }}
+          className="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[200px]"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
         >
           <button
             onClick={handleOpenNewWindow}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              width: '100%',
-              padding: '12px 16px',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              fontSize: '14px',
-              color: '#1F2937',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#F3F4F6'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3"
           >
-            📂 Open in a New Window
+            <ExternalLink size={16} />
+            Open in a New Window
           </button>
-          <div style={{ height: '1px', backgroundColor: '#E5E7EB' }}></div>
+          <div className="h-px bg-gray-200 my-1"></div>
           <button
             onClick={handleEditBeta}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              width: '100%',
-              padding: '12px 16px',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              fontSize: '14px',
-              color: '#1F2937',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#F3F4F6'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3"
           >
-            ✏️ Edit (Beta)
+            <Edit3 size={16} />
+            Edit (Beta)
           </button>
         </div>
       )}

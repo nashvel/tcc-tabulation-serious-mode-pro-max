@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { initializeEcho } from '../../../config/echo';
 import { getApiBase, getCurrentEventId } from '../../../config/api';
 import { useVotingWebSocket } from '../../../hooks/useVotingWebSocket';
+import { loadColors, getGroupColor, getColumnColor } from 'nachtify';
 import LiveIndicator from '../scoring/LiveIndicator';
 import RoundHeader from '../scoring/RoundHeader';
 import ScoreTable from '../scoring/ScoreTable';
@@ -30,6 +31,7 @@ export default function JudgesScoringTab({
   const [loading, setLoading] = useState(false);
   const [isLive, setIsLive] = useState(false);
   const [scoresHidden, setScoresHidden] = useState(false);
+  const [candidateColors, setCandidateColors] = useState(() => loadColors());
   const pollingIntervalRef = useRef(null);
   const hasInitialized = useRef(false);
 
@@ -328,6 +330,9 @@ export default function JudgesScoringTab({
             setScoresHidden={setScoresHidden}
             hasDuoParticipants={hasDuoParticipants}
             colorTheme="pink"
+            candidateColors={candidateColors}
+            getGroupColor={getGroupColor}
+            getColumnColor={getColumnColor}
           />
         )}
 
@@ -343,6 +348,9 @@ export default function JudgesScoringTab({
             setScoresHidden={setScoresHidden}
             hasDuoParticipants={hasDuoParticipants}
             colorTheme="blue"
+            candidateColors={candidateColors}
+            getGroupColor={getGroupColor}
+            getColumnColor={getColumnColor}
           />
         )}
       </div>

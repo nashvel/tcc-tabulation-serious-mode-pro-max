@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class AdminAuthController extends Controller
 {
@@ -23,8 +22,11 @@ class AdminAuthController extends Controller
             ], 401);
         }
 
-        // Generate simple token (in production, use Laravel Sanctum)
-        $token = base64_encode(Str::random(40));
+        // Delete old tokens for this admin
+        $admin->tokens()->delete();
+
+        // Create a proper Sanctum token
+        $token = $admin->createToken('admin-token')->plainTextToken;
 
         return response()->json([
             'message' => 'Login successful',

@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { useVotingWebSocket } from '../../hooks/useVotingWebSocket';
 
 export default function FixedHeader({
@@ -11,6 +12,7 @@ export default function FixedHeader({
   const navigate = useNavigate();
   const location = useLocation();
   const [nextCategory, setNextCategory] = useState(activeCategory?.name || 'Loading...');
+  const [isHoveringTitle, setIsHoveringTitle] = useState(false);
 
   // WebSocket handler for real-time category changes
   const handleVotingStateChange = useCallback((data) => {
@@ -42,14 +44,35 @@ export default function FixedHeader({
   return (
     <div className="w-full font-sans relative z-40">
       {/* Main Brand Header */}
-      <div className="bg-white px-8 py-6 border-b border-slate-100 relative overflow-hidden z-40">
+      <div className="bg-white px-8 py-6 border-b border-slate-100 relative z-40">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
 
-          {/* Left: Event Title with Elegant Typography */}
-          <div className="flex flex-col items-center md:items-start gap-2 flex-1 min-w-[200px]">
-            <h1 className="text-3xl font-light text-slate-900 tracking-tight uppercase leading-none letter-spacing-wide">
+          {/* Left: Event Title with Elegant Typography - Clickable with Hover Animation */}
+          <div 
+            className="flex flex-col items-center md:items-start gap-2 flex-1 min-w-[200px] cursor-pointer relative z-10"
+            onMouseEnter={() => setIsHoveringTitle(true)}
+            onMouseLeave={() => setIsHoveringTitle(false)}
+            onClick={() => navigate('/setup')}
+          >
+            {/* Original Title */}
+            <h1 
+              className={`text-3xl font-light text-slate-900 tracking-tight uppercase leading-none letter-spacing-wide transition-all duration-300 ${
+                isHoveringTitle ? 'opacity-0 -translate-x-8' : 'opacity-100 translate-x-0'
+              }`}
+            >
               {continuingEvent?.title || continuingEvent?.name || 'Loading Event...'}
             </h1>
+            
+            {/* Back Icon - Shows on Hover */}
+            <div 
+              className={`flex items-center gap-2 transition-all duration-300 absolute mt-0 ${
+                isHoveringTitle ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'
+              }`}
+            >
+              <ArrowLeft size={28} className="text-slate-900" />
+              <span className="text-sm font-semibold text-slate-900 uppercase tracking-wide">Back to Setup</span>
+            </div>
+            
             <div className="flex items-center gap-3 text-xs font-medium text-slate-600 tracking-widest uppercase mt-1">
               <span className="text-slate-900 font-semibold">
                 {continuingEvent?.days?.[0]?.day_number ? `Day ${continuingEvent.days[0].day_number}` : ''}
@@ -64,7 +87,7 @@ export default function FixedHeader({
           </div>
 
           {/* Center: Navigation Buttons */}
-          <div className="flex items-center justify-center gap-2 flex-1">
+          <div className="flex items-center justify-center gap-2 flex-1 relative z-20">
             <button
               onClick={() => {
                 const eventTitle = continuingEvent?.title || continuingEvent?.name;
@@ -75,10 +98,13 @@ export default function FixedHeader({
                 }
               }}
               className={`px-4 py-2 text-sm font-medium transition-colors ${isActivePath('/admin') || isActivePath('/get_started')
-                ? 'text-theme-primary border-b-2 border-theme-primary'
+                ? 'border-b-2'
                 : 'text-gray-700 hover:text-gray-900'
                 }`}
-              style={{ color: isActivePath('/admin') || isActivePath('/get_started') ? undefined : '#374151' }}
+              style={{ 
+                color: isActivePath('/admin') || isActivePath('/get_started') ? '#1F2937' : '#374151',
+                borderBottomColor: isActivePath('/admin') || isActivePath('/get_started') ? '#1F2937' : 'transparent'
+              }}
             >
               Home
             </button>

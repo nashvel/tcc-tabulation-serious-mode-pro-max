@@ -15,8 +15,8 @@ export default function AdminLogin() {
     const token = localStorage.getItem('adminToken');
     const storedPin = localStorage.getItem('adminPin');
     if (token && storedPin) {
-      // Redirect to the page they were trying to access, or setup
-      const from = location.state?.from?.pathname || '/setup';
+      // Redirect to the page they were trying to access, or judges
+      const from = location.state?.from?.pathname || '/judges';
       navigate(from, { replace: true });
     }
   }, [navigate, location]);
@@ -43,6 +43,11 @@ export default function AdminLogin() {
         // Redirect to the page they were trying to access, or setup
         const from = location.state?.from?.pathname || '/setup';
         navigate(from, { replace: true });
+        
+        // After 2 seconds, redirect to /setup if still on login
+        setTimeout(() => {
+          navigate('/setup', { replace: true });
+        }, 2000);
       } else {
         setError('Invalid PIN');
       }

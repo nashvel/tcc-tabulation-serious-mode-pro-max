@@ -11,7 +11,10 @@ export default function ScoreTable({
   scoresHidden,
   setScoresHidden,
   hasDuoParticipants,
-  colorTheme = 'pink' // 'pink' for female, 'blue' for male
+  colorTheme = 'pink', // 'pink' for female, 'blue' for male
+  candidateColors = {},
+  getGroupColor = () => 'transparent',
+  getColumnColor = () => 'transparent'
 }) {
   const themeColors = {
     pink: {
@@ -98,11 +101,21 @@ export default function ScoreTable({
                   ? validScores.reduce((sum, score) => sum + score, 0) / validScores.length
                   : 0;
 
+                const genderBg = getGroupColor(candidateColors, `gender-${candidate.gender}`);
+                const nameBg = getColumnColor(candidateColors, candidate.id, 'name', 'transparent');
+
                 return (
-                  <tr key={candidate.id} className="hover:bg-gray-50/50 transition-colors">
+                  <tr 
+                    key={candidate.id} 
+                    className="hover:bg-gray-50/50 transition-colors"
+                    style={{ backgroundColor: genderBg }}
+                  >
                     <td className="py-3 px-4">
                       <div className="flex flex-col">
-                        <span className="font-semibold text-gray-900 text-sm uppercase tracking-wide">
+                        <span 
+                          className="font-semibold text-gray-900 text-sm uppercase tracking-wide"
+                          style={{ backgroundColor: nameBg, padding: nameBg !== 'transparent' ? '4px 8px' : '0', borderRadius: nameBg !== 'transparent' ? '4px' : '0' }}
+                        >
                           {candidate.number} - {candidate.name?.toUpperCase()}
                         </span>
                       </div>

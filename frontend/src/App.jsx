@@ -22,7 +22,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Navigate to="/admin/login" replace />} />
+        <Route path="/" element={<Navigate to="/judge" replace />} />
         <Route path="/judge" element={<JudgeLayout><Judge /></JudgeLayout>} />
         <Route path="/admin/login" element={<AdminLogin />} />
 
@@ -47,6 +47,7 @@ function App() {
             <AdminTools />
           </ProtectedRoute>
         } />
+
 
         <Route path="/admin/certificates" element={
           <ProtectedRoute>
