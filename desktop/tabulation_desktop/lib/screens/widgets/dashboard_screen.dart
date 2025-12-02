@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../create_event_screen.dart';
+import '../../utils/responsive.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
@@ -124,103 +125,124 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.grey.shade50,
-      child: Column(
-        children: [
-          // Header
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              children: [
-                const Text(
-                  'Dashboard',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Spacer(),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const CreateEventScreen(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        final isTablet = constraints.maxWidth >= 600 && constraints.maxWidth < 1200;
+        final padding = isMobile ? 12.0 : (isTablet ? 16.0 : 24.0);
+        final gridColumns = isMobile ? 1 : (isTablet ? 2 : 3);
+        final fontSize = isMobile ? 24.0 : (isTablet ? 26.0 : 28.0);
+
+        return Container(
+          color: Colors.grey.shade50,
+          child: Column(
+            children: [
+              Container(
+                color: Colors.white,
+                padding: EdgeInsets.all(padding),
+                child: Row(
+                  children: [
+                    Text(
+                      'Dashboard',
+                      style: TextStyle(
+                        fontSize: fontSize,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ).then((_) => _loadDashboardData());
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('New Event'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 16,
                     ),
-                  ),
+                    const Spacer(),
+                    if (!isMobile)
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const CreateEventScreen(),
+                            ),
+                          ).then((_) => _loadDashboardData());
+                        },
+                        icon: const Icon(Icons.add),
+                        label: const Text('New Event'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: padding * 2,
+                            vertical: padding,
+                          ),
+                        ),
+                      )
+                    else
+                      FloatingActionButton.small(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const CreateEventScreen(),
+                            ),
+                          ).then((_) => _loadDashboardData());
+                        },
+                        child: const Icon(Icons.add),
+                      ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          // Content
-          Expanded(
-            child: isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: ListView(
-                      children: [
-                        // Stats Cards
-                        GridView.count(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 24,
-                          mainAxisSpacing: 24,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
+              ),
+              // Content
+              Expanded(
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : Padding(
+                        padding: EdgeInsets.all(padding),
+                        child: ListView(
                           children: [
-                            _buildStatCard('Total Events', totalEvents.toString(), Colors.blue),
-                            _buildStatCard('Active Events', activeEvents.toString(), Colors.green),
-                            _buildStatCard('Completed', completedEvents.toString(), Colors.orange),
+                            // Stats Cards
+                            GridView.count(
+                              crossAxisCount: gridColumns,
+                              crossAxisSpacing: padding,
+                              mainAxisSpacing: padding,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              children: [
+                                _buildStatCard('Total Events', totalEvents.toString(), Colors.blue),
+                                _buildStatCard('Active Events', activeEvents.toString(), Colors.green),
+                                _buildStatCard('Completed', completedEvents.toString(), Colors.orange),
+                              ],
+                            ),
+                            SizedBox(height: padding * 1.5),
+                            // Chart Section
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              padding: EdgeInsets.all(padding),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Event Status Overview',
+                                    style: TextStyle(
+                                      fontSize: isMobile ? 14 : 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: padding),
+                                  _buildChart(),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 32),
-                        // Chart Section
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Event Status Overview',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              _buildChart(),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

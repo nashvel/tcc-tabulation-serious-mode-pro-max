@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:rflutter_alert/rflutter_alert.dart';
+import '../../utils/responsive.dart';
 import 'dart:convert';
 
 class SettingsScreen extends StatefulWidget {
@@ -179,12 +180,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(ResponsiveHelper.getPadding(context)),
               child: ListView(
                 children: [
                   // Change Admin PIN Section
                   Container(
-                    constraints: const BoxConstraints(maxWidth: 400),
+                    constraints: BoxConstraints(
+                      maxWidth: ResponsiveHelper.isDesktop(context) ? 400 : double.infinity,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),

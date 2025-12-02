@@ -25,123 +25,136 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
-        children: [
-          // Sidebar
-          Container(
-            width: 80,
-            decoration: BoxDecoration(
-              color: Colors.blue.shade900,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(2, 0),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // Logo
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        final sidebarWidth = isMobile ? 60.0 : 80.0;
+        final logoPadding = isMobile ? 12.0 : 16.0;
+        final logoSize = isMobile ? 36.0 : 48.0;
+        final logoIconSize = isMobile ? 20.0 : 28.0;
+        final menuIconSize = isMobile ? 20.0 : 28.0;
+        final menuPadding = isMobile ? 4.0 : 8.0;
+        final menuVerticalPadding = isMobile ? 4.0 : 8.0;
+
+        return Scaffold(
+          body: Row(
+            children: [
+              // Sidebar
+              Container(
+                width: sidebarWidth,
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade900,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(2, 0),
                     ),
-                    child: Icon(
-                      Icons.assessment,
-                      color: Colors.blue.shade900,
-                      size: 28,
-                    ),
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                // Menu Items
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _menuItems.length,
-                    itemBuilder: (context, index) {
-                      final isSelected = _selectedIndex == index;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Tooltip(
-                          message: _menuItems[index],
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: () {
-                                setState(() => _selectedIndex = index);
-                              },
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
+                child: Column(
+                  children: [
+                    // Logo
+                    Padding(
+                      padding: EdgeInsets.all(logoPadding),
+                      child: Container(
+                        width: logoSize,
+                        height: logoSize,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.assessment,
+                          color: Colors.blue.shade900,
+                          size: logoIconSize,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: isMobile ? 12 : 24),
+                    // Menu Items
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _menuItems.length,
+                        itemBuilder: (context, index) {
+                          final isSelected = _selectedIndex == index;
+                          return Padding(
+                            padding: EdgeInsets.symmetric(vertical: menuVerticalPadding),
+                            child: Tooltip(
+                              message: _menuItems[index],
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() => _selectedIndex = index);
+                                  },
+                                  child: Container(
+                                    margin: EdgeInsets.symmetric(
+                                      horizontal: menuPadding,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? Colors.white.withOpacity(0.2)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      _menuIcons[index],
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.white70,
+                                      size: menuIconSize,
+                                    ),
+                                  ),
                                 ),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? Colors.white.withOpacity(0.2)
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(
-                                  _menuIcons[index],
-                                  color: isSelected
-                                      ? Colors.white
-                                      : Colors.white70,
-                                  size: 28,
-                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    // Logout Button
+                    Padding(
+                      padding: EdgeInsets.all(logoPadding),
+                      child: Tooltip(
+                        message: 'Logout',
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.of(context).pushNamedAndRemoveUntil(
+                                '/',
+                                (route) => false,
+                              );
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: EdgeInsets.all(isMobile ? 6 : 8),
+                              child: Icon(
+                                Icons.logout,
+                                color: Colors.white,
+                                size: menuIconSize,
                               ),
                             ),
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ),
-                // Logout Button
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Tooltip(
-                    message: 'Logout',
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.of(context).pushNamedAndRemoveUntil(
-                            '/',
-                            (route) => false,
-                          );
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.all(8),
-                          child: const Icon(
-                            Icons.logout,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              // Main Content
+              Expanded(
+                child: _buildContent(),
+              ),
+            ],
           ),
-          // Main Content
-          Expanded(
-            child: _buildContent(),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

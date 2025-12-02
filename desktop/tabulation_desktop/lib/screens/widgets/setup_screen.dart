@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../create_event_screen.dart';
+import '../../utils/responsive.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
@@ -270,22 +271,22 @@ class _SetupScreenState extends State<SetupScreen> {
                           children: [
                             Icon(
                               Icons.event_note,
-                              size: 64,
+                              size: ResponsiveHelper.isMobile(context) ? 48 : 64,
                               color: Colors.grey.shade300,
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: ResponsiveHelper.getPadding(context)),
                             Text(
                               'No events yet',
                               style: TextStyle(
-                                fontSize: 18,
+                                fontSize: ResponsiveHelper.getFontSize(context, 18),
                                 color: Colors.grey.shade600,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            SizedBox(height: ResponsiveHelper.getPadding(context) * 0.5),
                             Text(
                               'Create a new event to get started',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: ResponsiveHelper.getFontSize(context, 14),
                                 color: Colors.grey.shade500,
                               ),
                             ),
@@ -293,7 +294,7 @@ class _SetupScreenState extends State<SetupScreen> {
                         ),
                       )
                     : Padding(
-                        padding: const EdgeInsets.all(24),
+                        padding: EdgeInsets.all(ResponsiveHelper.getPadding(context)),
                         child: ListView.builder(
                           itemCount: events.length,
                           itemBuilder: (context, index) {
