@@ -372,14 +372,39 @@ class _DevRunnerPanelState extends State<DevRunnerPanel> {
         print('Command: $backendCommand');
         
         if (Platform.isWindows) {
-          // Open new terminal window and run command
-          Process.start(
+          // Run as background process (no terminal window)
+          backendProcess = await Process.start(
             'cmd.exe',
-            ['/c', 'start cmd.exe /k cmd /c $backendCommand'],
+            ['/c', '$backendCommand'],
             workingDirectory: backendPath,
+            runInShell: true,
           );
           
+          print('Backend process started with PID: ${backendProcess?.pid}');
           setState(() => backendRunning = true);
+          
+          // Listen to output
+          backendProcess?.stdout.transform(utf8.decoder).listen((data) {
+            if (mounted) {
+              setState(() => backendOutput += data);
+            }
+            print('Backend: $data');
+          });
+          
+          backendProcess?.stderr.transform(utf8.decoder).listen((data) {
+            if (mounted) {
+              setState(() => backendOutput += data);
+            }
+            print('Backend Error: $data');
+          });
+          
+          // Handle process exit
+          backendProcess?.exitCode.then((_) {
+            if (mounted) {
+              setState(() => backendRunning = false);
+              print('Backend process exited');
+            }
+          });
         } else if (Platform.isMacOS || Platform.isLinux) {
           backendProcess = await Process.start(
             'bash',
@@ -388,6 +413,18 @@ class _DevRunnerPanelState extends State<DevRunnerPanel> {
           );
           
           setState(() => backendRunning = true);
+          
+          backendProcess?.stdout.transform(utf8.decoder).listen((data) {
+            if (mounted) {
+              setState(() => backendOutput += data);
+            }
+          });
+          
+          backendProcess?.exitCode.then((_) {
+            if (mounted) {
+              setState(() => backendRunning = false);
+            }
+          });
         }
       }
     } catch (e) {
@@ -415,15 +452,67 @@ class _DevRunnerPanelState extends State<DevRunnerPanel> {
         print('Command: $frontendCommand');
         
         if (Platform.isWindows) {
-          // Open new terminal window and run command
-          Process.start(
+          // Kill any existing processes on ports 5173-5176
+          try {
+            await Process.run('powershell', [
+              '-Command',
+              r'Get-NetTCPConnection -LocalPort 5173,5174,5175,5176 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id (Get-NetTCPConnection -LocalPort $_.LocalPort | Select-Object -ExpandProperty OwningProcess) -Force -ErrorAction SilentlyContinue }'
+            ]);
+            print('Killed existing processes on ports 5173-5176');
+          } catch (e) {
+            print('Could not kill existing processes: $e');
+          }
+          
+          // Wait a moment for ports to be released
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          // Run as background process (no terminal window)
+          frontendProcess = await Process.start(
             'cmd.exe',
-            ['/c', 'start cmd.exe /k cmd /c $frontendCommand'],
+            ['/c', '$frontendCommand'],
             workingDirectory: frontendPath,
+            runInShell: true,
           );
           
+          print('Frontend process started with PID: ${frontendProcess?.pid}');
           setState(() => frontendRunning = true);
+          
+          // Listen to output
+          frontendProcess?.stdout.transform(utf8.decoder).listen((data) {
+            if (mounted) {
+              setState(() => frontendOutput += data);
+            }
+            print('Frontend: $data');
+          });
+          
+          frontendProcess?.stderr.transform(utf8.decoder).listen((data) {
+            if (mounted) {
+              setState(() => frontendOutput += data);
+            }
+            print('Frontend Error: $data');
+          });
+          
+          // Handle process exit
+          frontendProcess?.exitCode.then((_) {
+            if (mounted) {
+              setState(() => frontendRunning = false);
+              print('Frontend process exited');
+            }
+          });
         } else if (Platform.isMacOS || Platform.isLinux) {
+          // Kill any existing processes on ports 5173-5176
+          try {
+            await Process.run('bash', [
+              '-c',
+              'lsof -ti:5173,5174,5175,5176 | xargs kill -9 2>/dev/null || true'
+            ]);
+            print('Killed existing processes on ports 5173-5176');
+          } catch (e) {
+            print('Could not kill existing processes: $e');
+          }
+          
+          await Future.delayed(const Duration(milliseconds: 500));
+          
           frontendProcess = await Process.start(
             'bash',
             ['-c', '$frontendCommand'],
@@ -431,6 +520,18 @@ class _DevRunnerPanelState extends State<DevRunnerPanel> {
           );
           
           setState(() => frontendRunning = true);
+          
+          frontendProcess?.stdout.transform(utf8.decoder).listen((data) {
+            if (mounted) {
+              setState(() => frontendOutput += data);
+            }
+          });
+          
+          frontendProcess?.exitCode.then((_) {
+            if (mounted) {
+              setState(() => frontendRunning = false);
+            }
+          });
         }
       }
     } catch (e) {

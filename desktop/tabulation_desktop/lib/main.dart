@@ -12,11 +12,12 @@ class TabulationApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'TCC Tabulation System',
+      title: 'Podium Ledger',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
+      debugShowCheckedModeBanner: false,
       home: const LoginScreen(),
     );
   }
