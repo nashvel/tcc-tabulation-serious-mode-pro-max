@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { showSuccess, showError } from '../../utils/alerts';
+import { getApiBase } from '../../config/api';
 import AdminHeaderButtons from '../../components/admin/AdminHeaderButtons';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import ProgressSteps from '../../components/admin/createEvent/ProgressSteps';
@@ -12,6 +13,7 @@ import Step4ScoreRules from '../../components/admin/createEvent/Step4ScoreRules'
 export default function CreateEvent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const apiBase = getApiBase();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [eventId, setEventId] = useState(null); // Track draft event ID
@@ -23,8 +25,8 @@ export default function CreateEvent() {
     title: '',
     event_date: '',
     description: '',
-    event_type: 'pageant',
-    number_of_judges: 7
+    event_type: '',
+    number_of_judges: ''
   });
 
   // Important people
@@ -34,12 +36,12 @@ export default function CreateEvent() {
 
   // Event Days
   const [eventDays, setEventDays] = useState([
-    { day_number: 1, title: '', event_type: 'pageant', participant_type: 'solo' }
+    { day_number: 1, title: '', event_type: '', participant_type: '' }
   ]);
 
   // Candidates by Day (organized by event day)
   const [candidatesByDay, setCandidatesByDay] = useState({
-    0: [{ number: 1, name: '', gender: 'Female', team_name: '', department: '' }]
+    0: [{ number: 1, name: '', gender: '', team_name: '', department: '' }]
   });
 
   // Partnership data (separate from candidates for normalization)
@@ -67,7 +69,7 @@ export default function CreateEvent() {
 
       if (draftId) {
         try {
-          const response = await fetch(`http://localhost:8000/api/events/${draftId}`, {
+          const response = await fetch(`${apiBase}/api/events/${draftId}`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
             }
@@ -96,8 +98,8 @@ export default function CreateEvent() {
               title: event.title,
               event_date: formattedDate,
               description: event.description || '',
-              event_type: event.event_type || 'pageant',
-              number_of_judges: event.number_of_judges || 7
+              event_type: event.event_type ?? '',
+              number_of_judges: event.number_of_judges ?? event.judges?.length ?? ''
             });
 
             // Load event days
@@ -105,8 +107,8 @@ export default function CreateEvent() {
               setEventDays(event.days.map(day => ({
                 day_number: day.day_number,
                 title: day.title,
-                event_type: day.event_type || 'pageant',
-                participant_type: day.participant_type || 'solo'
+                event_type: day.event_type ?? '',
+                participant_type: day.participant_type ?? ''
               })));
             }
 
@@ -194,7 +196,7 @@ export default function CreateEvent() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/events/save-draft', {
+      const response = await fetch(`${apiBase}/api/events/save-draft`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -266,7 +268,7 @@ export default function CreateEvent() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:8000/api/events/${eventId}/update-step`, {
+      const response = await fetch(`${apiBase}/api/events/${eventId}/update-step`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -313,7 +315,7 @@ export default function CreateEvent() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:8000/api/events/${eventId}/update-step`, {
+      const response = await fetch(`${apiBase}/api/events/${eventId}/update-step`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -388,7 +390,7 @@ export default function CreateEvent() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:8000/api/events/${eventId}/update-step`, {
+      const response = await fetch(`${apiBase}/api/events/${eventId}/update-step`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -445,7 +447,7 @@ export default function CreateEvent() {
   // Event Day handlers
   const addEventDay = () => {
     const nextDay = eventDays.length + 1;
-    setEventDays([...eventDays, { day_number: nextDay, title: '', event_type: 'pageant', participant_type: 'solo' }]);
+    setEventDays([...eventDays, { day_number: nextDay, title: '', event_type: '', participant_type: '' }]);
   };
 
   const removeEventDay = (index) => {
@@ -469,7 +471,7 @@ export default function CreateEvent() {
       [dayIndex]: [...dayCandidates, {
         number: nextNumber,
         name: '',
-        gender: 'Female',
+        gender: '',
         team_name: '',
         department: ''
       }]
@@ -601,7 +603,7 @@ export default function CreateEvent() {
     };
 
     try {
-      const response = await fetch('http://localhost:8000/api/events/create-full', {
+      const response = await fetch(`${apiBase}/api/events/create-full`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -777,7 +779,7 @@ export default function CreateEvent() {
                     if (saved) {
                       // Activate event
                       try {
-                        const response = await fetch(`http://localhost:8000/api/events/${eventId}/activate`, {
+                        const response = await fetch(`${apiBase}/api/events/${eventId}/activate`, {
                           method: 'POST',
                           headers: {
                             'Authorization': `Bearer ${localStorage.getItem('adminToken')}`

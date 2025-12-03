@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getApiBase } from '../../config/api';
 import JudgesScoringTab from './tabs/JudgesScoringTab';
 import VotingControlTab from './tabs/VotingControlTab';
 import CandidatesTab from './tabs/CandidatesTab';
@@ -41,7 +42,7 @@ export default function DataTableManager({
   useEffect(() => {
     const fetchJudges = async () => {
       try {
-        const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+        const apiBase = getApiBase();
         const eventId = continuingEvent?.id;
 
         if (!eventId) return;

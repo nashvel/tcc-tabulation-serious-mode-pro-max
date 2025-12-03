@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { UserCircle, X, Plus, Edit, Trash2 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import { showSuccess, showError } from '../../../utils/alerts';
+import { getApiBase } from '../../../config/api';
 
 export default function ConfigureJudgesModal({ isOpen, onClose, eventId }) {
+    const apiBase = getApiBase();
     const [judges, setJudges] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
@@ -26,7 +28,7 @@ export default function ConfigureJudgesModal({ isOpen, onClose, eventId }) {
     const fetchJudges = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch(`http://localhost:8000/api/judges?event_id=${eventId}`);
+            const response = await fetch(`${apiBase}/api/judges?event_id=${eventId}`);
             if (!response.ok) throw new Error('Failed to fetch judges');
             const data = await response.json();
             setJudges(data);
@@ -51,8 +53,8 @@ export default function ConfigureJudgesModal({ isOpen, onClose, eventId }) {
 
         try {
             const url = editingId
-                ? `http://localhost:8000/api/judges/${editingId}`
-                : 'http://localhost:8000/api/judges';
+                ? `${apiBase}/api/judges/${editingId}`
+                : `${apiBase}/api/judges`;
 
             const method = editingId ? 'PUT' : 'POST';
 
@@ -83,7 +85,7 @@ export default function ConfigureJudgesModal({ isOpen, onClose, eventId }) {
 
     const handleDelete = async (id) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/judges/${id}`, {
+            const response = await fetch(`${apiBase}/api/judges/${id}`, {
                 method: 'DELETE',
             });
 

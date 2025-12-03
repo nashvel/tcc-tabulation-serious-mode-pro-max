@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import AdminHeaderButtons from '../../components/admin/AdminHeaderButtons';
 import AdminSidebar from '../../components/admin/AdminSidebar';
+import { getApiBase } from '../../config/api';
 
 export default function Documentation() {
+  const apiBase = getApiBase();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [archivedEvents, setArchivedEvents] = useState([]);
   const [selectedYear, setSelectedYear] = useState(null);
@@ -14,7 +16,7 @@ export default function Documentation() {
 
   const fetchArchivedEvents = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/events?status=archived');
+      const response = await fetch(`${apiBase}/api/events?status=archived`);
       const data = await response.json();
       setArchivedEvents(data);
       if (data.length > 0) {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getApiBase } from '../../../config/api';
 
 export default function Step3Categories({ 
   categories, 
@@ -9,10 +10,11 @@ export default function Step3Categories({
 }) {
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const apiBase = getApiBase();
 
   useEffect(() => {
     // Load templates
-    fetch('http://localhost:8000/api/scoring-templates')
+    fetch(`${apiBase}/api/scoring-templates`)
       .then(res => res.json())
       .then(data => setTemplates(data))
       .catch(err => console.error('Error loading templates:', err));

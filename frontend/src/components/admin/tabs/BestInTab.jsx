@@ -70,6 +70,10 @@ export default function BestInTab({ candidates, continuingEvent }) {
     };
 
     fetchData();
+    
+    // Refresh every 2 seconds
+    const interval = setInterval(fetchData, 2000);
+    return () => clearInterval(interval);
   }, [eventId, apiBase]);
 
   // Calculate best in category results

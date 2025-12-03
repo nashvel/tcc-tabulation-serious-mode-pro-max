@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { getApiBase } from '../config/api';
 
 export default function EventSummary() {
   const { eventId } = useParams();
   const navigate = useNavigate();
+  const apiBase = getApiBase();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeDay, setActiveDay] = useState(null);
@@ -14,7 +16,7 @@ export default function EventSummary() {
 
   const fetchEventDetails = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/events/${eventId}`);
+      const response = await fetch(`${apiBase}/api/events/${eventId}`);
       const data = await response.json();
       setEvent(data);
       // Set first day as active by default

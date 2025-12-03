@@ -26,6 +26,10 @@ export const useAdminData = () => {
 
   useEffect(() => {
     loadData();
+    
+    // Refresh every 2 seconds
+    const interval = setInterval(loadData, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   return {

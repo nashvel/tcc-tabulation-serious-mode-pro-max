@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { showSuccess } from '../../utils/alerts';
+import { getApiBase } from '../../config/api';
 
 export default function AdminLogin() {
   const [pin, setPin] = useState('');
@@ -9,6 +10,7 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const apiBase = getApiBase();
 
   // Check if already logged in
   useEffect(() => {
@@ -27,7 +29,7 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:8000/api/admin/login', {
+      const response = await axios.post(`${apiBase}/api/admin/login`, {
         pin: pin
       });
 

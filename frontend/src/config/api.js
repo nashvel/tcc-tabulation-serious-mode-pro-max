@@ -5,7 +5,8 @@
 
 // Get API base URL from environment or window location
 export const getApiBase = () => {
-  return `http://${window.location.hostname}:8000`;
+  const url = new URL(window.location.href);
+  return `${url.protocol}//${url.hostname}:8000`;
 };
 
 // Get Socket.IO URL from environment

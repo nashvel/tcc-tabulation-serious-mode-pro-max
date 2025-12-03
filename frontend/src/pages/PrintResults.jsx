@@ -5,7 +5,7 @@ import { pointsAPI, candidatesAPI, roundsAPI, criteriaAPI } from '../api/service
 export default function PrintResults() {
   const [searchParams] = useSearchParams();
   const roundId = searchParams.get('round_id');
-  const category = searchParams.get('category') || 'Female';
+  const category = searchParams.get('category') || '';
   
   const [results, setResults] = useState([]);
   const [round, setRound] = useState(null);

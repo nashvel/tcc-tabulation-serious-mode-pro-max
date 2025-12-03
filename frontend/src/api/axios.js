@@ -1,7 +1,16 @@
 import axios from 'axios';
 
+// Dynamic API base URL
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    const url = new URL(window.location.href);
+    return `${url.protocol}//${url.hostname}:8000/api`;
+  }
+  return 'http://localhost:8000/api';
+};
+
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

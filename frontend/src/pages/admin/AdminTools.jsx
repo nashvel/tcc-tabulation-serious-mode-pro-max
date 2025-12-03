@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { showSuccess, showError } from '../../utils/alerts';
+import { getApiBase } from '../../config/api';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import FixedHeader from '../../components/admin/FixedHeader';
 import EventSequenceSidebar from '../../components/admin/EventSequenceSidebar';
@@ -69,7 +70,7 @@ export default function AdminTools() {
   useEffect(() => {
     const fetchEventByTitle = async (title) => {
       try {
-        const response = await fetch(`http://localhost:8000/api/events?title=${encodeURIComponent(title)}`);
+        const response = await fetch(`${getApiBase()}/api/events?title=${encodeURIComponent(title)}`);
         if (!response.ok) {
           throw new Error('Event not found');
         }

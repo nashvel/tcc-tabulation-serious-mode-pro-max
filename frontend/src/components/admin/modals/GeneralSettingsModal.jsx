@@ -3,8 +3,10 @@ import { Settings, X, Key, AlertTriangle } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import axios from 'axios';
 import { showSuccess, showError } from '../../../utils/alerts';
+import { getApiBase } from '../../../config/api';
 
 export default function GeneralSettingsModal({ isOpen, onClose }) {
+    const apiBase = getApiBase();
     const [currentPin, setCurrentPin] = useState('');
     const [newPin, setNewPin] = useState('');
     const [confirmPin, setConfirmPin] = useState('');
@@ -41,7 +43,7 @@ export default function GeneralSettingsModal({ isOpen, onClose }) {
         setIsChangingPin(true);
         try {
             // Call the backend API to change PIN
-            const response = await axios.post('http://localhost:8000/api/admin/change-pin', {
+            const response = await axios.post(`${apiBase}/api/admin/change-pin`, {
                 old_pin: currentPin,
                 new_pin: newPin,
                 new_pin_confirmation: confirmPin

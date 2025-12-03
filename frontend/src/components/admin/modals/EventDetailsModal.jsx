@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Info, X, Calendar, Save } from 'lucide-react';
 import { showSuccess, showError } from '../../../utils/alerts';
 
@@ -10,11 +10,17 @@ export default function EventDetailsModal({ isOpen, onClose, eventId }) {
         event_date: '',
         description: '',
         event_type: 'pageant',
-        number_of_judges: 7
+        number_of_judges: ''
     });
+
+    const apiBase = useMemo(() => {
+        const url = new URL(window.location.href);
+        return `${url.protocol}//${url.hostname}:8000`;
+    }, []);
 
     useEffect(() => {
         if (isOpen && eventId) {
+            console.log('Loading event details for eventId:', eventId);
             loadEventDetails();
         }
     }, [isOpen, eventId]);
@@ -22,10 +28,24 @@ export default function EventDetailsModal({ isOpen, onClose, eventId }) {
     const loadEventDetails = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:8000/api/events/${eventId}`);
-            if (response.ok) {
-                const data = await response.json();
+            // Fetch event and judges in parallel
+            const [eventResponse, judgesResponse] = await Promise.all([
+                fetch(`${apiBase}/api/events/${eventId}`),
+                fetch(`${apiBase}/api/judges?event_id=${eventId}`)
+            ]);
+            
+            if (eventResponse.ok) {
+                const data = await eventResponse.json();
+                console.log('Event data received:', data);
                 setEvent(data);
+
+                // Get actual judges count from judges API
+                let judgesCount = '';
+                if (judgesResponse.ok) {
+                    const judgesData = await judgesResponse.json();
+                    judgesCount = judgesData.length;
+                    console.log('Judges count from API:', judgesCount);
+                }
 
                 let formattedDate = '';
                 if (data.event_date) {
@@ -37,10 +57,11 @@ export default function EventDetailsModal({ isOpen, onClose, eventId }) {
                     title: data.title || '',
                     event_date: formattedDate,
                     description: data.description || '',
-                    event_type: data.event_type || 'pageant',
-                    number_of_judges: data.number_of_judges || 7
+                    event_type: data.event_type ?? '',
+                    number_of_judges: judgesCount || data.number_of_judges || ''
                 });
             } else {
+                console.error('Failed to load event, status:', eventResponse.status);
                 showError('Failed to load event details');
             }
         } catch (error) {
@@ -62,7 +83,10 @@ export default function EventDetailsModal({ isOpen, onClose, eventId }) {
     const handleSave = async () => {
         try {
             const actualEventId = event.unique_id || event.id;
-            const response = await fetch(`http://localhost:8000/api/events/${actualEventId}`, {
+            const url = `${apiBase}/api/events/${actualEventId}`;
+            console.log('Saving to:', url, formData);
+            
+            const response = await fetch(url, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -82,6 +106,7 @@ export default function EventDetailsModal({ isOpen, onClose, eventId }) {
                 loadEventDetails();
             } else {
                 const errorData = await response.json();
+                console.error('Save error:', errorData);
                 showError(errorData.message || 'Failed to update event');
             }
         } catch (error) {

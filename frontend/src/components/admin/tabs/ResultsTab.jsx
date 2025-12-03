@@ -58,6 +58,10 @@ export default function ResultsTab({ candidates, continuingEvent }) {
     };
 
     fetchData();
+    
+    // Refresh every 2 seconds
+    const interval = setInterval(fetchData, 2000);
+    return () => clearInterval(interval);
   }, [eventId, apiBase]);
 
   // Calculate total scores for each candidate

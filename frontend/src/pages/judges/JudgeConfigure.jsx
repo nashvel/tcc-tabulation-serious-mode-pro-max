@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { showSuccess, showError } from '../../utils/alerts';
+import { getApiBase } from '../../config/api';
 
 export default function JudgeConfigure() {
   const navigate = useNavigate();
+  const apiBase = getApiBase();
   const [activeTab, setActiveTab] = useState('header');
   const [headerImages, setHeaderImages] = useState([]);
   const [loadingImages, setLoadingImages] = useState([]);
@@ -17,7 +18,7 @@ export default function JudgeConfigure() {
 
   const loadImages = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/judge-screens');
+      const response = await fetch(`${apiBase}/api/judge-screens`);
       const data = await response.json();
 
       setHeaderImages(data.header || []);
@@ -41,7 +42,7 @@ export default function JudgeConfigure() {
     formData.append('type', type);
 
     try {
-      const response = await fetch('http://localhost:8000/api/judge-screens/upload', {
+      const response = await fetch(`${apiBase}/api/judge-screens/upload`, {
         method: 'POST',
         body: formData
       });
@@ -60,7 +61,7 @@ export default function JudgeConfigure() {
 
   const handleDelete = async (filename, type) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/judge-screens/delete`, {
+      const response = await fetch(`${apiBase}/api/judge-screens/delete`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
