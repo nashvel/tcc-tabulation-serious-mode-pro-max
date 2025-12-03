@@ -14,13 +14,20 @@ export const useVotingControl = (continuingEvent) => {
 
   // Load voting state on mount
   useEffect(() => {
-    loadVotingState();
-  }, [continuingEvent]);
+    if (continuingEvent?.id) {
+      loadVotingState();
+    }
+  }, [continuingEvent?.id]);
 
   const loadVotingState = async () => {
     try {
+      if (!continuingEvent?.id) {
+        console.warn('No event ID available for voting state');
+        return;
+      }
+
       const response = await votingAPI.getState({
-        event_id: continuingEvent?.id
+        event_id: continuingEvent.id
       });
 
       // Voting state loaded

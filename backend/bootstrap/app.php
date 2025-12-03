@@ -13,13 +13,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Apply CORS globally to all routes
+        $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
+
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-        ]);
-
-        // Add CORS middleware
-        $middleware->api(append: [
-            \Illuminate\Http\Middleware\HandleCors::class,
         ]);
 
         // Exclude broadcasting auth from CSRF protection

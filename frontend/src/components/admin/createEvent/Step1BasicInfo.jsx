@@ -37,7 +37,7 @@ export default function Step1BasicInfo({
             value={eventData.title}
             onChange={(e) => setEventData({ ...eventData, title: e.target.value })}
             placeholder="e.g., Battle of the Bands 2025"
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent"
             style={{
               borderColor: eventData.title ? '#10b981' : '#d1d5db',
               paddingRight: '40px'
@@ -66,7 +66,7 @@ export default function Step1BasicInfo({
             type="date"
             value={eventData.event_date}
             onChange={(e) => setEventData({ ...eventData, event_date: e.target.value })}
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent"
             style={{
               borderColor: eventData.event_date ? '#10b981' : '#d1d5db',
               paddingRight: '40px'

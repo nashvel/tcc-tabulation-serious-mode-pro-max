@@ -244,7 +244,7 @@ class EventController extends Controller
                                     'event_day_id' => $dayIndex + 1,
                                     'number' => $candidate['number'] ?? 0,
                                     'name' => $candidate['name'],
-                                    'gender' => $candidate['gender'] ?? null,
+                                    'gender' => !empty($candidate['gender']) ? $candidate['gender'] : null,
                                     'team_name' => $candidate['team_name'] ?? null,
                                     'department' => $candidate['department'] ?? null,
                                 ]);

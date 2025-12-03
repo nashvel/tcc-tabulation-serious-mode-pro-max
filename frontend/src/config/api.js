@@ -17,25 +17,27 @@ export const getSocketUrl = () => {
 };
 
 /**
- * Get current event ID from voting state
- * Falls back to latest event if voting state unavailable
+ * Get current event ID from localStorage or latest event
  * @returns {Promise<number>} Event ID
  */
 export const getCurrentEventId = async () => {
   try {
-    const apiBase = getApiBase();
-    
-    // Try to get event ID from voting state first
-    const votingStateResponse = await fetch(`${apiBase}/api/voting/state`);
-    if (votingStateResponse.ok) {
-      const votingState = await votingStateResponse.json();
-      if (votingState.event_id) {
-        console.log('Using event ID from voting state:', votingState.event_id);
-        return votingState.event_id;
+    // First, try to get from localStorage
+    const continuingEvent = localStorage.getItem('continuingEvent');
+    if (continuingEvent) {
+      try {
+        const event = JSON.parse(continuingEvent);
+        if (event?.id) {
+          console.log('Using event ID from localStorage:', event.id);
+          return event.id;
+        }
+      } catch (e) {
+        console.error('Error parsing continuingEvent from localStorage:', e);
       }
     }
     
-    // Fallback: Get the most recent event
+    // Fallback: Get the most recent event from API
+    const apiBase = getApiBase();
     const eventsResponse = await fetch(`${apiBase}/api/events`);
     if (eventsResponse.ok) {
       const events = await eventsResponse.json();

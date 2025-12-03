@@ -26,6 +26,20 @@ export const GlobalContextMenuProvider = ({ children, eventId, eventSequence = [
   const [isSwitchingCategory, setIsSwitchingCategory] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const contextMenuRef = useRef(null);
+  
+  // Get eventId from prop or localStorage
+  const resolvedEventId = eventId || (() => {
+    try {
+      const continuingEvent = localStorage.getItem('continuingEvent');
+      if (continuingEvent) {
+        const event = JSON.parse(continuingEvent);
+        return event?.unique_id || event?.id;
+      }
+    } catch (error) {
+      console.error('Error reading continuingEvent from localStorage:', error);
+    }
+    return null;
+  })();
 
   // WebSocket handler for real-time lock state updates
   const handleVotingStateChange = useCallback((data) => {
@@ -35,7 +49,7 @@ export const GlobalContextMenuProvider = ({ children, eventId, eventSequence = [
     }
   }, []);
 
-  useVotingWebSocket(eventId, handleVotingStateChange);
+  useVotingWebSocket(resolvedEventId, handleVotingStateChange);
 
   // Sync selectedCategoryIndex with activeRound
   useEffect(() => {
@@ -47,24 +61,34 @@ export const GlobalContextMenuProvider = ({ children, eventId, eventSequence = [
     }
   }, [activeRound, eventSequence]);
 
-  // Load initial lock state
+  // Load initial lock state and poll every 2 seconds
   useEffect(() => {
-    if (!eventId) return; // Don't fetch if eventId is not available yet
+    if (!resolvedEventId) return; // Don't fetch if eventId is not available yet
     
     const loadLockState = async () => {
       try {
         const apiBase = getApiBase();
-        const response = await fetch(`${apiBase}/api/voting/state?event_id=${eventId}`);
+        const response = await fetch(`${apiBase}/api/voting/state?event_id=${resolvedEventId}`);
         if (response.ok) {
           const data = await response.json();
           setIsLocked(data.is_locked ?? false);
+        } else if (response.status === 400 || response.status === 404) {
+          // Event not found or invalid event_id - don't retry
+          console.warn('Invalid event_id or event not found');
         }
       } catch (error) {
         console.error('Error loading lock state:', error);
       }
     };
+    
+    // Load immediately
     loadLockState();
-  }, [eventId]);
+    
+    // Then poll every 2 seconds
+    const interval = setInterval(loadLockState, 2000);
+    
+    return () => clearInterval(interval);
+  }, [resolvedEventId]);
 
   const closeContextMenu = useCallback(() => {
     setContextMenu({ visible: false, x: 0, y: 0, data: null });

@@ -229,6 +229,30 @@ export default function Judge() {
   // Setup WebSocket connection (call hook at top level)
   useVotingWebSocket(eventId, handleVotingStateChange);
 
+  // Poll lock state every 2 seconds
+  useEffect(() => {
+    if (!eventId) return;
+
+    const pollLockState = async () => {
+      try {
+        const response = await votingAPI.getState({ event_id: eventId });
+        if (response.data) {
+          setIsLocked(response.data.is_locked ?? false);
+        }
+      } catch (error) {
+        console.error('Error polling lock state:', error);
+      }
+    };
+
+    // Poll immediately on mount
+    pollLockState();
+
+    // Then poll every 2 seconds
+    const interval = setInterval(pollLockState, 2000);
+
+    return () => clearInterval(interval);
+  }, [eventId]);
+
   useEffect(() => {
     localStorage.setItem('judgeId', judgeId);
   }, [judgeId]);

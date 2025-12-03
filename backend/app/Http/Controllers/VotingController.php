@@ -46,7 +46,43 @@ class VotingController extends Controller
     public function getState(Request $request)
     {
         try {
-            $eventId = $request->input('event_id', 1); // Default to event 1 or get from session
+            $eventIdInput = $request->input('event_id');
+            
+            // If no event_id provided, return error
+            if (!$eventIdInput) {
+                return response()->json([
+                    'event_id' => null,
+                    'is_locked' => false,
+                    'active_session' => null,
+                    'active_round' => null,
+                    'active_round_id' => null,
+                    'error' => 'No event_id provided'
+                ], 400);
+            }
+            
+            // Try to parse as integer first
+            $eventId = (int) $eventIdInput;
+            
+            // If it's 0 (meaning it wasn't a valid integer), try to find by unique_id
+            if ($eventId <= 0) {
+                $event = Event::where('unique_id', $eventIdInput)->first();
+                if (!$event) {
+                    return response()->json([
+                        'event_id' => null,
+                        'error' => 'Event not found'
+                    ], 404);
+                }
+                $eventId = $event->id;
+            } else {
+                // Verify event exists
+                $event = Event::find($eventId);
+                if (!$event) {
+                    return response()->json([
+                        'event_id' => null,
+                        'error' => 'Event not found'
+                    ], 404);
+                }
+            }
             
             $votingState = VotingState::with(['activeSession', 'activeRound'])
                 ->where('event_id', $eventId)
@@ -117,6 +153,9 @@ class VotingController extends Controller
             $eventId = $request->input('event_id', 1);
             $dayNumber = $request->input('day_number', 1);
             $dayName = $request->input('day_name', 'Day ' . $dayNumber);
+            
+            // Convert to integer if it's a string
+            $eventId = (int) $eventId;
 
             DB::beginTransaction();
 
@@ -281,6 +320,10 @@ class VotingController extends Controller
         try {
             $eventId = $request->input('event_id', 1);
             $roundId = $request->input('round_id');
+
+            // Convert to integer if it's a string
+            $eventId = (int) $eventId;
+            $roundId = (int) $roundId;
 
             // Log the incoming request
             Log::info("activateRound called with:", [
@@ -675,6 +718,9 @@ class VotingController extends Controller
         try {
             $judgeId = $request->input('judge_id');
             $eventId = $request->input('event_id', 1);
+            
+            // Convert to integer if it's a string
+            $eventId = (int) $eventId;
             
             Log::info("Attempting to occupy judge", [
                 'judge_id' => $judgeId,

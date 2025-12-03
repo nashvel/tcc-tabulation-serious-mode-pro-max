@@ -54,12 +54,13 @@ Route::post('clear-occupied-judges', [VotingController::class, 'clearOccupiedJud
 
 // Event Management Routes (no auth needed - admin use these)
 Route::post('clear-event-scores', [VotingController::class, 'clearEventScores']);
+Route::post('events/save-draft', [EventController::class, 'saveDraft']); // Allow draft saving without auth
+Route::post('events/create-full', [EventController::class, 'createFull']); // Allow full event creation without auth
+Route::post('events/{id}/update-step', [EventController::class, 'updateStep']); // Allow step updates without auth
 
 // Protected Admin Routes
 Route::middleware('auth:sanctum')->group(function () {
     // Events Management
-    Route::post('events/save-draft', [EventController::class, 'saveDraft']);
-    Route::post('events/{id}/update-step', [EventController::class, 'updateStep']);
     Route::post('events', [EventController::class, 'store']);
     Route::put('events/{event}', [EventController::class, 'update']);
     Route::delete('events/{event}', [EventController::class, 'destroy']);

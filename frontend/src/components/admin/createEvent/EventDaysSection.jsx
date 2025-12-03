@@ -2,8 +2,8 @@ export default function EventDaysSection({ eventDays, addEventDay, removeEventDa
   return (
     <div style={{
       padding: '20px',
-      backgroundColor: '#fff7ed',
-      border: '2px solid #f97316',
+      backgroundColor: '#ffffff',
+      border: '1px solid #e5e7eb',
       borderRadius: '12px'
     }}>
       <div className="flex justify-between items-center mb-4">
@@ -16,7 +16,7 @@ export default function EventDaysSection({ eventDays, addEventDay, removeEventDa
         <button
           type="button"
           onClick={addEventDay}
-          className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
         >
           + Add Day
         </button>
@@ -35,7 +35,7 @@ export default function EventDaysSection({ eventDays, addEventDay, removeEventDa
                 <h3 style={{ 
                   fontSize: '18px', 
                   fontWeight: 'bold', 
-                  color: '#f97316',
+                  color: '#2563eb',
                   marginBottom: '4px'
                 }}>
                   Day {day.day_number}
@@ -64,7 +64,7 @@ export default function EventDaysSection({ eventDays, addEventDay, removeEventDa
                   value={day.title}
                   onChange={(e) => updateEventDay(index, 'title', e.target.value)}
                   placeholder="e.g., Mr & Miss Intramurals 2025"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                 />
                 <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
                   This will be documented as a separate event

@@ -26,8 +26,8 @@ export default function ProgressSteps({ currentStep }) {
               gap: '10px',
               padding: '8px 16px',
               borderRadius: '6px',
-              backgroundColor: currentStep === step.num ? '#fff7ed' : 'transparent',
-              border: currentStep === step.num ? '1px solid #fdba74' : '1px solid transparent'
+              backgroundColor: currentStep === step.num ? '#eff6ff' : 'transparent',
+              border: currentStep === step.num ? '1px solid #93c5fd' : '1px solid transparent'
             }}>
               <div style={{
                 width: '28px',
@@ -38,7 +38,7 @@ export default function ProgressSteps({ currentStep }) {
                 justifyContent: 'center',
                 fontSize: '13px',
                 fontWeight: '600',
-                backgroundColor: currentStep >= step.num ? '#fdba74' : '#e5e7eb',
+                backgroundColor: currentStep >= step.num ? '#2563eb' : '#e5e7eb',
                 color: currentStep >= step.num ? '#fff' : '#9ca3af',
                 transition: 'all 0.2s'
               }}>
@@ -57,7 +57,7 @@ export default function ProgressSteps({ currentStep }) {
               <div style={{
                 width: '24px',
                 height: '2px',
-                backgroundColor: currentStep > step.num ? '#fdba74' : '#e5e7eb',
+                backgroundColor: currentStep > step.num ? '#2563eb' : '#e5e7eb',
                 transition: 'all 0.2s'
               }} />
             )}

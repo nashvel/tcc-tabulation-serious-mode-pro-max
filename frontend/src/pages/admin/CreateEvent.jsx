@@ -765,7 +765,7 @@ export default function CreateEvent() {
                   disabled={isLoading}
                   style={{
                     padding: '12px 32px',
-                    backgroundColor: isLoading ? '#9ca3af' : '#f97316',
+                    backgroundColor: isLoading ? '#9ca3af' : '#2563eb',
                     color: '#fff',
                     border: 'none',
                     borderRadius: '8px',
@@ -805,7 +805,7 @@ export default function CreateEvent() {
                   disabled={isLoading}
                   style={{
                     padding: '12px 32px',
-                    backgroundColor: isLoading ? '#9ca3af' : '#16a34a',
+                    backgroundColor: isLoading ? '#9ca3af' : '#2563eb',
                     color: '#fff',
                     border: 'none',
                     borderRadius: '8px',
