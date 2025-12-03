@@ -237,8 +237,9 @@ export default function CandidatesTab({ candidates, isLocked = false, onCandidat
               return (
                 <tr 
                   key={candidate.id} 
-                  className="border-b border-gray-200 hover:bg-gray-50 cursor-context-menu"
+                  className="group border-b border-gray-200 hover:bg-gray-50 cursor-context-menu"
                   style={{ backgroundColor: getGroupColor(candidateColors, `gender-${candidate.gender}`) }}
+                  title="Right-click for color options"
                 >
                   {shouldRenderNumber && (
                     <td 
@@ -255,12 +256,13 @@ export default function CandidatesTab({ candidates, isLocked = false, onCandidat
                     </td>
                   )}
                   <td 
-                    className="px-4 py-2.5 text-left text-sm border-r border-gray-200 relative"
+                    className="px-4 py-2.5 text-left text-sm border-r border-gray-200 relative group/name"
                     onContextMenu={(e) => handleRowContextMenu(e, candidate, 'name')}
                     style={{ 
                       backgroundColor: getColumnColor(candidateColors, candidate.id, 'name', 'transparent'),
                       color: '#000000'
                     }}
+                    title="Right-click to color"
                   >
                     {editingId === candidate.id ? (
                       <>

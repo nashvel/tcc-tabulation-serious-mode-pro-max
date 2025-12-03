@@ -31,16 +31,18 @@ export default function BestInTab({ candidates, continuingEvent }) {
 
   // Fetch categories and scores
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async (showLoadingSpinner = true) => {
       try {
-        setLoading(true);
+        if (showLoadingSpinner) {
+          setLoading(true);
+        }
         
         // Fetch categories
         const categoriesResponse = await fetch(`${apiBase}/api/criteria?event_id=${eventId}`);
         if (categoriesResponse.ok) {
           const categoriesData = await categoriesResponse.json();
           setCategories(categoriesData);
-          if (categoriesData.length > 0) {
+          if (categoriesData.length > 0 && !selectedCategory) {
             setSelectedCategory(categoriesData[0].id);
           }
         }
@@ -65,14 +67,17 @@ export default function BestInTab({ candidates, continuingEvent }) {
       } catch (error) {
         console.error('Error fetching best in data:', error);
       } finally {
-        setLoading(false);
+        if (showLoadingSpinner) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchData();
+    // Initial load with spinner
+    fetchData(true);
     
-    // Refresh every 2 seconds
-    const interval = setInterval(fetchData, 2000);
+    // Refresh every 2 seconds silently (no spinner, no error alerts)
+    const interval = setInterval(() => fetchData(false), 2000);
     return () => clearInterval(interval);
   }, [eventId, apiBase]);
 

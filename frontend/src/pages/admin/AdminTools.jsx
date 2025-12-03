@@ -32,7 +32,10 @@ export default function AdminTools() {
   const [realtimeCategory, setRealtimeCategory] = useState(null);
   const [continuingEvent, setContinuingEvent] = useState(null);
   const [isLoadingEvent, setIsLoadingEvent] = useState(true);
-  const [activeTab, setActiveTab] = useState('judges');
+  // Read activeTab from URL parameter, default to 'judges'
+  const [activeTab, setActiveTab] = useState(() => {
+    return searchParams.get('activeTab') || 'judges';
+  });
 
   const handleSidebarNavigation = (tabOrPath) => {
     if (tabOrPath === 'judges-modal') {

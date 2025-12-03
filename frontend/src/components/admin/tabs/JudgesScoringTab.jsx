@@ -302,19 +302,17 @@ export default function JudgesScoringTab({
   return (
     <div className="font-sans antialiased min-h-screen bg-gray-50 pb-20">
       {/* Round Header */}
-      {activeRound && (
-        <RoundHeader
-          roundName={activeRound.name}
-          eventId={eventId}
-          // Control Props
-          isVotingActive={isVotingActive}
-          eventSequence={eventSequence}
-          currentSequenceIndex={currentSequenceIndex}
-          onStartStop={onStartStop}
-          onNext={onNext}
-          onOpenEventDetails={onOpenEventDetails}
-        />
-      )}
+      <RoundHeader
+        roundName={activeRound?.name}
+        eventId={eventId}
+        // Control Props
+        isVotingActive={isVotingActive}
+        eventSequence={eventSequence}
+        currentSequenceIndex={currentSequenceIndex}
+        onStartStop={onStartStop}
+        onNext={onNext}
+        onOpenEventDetails={onOpenEventDetails}
+      />
 
       {/* Main Content */}
       <div className="max-w-[1400px] mx-auto px-6 py-8">
@@ -333,6 +331,11 @@ export default function JudgesScoringTab({
             candidateColors={candidateColors}
             getGroupColor={getGroupColor}
             getColumnColor={getColumnColor}
+            // Control props for context menu
+            eventId={eventId}
+            eventSequence={eventSequence}
+            currentSequenceIndex={currentSequenceIndex}
+            onNext={onNext}
           />
         )}
 
@@ -351,6 +354,11 @@ export default function JudgesScoringTab({
             candidateColors={candidateColors}
             getGroupColor={getGroupColor}
             getColumnColor={getColumnColor}
+            // Control props for context menu
+            eventId={eventId}
+            eventSequence={eventSequence}
+            currentSequenceIndex={currentSequenceIndex}
+            onNext={onNext}
           />
         )}
       </div>

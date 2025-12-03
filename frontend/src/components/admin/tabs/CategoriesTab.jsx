@@ -24,28 +24,35 @@ export default function CategoriesTab() {
 
   // Load categories from API
   useEffect(() => {
-    const loadCategories = async () => {
+    const loadCategories = async (showLoadingSpinner = true) => {
       try {
-        setLoading(true);
+        if (showLoadingSpinner) {
+          setLoading(true);
+        }
         const response = await criteriaAPI.getAll();
         setCategories(response.data || []);
       } catch (error) {
         console.error('Error loading categories:', error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error', 
-          text: 'Failed to load categories',
-          confirmButtonColor: '#EF4444'
-        });
+        if (showLoadingSpinner) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error', 
+            text: 'Failed to load categories',
+            confirmButtonColor: '#EF4444'
+          });
+        }
       } finally {
-        setLoading(false);
+        if (showLoadingSpinner) {
+          setLoading(false);
+        }
       }
     };
 
-    loadCategories();
-    
-    // Refresh every 2 seconds
-    const interval = setInterval(loadCategories, 2000);
+    // Initial load with spinner
+    loadCategories(true);
+
+    // Refresh every 2 seconds silently (no spinner, no error alerts)
+    const interval = setInterval(() => loadCategories(false), 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -114,8 +121,9 @@ export default function CategoriesTab() {
             categories.map((category, index) => (
               <tr 
                 key={category.id} 
-                className="border-b border-gray-200 hover:bg-gray-50 cursor-context-menu"
+                className="group border-b border-gray-200 hover:bg-gray-50 cursor-context-menu"
                 style={{ backgroundColor: getColumnColor(categoryColors, category.id, 'row', 'transparent') }}
+                title="Right-click for color options"
               >
                 <td 
                   className="px-4 py-2.5 text-center text-sm text-gray-700 border-r border-gray-200"
@@ -128,6 +136,7 @@ export default function CategoriesTab() {
                   className="px-4 py-2.5 text-left text-sm text-gray-900 border-r border-gray-200"
                   onContextMenu={(e) => handleRowContextMenu(e, category, 'name')}
                   style={{ backgroundColor: getColumnColor(categoryColors, category.id, 'name', 'transparent') }}
+                  title="Right-click to color"
                 >
                   {category.name}
                 </td>
@@ -135,6 +144,7 @@ export default function CategoriesTab() {
                   className="px-4 py-2.5 text-left text-sm text-gray-700 border-r border-gray-200"
                   onContextMenu={(e) => handleRowContextMenu(e, category, 'description')}
                   style={{ backgroundColor: getColumnColor(categoryColors, category.id, 'description', 'transparent') }}
+                  title="Right-click to color"
                 >
                   {category.description || '-'}
                 </td>

@@ -42,17 +42,18 @@ export default function RoundHeader({
 
   return (
     <div className="bg-white border-b border-gray-200 py-4">
-      <div className="max-w-[1400px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-        {/* Left: Round Name */}
-        <div>
+      <div className="max-w-[1400px] mx-auto px-6">
+        {/* Round Name - Centered */}
+        <div className="text-center mb-4">
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Currently Scoring</p>
           <h1 className="text-2xl font-bold text-gray-900 uppercase tracking-tight">
             {currentRound || 'Waiting for category activation...'}
           </h1>
         </div>
 
-        {/* Center/Right: Controls */}
-        <div className="flex-shrink-0">
+        {/* Controls - Centered */}
+        {/* COMMENTED OUT: Using context menu in ScoreTable instead
+        <div className="flex justify-center">
           <ControlButtons
             eventId={eventId}
             isVotingActive={isVotingActive}
@@ -63,6 +64,7 @@ export default function RoundHeader({
             onOpenEventDetails={onOpenEventDetails}
           />
         </div>
+        */}
       </div>
     </div>
   );
