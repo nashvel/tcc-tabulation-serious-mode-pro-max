@@ -25,6 +25,7 @@ class Event extends Model
     protected $with = ['days'];
 
     protected $casts = [
+        'event_date' => 'date',
         'start_date' => 'date',
         'end_date' => 'date',
     ];
@@ -42,5 +43,25 @@ class Event extends Model
     public function overallWinners()
     {
         return $this->hasMany(EventOverallWinner::class);
+    }
+
+    public function candidates()
+    {
+        return $this->hasMany(Candidate::class);
+    }
+
+    public function rounds()
+    {
+        return $this->hasMany(Round::class);
+    }
+
+    public function judges()
+    {
+        return $this->hasMany(Judge::class);
+    }
+
+    public function importantPeople()
+    {
+        return $this->hasMany(EventImportantPerson::class);
     }
 }

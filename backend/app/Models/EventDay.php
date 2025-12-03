@@ -9,7 +9,7 @@ class EventDay extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['event_id', 'day_number', 'title'];
+    protected $fillable = ['event_id', 'day_number', 'title', 'event_type', 'participant_type'];
 
     protected $appends = ['results_count'];
 

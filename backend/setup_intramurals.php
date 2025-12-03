@@ -35,8 +35,13 @@ try {
     // Create the main event
     $event = Event::create([
         'id' => 1,
+        'unique_id' => 'evt_tcc_intramurals_2025',
         'title' => 'TCC INTRAMURALS 2025',
         'year' => 2025,
+        'event_date' => '2025-03-15', // Set your actual event date
+        'description' => 'TCC Intramurals 2025 - Mr and Miss Competition',
+        'event_type' => 'pageant',
+        'number_of_judges' => 5,
         'status' => 'active'
     ]);
 
@@ -527,7 +532,10 @@ try {
     echo "   - Event ID: {$event->id}\n";
     echo "   - Unique ID: {$event->unique_id}\n";
     echo "   - Title: {$event->title}\n";
-    echo "   - Date: {$event->event_date}\n";
+    echo "   - Event Date: {$event->event_date}\n";
+    echo "   - Description: {$event->description}\n";
+    echo "   - Event Type: {$event->event_type}\n";
+    echo "   - Number of Judges: {$event->number_of_judges}\n";
     echo "   - Event Days: 1 (MR AND MISS - Duo Pageant)\n";
     echo "   - Candidates: 16 (8 pairs)\n";
     echo "   - Judges: 5\n";

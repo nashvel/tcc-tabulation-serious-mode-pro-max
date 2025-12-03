@@ -145,4 +145,175 @@ class EventController extends Controller
 
         return response()->json(['message' => 'Event deleted successfully']);
     }
+
+    /**
+     * Save or update event draft (Step 1)
+     */
+    public function saveDraft(Request $request)
+    {
+        $validated = $request->validate([
+            'event_id' => 'nullable|exists:events,id',
+            'title' => 'required|string|max:255',
+            'event_date' => 'nullable|date',
+            'description' => 'nullable|string',
+            'event_type' => 'nullable|string',
+            'number_of_judges' => 'nullable|integer|min:1|max:15',
+            'event_days' => 'nullable|array',
+            'important_people' => 'nullable|array',
+        ]);
+
+        // Create or update event
+        if ($request->event_id) {
+            $event = Event::findOrFail($request->event_id);
+            $event->update([
+                'title' => $validated['title'],
+                'event_date' => $validated['event_date'] ?? null,
+                'description' => $validated['description'] ?? null,
+                'event_type' => $validated['event_type'] ?? 'pageant',
+                'number_of_judges' => $validated['number_of_judges'] ?? null,
+                'year' => date('Y'),
+            ]);
+        } else {
+            $event = Event::create([
+                'unique_id' => uniqid('evt_'),
+                'title' => $validated['title'],
+                'event_date' => $validated['event_date'] ?? null,
+                'description' => $validated['description'] ?? null,
+                'event_type' => $validated['event_type'] ?? 'pageant',
+                'number_of_judges' => $validated['number_of_judges'] ?? null,
+                'year' => date('Y'),
+                'status' => 'active',
+            ]);
+        }
+
+        // Save event days if provided
+        if (!empty($validated['event_days'])) {
+            $event->days()->delete();
+            foreach ($validated['event_days'] as $day) {
+                EventDay::create([
+                    'event_id' => $event->id,
+                    'day_number' => $day['day_number'] ?? 1,
+                    'title' => $day['title'] ?? 'Day 1',
+                    'event_type' => $day['event_type'] ?? 'pageant',
+                    'participant_type' => $day['participant_type'] ?? 'solo',
+                ]);
+            }
+        }
+
+        // Save important people if provided
+        if (!empty($validated['important_people'])) {
+            \App\Models\EventImportantPerson::where('event_id', $event->id)->delete();
+            foreach ($validated['important_people'] as $person) {
+                if (!empty($person['position']) || !empty($person['name'])) {
+                    \App\Models\EventImportantPerson::create([
+                        'event_id' => $event->id,
+                        'position' => $person['position'] ?? '',
+                        'name' => $person['name'] ?? '',
+                    ]);
+                }
+            }
+        }
+
+        return response()->json([
+            'message' => 'Draft saved successfully',
+            'event' => $event->load('days'),
+            'event_id' => $event->id
+        ]);
+    }
+
+    /**
+     * Update specific step of event creation
+     */
+    public function updateStep(Request $request, $id)
+    {
+        $event = Event::findOrFail($id);
+        $step = $request->input('step');
+        $data = $request->input('data');
+
+        switch ($step) {
+            case 2: // Candidates
+                if (!empty($data['candidates_by_day'])) {
+                    // Clear existing candidates for this event
+                    \App\Models\Candidate::where('event_id', $event->id)->delete();
+                    
+                    foreach ($data['candidates_by_day'] as $dayIndex => $candidates) {
+                        foreach ($candidates as $candidate) {
+                            if (!empty($candidate['name'])) {
+                                \App\Models\Candidate::create([
+                                    'event_id' => $event->id,
+                                    'event_day_id' => $dayIndex + 1,
+                                    'number' => $candidate['number'] ?? 0,
+                                    'name' => $candidate['name'],
+                                    'gender' => $candidate['gender'] ?? null,
+                                    'team_name' => $candidate['team_name'] ?? null,
+                                    'department' => $candidate['department'] ?? null,
+                                ]);
+                            }
+                        }
+                    }
+                }
+                break;
+
+            case 3: // Categories (Rounds)
+                if (!empty($data['categories'])) {
+                    \App\Models\Round::where('event_id', $event->id)->delete();
+                    
+                    $spot = 1;
+                    foreach ($data['categories'] as $category) {
+                        if (!empty($category['name'])) {
+                            \App\Models\Round::create([
+                                'event_id' => $event->id,
+                                'name' => $category['name'],
+                                'spot' => $spot++,
+                            ]);
+                        }
+                    }
+                }
+                break;
+
+            case 4: // Criteria
+                if (!empty($data['criteria'])) {
+                    // Get all rounds for this event
+                    $rounds = \App\Models\Round::where('event_id', $event->id)->get();
+                    
+                    foreach ($rounds as $round) {
+                        \App\Models\Criteria::where('round_id', $round->id)->delete();
+                    }
+                    
+                    foreach ($data['criteria'] as $criterion) {
+                        if (!empty($criterion['name']) && isset($criterion['category_index'])) {
+                            $round = $rounds[$criterion['category_index']] ?? null;
+                            if ($round) {
+                                \App\Models\Criteria::create([
+                                    'round_id' => $round->id,
+                                    'name' => $criterion['name'],
+                                    'points' => $criterion['max_score'] ?? 100,
+                                    'percentage' => $criterion['percentage'] ?? 0,
+                                ]);
+                            }
+                        }
+                    }
+                }
+                break;
+        }
+
+        return response()->json([
+            'message' => "Step {$step} saved successfully",
+            'event' => $event->load(['days', 'candidates', 'rounds.criteria'])
+        ]);
+    }
+
+    /**
+     * Activate event (mark as ready)
+     */
+    public function activate($id)
+    {
+        $event = Event::findOrFail($id);
+        $event->update(['status' => 'active']);
+
+        return response()->json([
+            'message' => 'Event activated successfully',
+            'event' => $event
+        ]);
+    }
 }

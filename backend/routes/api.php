@@ -65,6 +65,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('events/{event}', [EventController::class, 'destroy']);
     Route::post('events/{id}/complete', [EventController::class, 'complete']);
     Route::post('events/{id}/archive', [EventController::class, 'archive']);
+    Route::post('events/{id}/activate', [EventController::class, 'activate']);
 
     // Templates (global, reusable event templates)
     Route::get('templates', [TemplateController::class, 'index']);
