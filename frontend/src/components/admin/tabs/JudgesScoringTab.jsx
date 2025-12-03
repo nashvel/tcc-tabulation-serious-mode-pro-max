@@ -195,7 +195,7 @@ export default function JudgesScoringTab({
         console.error('Error parsing continuingEvent:', e);
       }
     }
-    return 1; // Fallback to 1
+    return null; // Return null instead of hardcoded default
   }, [continuingEvent]);
 
   // Fetch scores when judges/categories/candidates change
@@ -246,7 +246,7 @@ export default function JudgesScoringTab({
     };
 
     fetchScores();
-  }, [judges, categories, activeCandidates]);
+  }, [judges, categories, activeCandidates, eventId]);
 
   // Setup WebSocket for real-time score updates (separate effect for stability)
   useEffect(() => {

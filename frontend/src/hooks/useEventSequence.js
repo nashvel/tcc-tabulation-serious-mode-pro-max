@@ -87,9 +87,15 @@ export const useEventSequence = (continuingEvent, setActiveCategory) => {
       return;
     }
 
+    const eventId = currentEventId || continuingEvent?.id;
+    if (!eventId) {
+      showError('Event ID not available');
+      return;
+    }
+
     try {
       await eventSequenceAPI.add({
-        event_id: currentEventId || continuingEvent?.id,
+        event_id: eventId,
         round_id: category.id
       });
 

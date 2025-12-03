@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { candidatesAPI, roundsAPI, criteriaAPI, pointsAPI } from '../api/services';
 
-export default function useJudgeData() {
+export default function useJudgeData(eventId) {
   const [candidates, setCandidates] = useState([]);
   const [rounds, setRounds] = useState([]);
   const [criteria, setCriteria] = useState([]);
@@ -9,15 +9,17 @@ export default function useJudgeData() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (eventId) {
+      loadData();
+    }
+  }, [eventId]);
 
   const loadData = async () => {
     try {
       const [candidatesRes, roundsRes, criteriaRes] = await Promise.all([
-        candidatesAPI.getAll(),
-        roundsAPI.getAll(),
-        criteriaAPI.getAll(),
+        candidatesAPI.getAll(eventId),
+        roundsAPI.getAll(eventId),
+        criteriaAPI.getAll(eventId),
       ]);
       
       setCandidates(candidatesRes.data);

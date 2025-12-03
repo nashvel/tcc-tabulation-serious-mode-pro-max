@@ -286,8 +286,12 @@ export default function CreateEvent() {
         showSuccess('Step 2 saved!', { duration: 2000 });
         return true;
       } else {
-        const errorData = await response.json();
-        showError(errorData.message || 'Failed to save step 2');
+        try {
+          const errorData = await response.json();
+          showError(errorData.message || 'Failed to save step 2');
+        } catch (parseError) {
+          showError('Failed to save step 2');
+        }
         return false;
       }
     } catch (error) {

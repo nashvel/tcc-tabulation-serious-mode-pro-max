@@ -55,13 +55,15 @@ export default function Scoreboard() {
         category: selectedCategory
       });
       
-      const scoreData = response.data.map(item => {
-        const candidate = candidates.find(c => c.id === item.candidate_id);
-        return {
-          ...item,
-          candidate
-        };
-      });
+      const scoreData = response.data
+        .map(item => {
+          const candidate = candidates.find(c => c.id === item.candidate_id);
+          return {
+            ...item,
+            candidate
+          };
+        })
+        .filter(item => item.candidate); // Filter out items with missing candidates
       
       setScoreboard(scoreData.sort((a, b) => b.total_points - a.total_points));
     } catch (error) {

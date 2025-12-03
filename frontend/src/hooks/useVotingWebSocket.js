@@ -60,13 +60,13 @@ export const useVotingWebSocket = (eventId, onStateChange) => {
     // Add this component's callback to the registry
     const callbacks = channelCallbacks.get(channelName);
     callbackIdRef.current = Symbol('callback');
-    callbacks.add(onStateChangeRef.current);
+    callbacks.add(onStateChange);
 
     // Cleanup on unmount
     return () => {
       const callbacks = channelCallbacks.get(channelName);
       if (callbacks) {
-        callbacks.delete(onStateChangeRef.current);
+        callbacks.delete(onStateChange);
         
         // If no more callbacks, remove the channel entry
         if (callbacks.size === 0) {

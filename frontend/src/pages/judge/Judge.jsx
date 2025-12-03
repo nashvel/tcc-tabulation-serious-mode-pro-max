@@ -11,6 +11,7 @@ const apiBase = getApiBase();
 const candidatesAPI = {
   getAll: async (eventId) => {
     const response = await fetch(`${apiBase}/api/candidates?event_id=${eventId}`);
+    if (!response.ok) throw new Error(`Failed to fetch candidates: ${response.status}`);
     const data = await response.json();
     return { data: Array.isArray(data) ? data : data.data || [] };
   }
@@ -19,6 +20,7 @@ const candidatesAPI = {
 const roundsAPI = {
   getAll: async (eventId) => {
     const response = await fetch(`${apiBase}/api/rounds?event_id=${eventId}`);
+    if (!response.ok) throw new Error(`Failed to fetch rounds: ${response.status}`);
     const data = await response.json();
     return { data: Array.isArray(data) ? data : data.data || [] };
   }
@@ -27,6 +29,7 @@ const roundsAPI = {
 const criteriaAPI = {
   getAll: async (eventId) => {
     const response = await fetch(`${apiBase}/api/criteria?event_id=${eventId}`);
+    if (!response.ok) throw new Error(`Failed to fetch criteria: ${response.status}`);
     const data = await response.json();
     return { data: Array.isArray(data) ? data : data.data || [] };
   }
@@ -35,6 +38,7 @@ const criteriaAPI = {
 const judgesAPI = {
   getAll: async (eventId) => {
     const response = await fetch(`${apiBase}/api/judges?event_id=${eventId}`);
+    if (!response.ok) throw new Error(`Failed to fetch judges: ${response.status}`);
     const data = await response.json();
     return { data: Array.isArray(data) ? data : data.data || [] };
   }
@@ -230,27 +234,17 @@ export default function Judge() {
 
   const loadData = async (eid) => {
     try {
-      // Add timeout to prevent infinite loading (increased to 30s)
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Data loading timeout')), 30000)
-      );
-
       console.time('loadData');
       console.time('fetchCandidates');
       console.time('fetchRounds');
       console.time('fetchCriteria');
       console.time('fetchJudges');
 
-      const dataPromise = Promise.all([
+      const [candidatesRes, roundsRes, criteriaRes, judgesRes] = await Promise.all([
         candidatesAPI.getAll(eid).then(res => { console.timeEnd('fetchCandidates'); return res; }),
         roundsAPI.getAll(eid).then(res => { console.timeEnd('fetchRounds'); return res; }),
         criteriaAPI.getAll(eid).then(res => { console.timeEnd('fetchCriteria'); return res; }),
         judgesAPI.getAll(eid).then(res => { console.timeEnd('fetchJudges'); return res; }),
-      ]);
-
-      const [candidatesRes, roundsRes, criteriaRes, judgesRes] = await Promise.race([
-        dataPromise,
-        timeoutPromise
       ]);
       console.timeEnd('loadData');
 
@@ -290,7 +284,9 @@ export default function Judge() {
       const loadedScores = {};
       judgePoints.forEach(point => {
         const key = `${point.candidate_id}-${point.criteria_id}`;
-        loadedScores[key] = point.points.toString();
+        if (point.points !== null && point.points !== undefined) {
+          loadedScores[key] = point.points.toString();
+        }
       });
 
       setScores(loadedScores);
