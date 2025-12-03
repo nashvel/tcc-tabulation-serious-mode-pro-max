@@ -163,30 +163,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final padding = isMobile ? 12.0 : 24.0;
+    final titleFontSize = isMobile ? 18.0 : 28.0;
+    
     return Container(
       color: Colors.grey.shade50,
       child: Column(
         children: [
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.all(24),
-            child: const Text(
+            padding: EdgeInsets.all(padding),
+            child: Text(
               'General Settings',
               style: TextStyle(
-                fontSize: 28,
+                fontSize: titleFontSize,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
           Expanded(
             child: Padding(
-              padding: EdgeInsets.all(ResponsiveHelper.getPadding(context)),
+              padding: EdgeInsets.all(padding),
               child: ListView(
                 children: [
                   // Change Admin PIN Section
                   Container(
                     constraints: BoxConstraints(
-                      maxWidth: ResponsiveHelper.isDesktop(context) ? 400 : double.infinity,
+                      maxWidth: isMobile ? double.infinity : 400,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -198,7 +202,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(isMobile ? 12.0 : 16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -213,16 +217,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: Icon(
                                 Icons.lock,
                                 color: Colors.indigo.shade700,
-                                size: 18,
+                                size: isMobile ? 14 : 18,
                               ),
                             ),
                             const SizedBox(width: 12),
-                            const Text(
-                              'Change Admin PIN',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey,
+                            Expanded(
+                              child: Text(
+                                'Change Admin PIN',
+                                style: TextStyle(
+                                  fontSize: isMobile ? 12 : 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ),
                           ],
@@ -238,23 +244,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isMobile ? 8 : 12,
+                            vertical: isMobile ? 8 : 10,
                           ),
                           child: Row(
                             children: [
                               Icon(
                                 Icons.info_outline,
                                 color: Colors.blue.shade700,
-                                size: 16,
+                                size: isMobile ? 14 : 16,
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   'Default PIN is 123456. Change it to secure your admin panel.',
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: isMobile ? 9 : 11,
                                     color: Colors.blue.shade900,
                                     height: 1.4,
                                   ),
@@ -268,10 +274,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Current PIN',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: isMobile ? 10 : 11,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.grey,
                               ),
@@ -321,10 +327,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'New PIN',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: isMobile ? 10 : 11,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.grey,
                               ),
@@ -374,10 +380,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Confirm New PIN',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: isMobile ? 10 : 11,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.grey,
                               ),
@@ -428,14 +434,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             onPressed: _handleChangePinClick,
-                            icon: const Icon(Icons.check_circle_outline, size: 18),
-                            label: const Text('Change PIN'),
+                            icon: Icon(Icons.check_circle_outline, size: isMobile ? 14 : 18),
+                            label: Text(
+                              'Change PIN',
+                              style: TextStyle(
+                                fontSize: isMobile ? 12 : 14,
+                              ),
+                            ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.indigo,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 12,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isMobile ? 16 : 20,
+                                vertical: isMobile ? 8 : 12,
                               ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),

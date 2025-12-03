@@ -1,0 +1,1 @@
+{"backendRunning":true,"frontendRunning":false,"backendPath":"C:\\Users\\user\\OneDrive\\Desktop\\mini-capstone\\tabulation-systemv2\\backend","frontendPath":"C:\\Users\\user\\OneDrive\\Desktop\\mini-capstone\\tabulation-systemv2\\frontend","backendCommand":"php artisan serve","frontendCommand":"npm run dev","timestamp":"2025-12-03T04:29:50.136655"}

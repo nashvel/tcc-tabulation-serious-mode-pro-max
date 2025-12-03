@@ -29,6 +29,7 @@ class _DevRunnerPanelState extends State<DevRunnerPanel> {
     super.initState();
     _loadPaths();
     _loadCommands();
+    _loadServerStatus();
   }
 
   @override
@@ -96,6 +97,44 @@ class _DevRunnerPanelState extends State<DevRunnerPanel> {
     }
   }
 
+  Future<void> _saveServerStatus() async {
+    try {
+      final statusFile = File('${Directory.current.path}/server_status.json');
+      final json = {
+        'backendRunning': backendRunning,
+        'frontendRunning': frontendRunning,
+        'backendPath': backendPath,
+        'frontendPath': frontendPath,
+        'backendCommand': backendCommand,
+        'frontendCommand': frontendCommand,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+      await statusFile.writeAsString(jsonEncode(json));
+      print('Server status saved to server_status.json');
+    } catch (e) {
+      print('Error saving server status: $e');
+    }
+  }
+
+  Future<void> _loadServerStatus() async {
+    try {
+      final statusFile = File('${Directory.current.path}/server_status.json');
+      if (await statusFile.exists()) {
+        final content = await statusFile.readAsString();
+        final json = jsonDecode(content);
+        
+        if (mounted) {
+          setState(() {
+            backendRunning = json['backendRunning'] ?? false;
+            frontendRunning = json['frontendRunning'] ?? false;
+          });
+        }
+      }
+    } catch (e) {
+      // Silent fail
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -106,15 +145,8 @@ class _DevRunnerPanelState extends State<DevRunnerPanel> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,15 +268,8 @@ class _DevRunnerPanelState extends State<DevRunnerPanel> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,6 +407,7 @@ class _DevRunnerPanelState extends State<DevRunnerPanel> {
           
           print('Backend process started with PID: ${backendProcess?.pid}');
           setState(() => backendRunning = true);
+          await _saveServerStatus();
           
           // Listen to output
           backendProcess?.stdout.transform(utf8.decoder).listen((data) {
@@ -433,13 +459,14 @@ class _DevRunnerPanelState extends State<DevRunnerPanel> {
     }
   }
 
-  void _stopBackend() {
+  void _stopBackend() async {
     try {
       backendProcess?.kill();
       setState(() {
         backendRunning = false;
         backendOutput = '';
       });
+      await _saveServerStatus();
     } catch (e) {
       print('Error stopping backend: $e');
     }
@@ -476,6 +503,7 @@ class _DevRunnerPanelState extends State<DevRunnerPanel> {
           
           print('Frontend process started with PID: ${frontendProcess?.pid}');
           setState(() => frontendRunning = true);
+          await _saveServerStatus();
           
           // Listen to output
           frontendProcess?.stdout.transform(utf8.decoder).listen((data) {
@@ -540,13 +568,14 @@ class _DevRunnerPanelState extends State<DevRunnerPanel> {
     }
   }
 
-  void _stopFrontend() {
+  void _stopFrontend() async {
     try {
       frontendProcess?.kill();
       setState(() {
         frontendRunning = false;
         frontendOutput = '';
       });
+      await _saveServerStatus();
     } catch (e) {
       print('Error stopping frontend: $e');
     }

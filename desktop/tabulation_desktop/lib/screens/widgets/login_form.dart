@@ -17,7 +17,7 @@ class LoginForm extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           'Admin Login',
@@ -27,6 +27,7 @@ class LoginForm extends StatelessWidget {
             color: Colors.black87,
             letterSpacing: -0.5,
           ),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
         Text(
@@ -35,6 +36,7 @@ class LoginForm extends StatelessWidget {
             fontSize: 14,
             color: Colors.grey.shade600,
           ),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),
 

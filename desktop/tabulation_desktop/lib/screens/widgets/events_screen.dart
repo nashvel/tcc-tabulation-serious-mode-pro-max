@@ -6,19 +6,25 @@ class EventsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final padding = isMobile ? 12.0 : 24.0;
+    final titleFontSize = isMobile ? 18.0 : 28.0;
+    final itemPadding = isMobile ? 12.0 : 16.0;
+    final iconSize = isMobile ? 40.0 : 48.0;
+    
     return Container(
       color: Colors.grey.shade50,
       child: Column(
         children: [
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(padding),
             child: Row(
               children: [
-                const Text(
+                Text(
                   'Events',
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: titleFontSize,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -31,11 +37,20 @@ class EventsScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.add),
-                  label: const Text('New Event'),
+                  icon: Icon(Icons.add, size: isMobile ? 16 : 18),
+                  label: Text(
+                    'New Event',
+                    style: TextStyle(
+                      fontSize: isMobile ? 12 : 14,
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 12 : 16,
+                      vertical: isMobile ? 6 : 10,
+                    ),
                   ),
                 ),
               ],
@@ -43,12 +58,12 @@ class EventsScreen extends StatelessWidget {
           ),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(padding),
               child: ListView.builder(
                 itemCount: 5,
                 itemBuilder: (context, index) {
                   return Container(
-                    margin: const EdgeInsets.only(bottom: 16),
+                    margin: EdgeInsets.only(bottom: isMobile ? 12 : 16),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -59,12 +74,12 @@ class EventsScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(itemPadding),
                     child: Row(
                       children: [
                         Container(
-                          width: 48,
-                          height: 48,
+                          width: iconSize,
+                          height: iconSize,
                           decoration: BoxDecoration(
                             color: Colors.blue.shade100,
                             borderRadius: BorderRadius.circular(8),
@@ -72,17 +87,18 @@ class EventsScreen extends StatelessWidget {
                           child: Icon(
                             Icons.event,
                             color: Colors.blue.shade900,
+                            size: isMobile ? 20 : 24,
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        SizedBox(width: isMobile ? 12 : 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Event ${index + 1}',
-                                style: const TextStyle(
-                                  fontSize: 16,
+                                style: TextStyle(
+                                  fontSize: isMobile ? 14 : 16,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -90,7 +106,7 @@ class EventsScreen extends StatelessWidget {
                               Text(
                                 'Created on ${DateTime.now().toString().split(' ')[0]}',
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: isMobile ? 11 : 12,
                                   color: Colors.grey.shade600,
                                 ),
                               ),
@@ -98,11 +114,20 @@ class EventsScreen extends StatelessWidget {
                           ),
                         ),
                         Chip(
-                          label: const Text('Active'),
+                          label: Text(
+                            'Active',
+                            style: TextStyle(
+                              fontSize: isMobile ? 10 : 12,
+                            ),
+                          ),
                           backgroundColor: Colors.green.shade100,
                           labelStyle: TextStyle(
                             color: Colors.green.shade900,
                             fontWeight: FontWeight.bold,
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isMobile ? 6 : 8,
+                            vertical: isMobile ? 2 : 4,
                           ),
                         ),
                       ],
