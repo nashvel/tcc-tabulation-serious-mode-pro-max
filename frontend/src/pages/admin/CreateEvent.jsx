@@ -189,7 +189,7 @@ export default function CreateEvent() {
 
   // Auto-save Step 1 (Basic Info)
   const saveStep1 = async () => {
-    if (!eventData.title) {
+    if (!basicInfo.title) {
       showError('Please enter event name before proceeding');
       return false;
     }
@@ -204,7 +204,7 @@ export default function CreateEvent() {
         },
         body: JSON.stringify({
           event_id: eventId,
-          ...eventData,
+          ...basicInfo,
           event_days: eventDays.filter(d => d.title),
           important_people: importantPeople.filter(p => p.position || p.name),
           current_step: 1
@@ -568,7 +568,7 @@ export default function CreateEvent() {
 
   const handleSubmit = async () => {
     // Validation
-    if (!eventData.title || !eventData.event_date) {
+    if (!basicInfo.title || !basicInfo.event_date) {
       showError('Please fill in event name and date');
       return;
     }
@@ -593,7 +593,7 @@ export default function CreateEvent() {
     });
 
     const payload = {
-      ...eventData,
+      ...basicInfo,
       event_days: eventDays.filter(d => d.title),
       important_people: importantPeople.filter(p => p.position || p.name),
       candidates: allCandidates,
