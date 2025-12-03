@@ -16,11 +16,11 @@ export default function ClearJudgesSubmenu({ eventId, onClear }) {
       if (clearOption === 'judges') {
         // Clear only judge assignments
         apiUrl = `${apiBase}/api/clear-occupied-judges`;
-        requestBody = { event_id: eventId || 1 };
+        requestBody = { event_id: eventId };
       } else if (clearOption === 'scores') {
         // Clear all scores and event sequence (keep candidates, judges, etc)
         apiUrl = `${apiBase}/api/clear-event-scores`;
-        requestBody = { event_id: eventId || 1 };
+        requestBody = { event_id: eventId };
       }
 
       const response = await fetch(apiUrl, {

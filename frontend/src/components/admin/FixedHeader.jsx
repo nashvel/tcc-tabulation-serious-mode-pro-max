@@ -27,7 +27,7 @@ export default function FixedHeader({
   }, []);
 
   // Setup WebSocket connection
-  useVotingWebSocket(activeCategory?.event_id || continuingEvent?.id || 1, handleVotingStateChange);
+  useVotingWebSocket(activeCategory?.event_id || continuingEvent?.id, handleVotingStateChange);
 
   // Update when prop changes
   useEffect(() => {

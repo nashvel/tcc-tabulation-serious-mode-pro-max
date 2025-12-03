@@ -89,7 +89,7 @@ export const useEventSequence = (continuingEvent, setActiveCategory) => {
 
     try {
       await eventSequenceAPI.add({
-        event_id: currentEventId || continuingEvent?.id || 1,
+        event_id: currentEventId || continuingEvent?.id,
         round_id: category.id
       });
 
@@ -177,7 +177,7 @@ export const useEventSequence = (continuingEvent, setActiveCategory) => {
       // Activating next round
 
       await votingAPI.activateRound({
-        event_id: continuingEvent?.id || 1,
+        event_id: continuingEvent?.id,
         round_id: nextCategory.id
       });
 

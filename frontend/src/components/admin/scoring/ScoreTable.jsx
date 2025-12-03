@@ -1,49 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { BarChart3, Eye, EyeOff, Lock, Unlock, SkipForward, Copy, Edit3 } from 'lucide-react';
-import { showSuccess, showError } from '../../../utils/alerts';
-import { getApiBase } from '../../../config/api';
-import { useVotingWebSocket } from '../../../hooks/useVotingWebSocket';
+import React from 'react';
+import { BarChart3, Eye, EyeOff } from 'lucide-react';
+import { showSuccess } from '../../../utils/alerts';
 
 // ===== NACHTIFY STARTS HERE =====
 // Nachtify: Custom color palette library for interactive table coloring
-import {
-  ColorPaletteContextMenu,
-  loadColors,
-  saveColors,
-  applyColumnColor,
-  getColumnColor as getNachtifyColumnColor
-} from 'nachtify';
+import { applyColumnColor, getColumnColor as getNachtifyColumnColor } from 'nachtify';
 // ===== NACHTIFY ENDS HERE =====
 
-// API helper for voting state
-const votingAPI = {
-  getState: async (eventId) => {
-    const apiBase = getApiBase();
-    const response = await fetch(`${apiBase}/api/voting/state?event_id=${eventId || 1}`);
-    if (!response.ok) throw new Error('Failed to fetch voting state');
-    return { data: await response.json() };
-  },
-  lock: async (eventId) => {
-    const apiBase = getApiBase();
-    const response = await fetch(`${apiBase}/api/voting/lock`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_id: eventId || 1 })
-    });
-    if (!response.ok) throw new Error('Failed to lock');
-    return { data: await response.json() };
-  },
-  unlock: async (eventId) => {
-    const apiBase = getApiBase();
-    const response = await fetch(`${apiBase}/api/voting/unlock`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_id: eventId || 1 })
-    });
-    if (!response.ok) throw new Error('Failed to unlock');
-    return { data: await response.json() };
-  }
-};
+import { useContextMenu, useCategorySubmenu, useLockState, useColorPalette } from './hooks';
+import { ContextMenuContent } from './components';
 
 export default function ScoreTable({
   title,
@@ -55,106 +20,27 @@ export default function ScoreTable({
   scoresHidden,
   setScoresHidden,
   hasDuoParticipants,
-  colorTheme = 'pink', // 'pink' for female, 'blue' for male
+  colorTheme = 'pink',
   candidateColors = {},
   getGroupColor = () => 'transparent',
   getColumnColor = () => 'transparent',
-  // Control props for menu functionality
   eventId = 1,
   eventSequence = [],
   currentSequenceIndex = 0,
   onNext
 }) {
-  // ===== NACHTIFY STATE & HANDLERS =====
-  const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, row: null, column: null });
-  const [colorScrollIndex, setColorScrollIndex] = useState(0);
-  const [scoreColors, setScoreColors] = useState(() => loadColors());
-  const [isLocked, setIsLocked] = useState(false);
-
-  // WebSocket handler for real-time updates
-  const handleVotingStateChange = useCallback((data) => {
-    console.log('ScoreTable: WebSocket update received:', data);
-    const votingState = data.voting_state || data;
-    if (typeof votingState.is_locked !== 'undefined') {
-      setIsLocked(votingState.is_locked);
-    }
-  }, []);
-
-  // Setup WebSocket connection
-  useVotingWebSocket(eventId, handleVotingStateChange);
-
-  // Load lock state on mount
-  useEffect(() => {
-    const loadLockState = async () => {
-      try {
-        const response = await votingAPI.getState(eventId);
-        if (response.data) {
-          setIsLocked(response.data.is_locked ?? false);
-        }
-      } catch (error) {
-        console.error('Error loading lock state:', error);
-      }
-    };
-    loadLockState();
-  }, [eventId]);
-
-  // Save colors to localStorage whenever they change
-  useEffect(() => {
-    saveColors(scoreColors);
-  }, [scoreColors]);
-
-  // Close context menu when clicking elsewhere
-  useEffect(() => {
-    const handleClick = () => closeContextMenu();
-    if (contextMenu.visible) {
-      document.addEventListener('click', handleClick);
-      return () => document.removeEventListener('click', handleClick);
-    }
-  }, [contextMenu.visible]);
-
-  const handleRowContextMenu = (e, candidate, column) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setContextMenu({
-      visible: true,
-      x: e.clientX,
-      y: e.clientY,
-      row: candidate,
-      column
-    });
-  };
-
-  const closeContextMenu = () => {
-    setContextMenu({ visible: false, x: 0, y: 0, row: null, column: null });
-  };
-
-  // Lock/Unlock handler
-  const handleLockToggle = async () => {
-    try {
-      if (isLocked) {
-        await votingAPI.unlock(eventId);
-        setIsLocked(false);
-        showSuccess('Screen Unlocked!', { duration: 2000 });
-      } else {
-        await votingAPI.lock(eventId);
-        setIsLocked(true);
-        showSuccess('Screen Locked!', { duration: 2000 });
-      }
-    } catch (error) {
-      console.error('Error toggling lock:', error);
-      showError('Failed to toggle lock');
-    }
-    closeContextMenu();
-  };
-
-  // Next category handler
-  const handleNextCategory = () => {
-    if (onNext) {
-      onNext();
-      showSuccess('Moving to next category...', { duration: 1500 });
-    }
-    closeContextMenu();
-  };
+  // Use custom hooks for state management
+  const { contextMenu, contextMenuRef, closeContextMenu, handleRowContextMenu } = useContextMenu();
+  const { colorScrollIndex, setColorScrollIndex, scoreColors, setScoreColors } = useColorPalette();
+  const { isLocked, handleLockToggle } = useLockState(eventId);
+  const {
+    categorySubmenu,
+    setCategorySubmenu,
+    selectedCategoryIndex,
+    isSwitchingCategory,
+    handleCategoryHover,
+    handleSwitchCategory
+  } = useCategorySubmenu(eventId, eventSequence, activeRound);
 
   // Copy candidate info
   const handleCopyCandidate = () => {
@@ -165,28 +51,11 @@ export default function ScoreTable({
     closeContextMenu();
   };
 
-  // Menu items for context menu
-  const menuItems = [
-    {
-      icon: isLocked ? <Unlock size={16} /> : <Lock size={16} />,
-      label: isLocked ? 'Unlock Judges' : 'Lock Judges',
-      onClick: handleLockToggle,
-      hasBorder: true
-    },
-    {
-      icon: <SkipForward size={16} />,
-      label: 'Next Category',
-      onClick: handleNextCategory,
-      hasBorder: true
-    },
-    {
-      icon: <Copy size={16} />,
-      label: 'Copy Candidate',
-      onClick: handleCopyCandidate,
-      hasBorder: false
-    }
-  ];
-  // ===== NACHTIFY STATE & HANDLERS END =====
+  // Handle lock toggle and close menu
+  const handleLockToggleWithClose = async () => {
+    await handleLockToggle();
+    closeContextMenu();
+  };
   const themeColors = {
     pink: {
       title: '#E91E63',
@@ -278,6 +147,7 @@ export default function ScoreTable({
                 return (
                   <tr 
                     key={candidate.id} 
+                    data-has-context-menu="true"
                     className="group hover:bg-gray-50/50 transition-colors cursor-context-menu"
                     style={{ backgroundColor: genderBg }}
                     onContextMenu={(e) => handleRowContextMenu(e, candidate, 'row')}
@@ -365,24 +235,41 @@ export default function ScoreTable({
       {/* ===== NACHTIFY COLOR PALETTE CONTEXT MENU =====
           Right-click on any candidate row to open the color palette
           - Lock/Unlock: Controls judge screen locking
-          - Next Category: Moves to next scoring category
+          - Switch Category: Shows submenu with available categories
           - Copy Candidate: Copies candidate info to clipboard
           - Color Palette: Apply colors to highlight rows
           Colors are persisted to localStorage automatically
       ===== END NACHTIFY MENU ===== */}
-      <ColorPaletteContextMenu
-        visible={contextMenu.visible}
-        x={contextMenu.x}
-        y={contextMenu.y}
-        colorScrollIndex={colorScrollIndex}
-        onColorScrollChange={setColorScrollIndex}
-        onColorSelect={(color) => {
-          setScoreColors(prev => applyColumnColor(prev, contextMenu.row?.id, contextMenu.column, color));
-          closeContextMenu();
-        }}
-        onClose={closeContextMenu}
-        menuItems={menuItems}
-      />
+      {contextMenu.visible && (
+        <div
+          ref={contextMenuRef}
+          data-context-menu="true"
+          className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[200px]"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ContextMenuContent
+            isLocked={isLocked}
+            onLockToggle={handleLockToggleWithClose}
+            colorScrollIndex={colorScrollIndex}
+            onColorScrollChange={setColorScrollIndex}
+            scoreColors={scoreColors}
+            onColorSelect={(color) => {
+              setScoreColors(prev => applyColumnColor(prev, contextMenu.row?.id, contextMenu.column, color));
+              closeContextMenu();
+            }}
+            contextMenu={contextMenu}
+            categorySubmenu={categorySubmenu}
+            selectedCategoryIndex={selectedCategoryIndex}
+            isSwitchingCategory={isSwitchingCategory}
+            eventSequence={eventSequence}
+            onCategoryHover={handleCategoryHover}
+            onCategoryLeave={() => setCategorySubmenu({ visible: false, x: 0, y: 0, position: 'right' })}
+            onSwitchCategory={handleSwitchCategory}
+            onCopyCandidate={handleCopyCandidate}
+          />
+        </div>
+      )}
     </div>
   );
 }

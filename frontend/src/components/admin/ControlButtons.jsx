@@ -9,7 +9,7 @@ import { getApiBase } from '../../config/api';
 const votingAPI = {
   getState: async (params) => {
     const apiBase = getApiBase();
-    const response = await fetch(`${apiBase}/api/voting/state?event_id=${params.event_id || 1}`);
+    const response = await fetch(`${apiBase}/api/voting/state?event_id=${params.event_id}`);
     if (!response.ok) throw new Error('Failed to fetch voting state');
     return { data: await response.json() };
   },
@@ -18,7 +18,7 @@ const votingAPI = {
     const response = await fetch(`${apiBase}/api/voting/lock`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_id: params.event_id || 1 })
+      body: JSON.stringify({ event_id: params.event_id })
     });
     if (!response.ok) throw new Error('Failed to lock');
     return { data: await response.json() };
@@ -28,7 +28,7 @@ const votingAPI = {
     const response = await fetch(`${apiBase}/api/voting/unlock`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_id: params.event_id || 1 })
+      body: JSON.stringify({ event_id: params.event_id })
     });
     if (!response.ok) throw new Error('Failed to unlock');
     return { data: await response.json() };
@@ -58,7 +58,7 @@ export default function ControlButtons({
 
   const loadLockState = async () => {
     try {
-      const response = await votingAPI.getState({ event_id: eventId || 1 });
+      const response = await votingAPI.getState({ event_id: eventId });
       if (response.data) {
         setIsLocked(response.data.is_locked ?? false);
       }
@@ -70,11 +70,11 @@ export default function ControlButtons({
   const handleLockToggle = async () => {
     try {
       if (isLocked) {
-        await votingAPI.unlock({ event_id: eventId || 1 });
+        await votingAPI.unlock({ event_id: eventId });
         setIsLocked(false);
         showSuccess('Screen Unlocked!', { duration: 2000 });
       } else {
-        await votingAPI.lock({ event_id: eventId || 1 });
+        await votingAPI.lock({ event_id: eventId });
         setIsLocked(true);
         showSuccess('Screen Locked!', { duration: 2000 });
       }

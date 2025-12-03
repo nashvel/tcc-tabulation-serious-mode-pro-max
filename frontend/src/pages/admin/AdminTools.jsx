@@ -12,6 +12,7 @@ import { useAdminData } from '../../hooks/useAdminData';
 import { useVotingControl } from '../../hooks/useVotingControl';
 import { useEventSequence } from '../../hooks/useEventSequence';
 import { useVotingWebSocket } from '../../hooks/useVotingWebSocket';
+import { GlobalContextMenuProvider } from '../../context';
 
 import ConfigureJudgesModal from '../../components/admin/modals/ConfigureJudgesModal';
 import EventDetailsModal from '../../components/admin/modals/EventDetailsModal';
@@ -235,7 +236,7 @@ export default function AdminTools() {
   } = useEventSequence(continuingEvent, handleCategorySelect);
 
   // WebSocket for real-time sync - update active category when voting state changes
-  useVotingWebSocket(continuingEvent?.id || 1, (data) => {
+  useVotingWebSocket(continuingEvent?.id, (data) => {
     console.log('Admin received WebSocket update:', data);
 
     // Update active category from WebSocket event
@@ -252,7 +253,12 @@ export default function AdminTools() {
   });
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#fff', position: 'relative' }}>
+    <GlobalContextMenuProvider
+      eventId={continuingEvent?.unique_id || continuingEvent?.id}
+      eventSequence={eventSequence}
+      activeRound={realtimeCategory || availableCategories?.[currentSequenceIndex]}
+    >
+    <div style={{ minHeight: '100vh', backgroundColor: '#fff', position: 'relative' }} data-global-context-menu="true">
 
 
       {(loading || isLoadingEvent) ? (
@@ -347,5 +353,6 @@ export default function AdminTools() {
         </>
       )}
     </div>
+    </GlobalContextMenuProvider>
   );
 }

@@ -53,17 +53,44 @@ export default function DataTableManager({
   const handleTabContextMenu = (e, tab) => {
     e.preventDefault();
     e.stopPropagation();
-    setContextMenu({
-      visible: true,
-      x: e.clientX,
-      y: e.clientY,
-      tab
-    });
+    
+    // Close all other context menus first
+    window.dispatchEvent(new CustomEvent('closeAllContextMenus'));
+    
+    setTimeout(() => {
+      setContextMenu({
+        visible: true,
+        x: e.clientX,
+        y: e.clientY,
+        tab
+      });
+    }, 0);
   };
 
   const closeContextMenu = () => {
     setContextMenu({ visible: false, x: 0, y: 0, tab: null });
   };
+
+  // Listen for global close event
+  useEffect(() => {
+    const handleCloseAllMenus = () => closeContextMenu();
+    window.addEventListener('closeAllContextMenus', handleCloseAllMenus);
+    return () => window.removeEventListener('closeAllContextMenus', handleCloseAllMenus);
+  }, []);
+
+  // Close context menu when clicking outside or scrolling
+  useEffect(() => {
+    const handleClickOutside = () => closeContextMenu();
+    const handleScroll = () => closeContextMenu();
+    if (contextMenu.visible) {
+      document.addEventListener('click', handleClickOutside);
+      document.addEventListener('scroll', handleScroll, true);
+      return () => {
+        document.removeEventListener('click', handleClickOutside);
+        document.removeEventListener('scroll', handleScroll, true);
+      };
+    }
+  }, [contextMenu.visible]);
 
   const handleOpenInNewTab = () => {
     if (contextMenu.tab) {
@@ -148,11 +175,12 @@ export default function DataTableManager({
       {/* Tabs - Clean Design */}
       <div className="bg-gray-50 border-b border-gray-200 px-6 py-3 flex flex-wrap items-center justify-center gap-2">
         <button
+          data-has-context-menu="true"
           onClick={() => handleTabChange('judges')}
           onContextMenu={(e) => handleTabContextMenu(e, 'judges')}
           title="Right-click to open in new tab"
           className={`
-            flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200 cursor-context-menu
+            flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200
             ${activeTab === 'judges'
               ? 'bg-theme-primary text-theme-text shadow-sm'
               : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
@@ -163,11 +191,12 @@ export default function DataTableManager({
           Judges Scoring
         </button>
         <button
+          data-has-context-menu="true"
           onClick={() => handleTabChange('candidates')}
           onContextMenu={(e) => handleTabContextMenu(e, 'candidates')}
           title="Right-click to open in new tab"
           className={`
-            flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200 cursor-context-menu
+            flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200
             ${activeTab === 'candidates'
               ? 'bg-theme-primary text-theme-text shadow-sm'
               : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
@@ -178,11 +207,12 @@ export default function DataTableManager({
           Candidates
         </button>
         <button
+          data-has-context-menu="true"
           onClick={() => handleTabChange('categories')}
           onContextMenu={(e) => handleTabContextMenu(e, 'categories')}
           title="Right-click to open in new tab"
           className={`
-            flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200 cursor-context-menu
+            flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200
             ${activeTab === 'categories'
               ? 'bg-theme-primary text-theme-text shadow-sm'
               : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
@@ -193,11 +223,12 @@ export default function DataTableManager({
           Categories
         </button>
         <button
+          data-has-context-menu="true"
           onClick={() => handleTabChange('results')}
           onContextMenu={(e) => handleTabContextMenu(e, 'results')}
           title="Right-click to open in new tab"
           className={`
-            flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200 cursor-context-menu
+            flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200
             ${activeTab === 'results'
               ? 'bg-theme-primary text-theme-text shadow-sm'
               : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
@@ -208,11 +239,12 @@ export default function DataTableManager({
           Results
         </button>
         <button
+          data-has-context-menu="true"
           onClick={() => handleTabChange('bestin')}
           onContextMenu={(e) => handleTabContextMenu(e, 'bestin')}
           title="Right-click to open in new tab"
           className={`
-            flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200 cursor-context-menu
+            flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-200
             ${activeTab === 'bestin'
               ? 'bg-theme-primary text-theme-text shadow-sm'
               : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'

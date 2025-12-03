@@ -59,13 +59,19 @@ export default function CategoriesTab() {
   const handleRowContextMenu = (e, category, column) => {
     e.preventDefault();
     e.stopPropagation();
-    setContextMenu({
-      visible: true,
-      x: e.clientX,
-      y: e.clientY,
-      row: category,
-      column
-    });
+    
+    // Close all other context menus first
+    window.dispatchEvent(new CustomEvent('closeAllContextMenus'));
+    
+    setTimeout(() => {
+      setContextMenu({
+        visible: true,
+        x: e.clientX,
+        y: e.clientY,
+        row: category,
+        column
+      });
+    }, 0);
   };
 
   const closeContextMenu = () => {
@@ -77,12 +83,24 @@ export default function CategoriesTab() {
     saveColors(categoryColors);
   }, [categoryColors]);
 
+  // Listen for global close event
+  useEffect(() => {
+    const handleCloseAllMenus = () => closeContextMenu();
+    window.addEventListener('closeAllContextMenus', handleCloseAllMenus);
+    return () => window.removeEventListener('closeAllContextMenus', handleCloseAllMenus);
+  }, []);
+
   // Close context menu when clicking elsewhere
   useEffect(() => {
     const handleClick = () => closeContextMenu();
+    const handleScroll = () => closeContextMenu();
     if (contextMenu.visible) {
       document.addEventListener('click', handleClick);
-      return () => document.removeEventListener('click', handleClick);
+      document.addEventListener('scroll', handleScroll, true);
+      return () => {
+        document.removeEventListener('click', handleClick);
+        document.removeEventListener('scroll', handleScroll, true);
+      };
     }
   }, [contextMenu.visible]);
 
@@ -121,6 +139,7 @@ export default function CategoriesTab() {
             categories.map((category, index) => (
               <tr 
                 key={category.id} 
+                data-has-context-menu="true"
                 className="group border-b border-gray-200 hover:bg-gray-50 cursor-context-menu"
                 style={{ backgroundColor: getColumnColor(categoryColors, category.id, 'row', 'transparent') }}
                 title="Right-click for color options"

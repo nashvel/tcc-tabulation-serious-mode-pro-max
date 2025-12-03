@@ -20,7 +20,7 @@ export const useVotingControl = (continuingEvent) => {
   const loadVotingState = async () => {
     try {
       const response = await votingAPI.getState({
-        event_id: continuingEvent?.id || 1
+        event_id: continuingEvent?.id
       });
 
       // Voting state loaded
@@ -54,7 +54,7 @@ export const useVotingControl = (continuingEvent) => {
       if (isVotingActive) {
         // Stop voting
         await votingAPI.stop({
-          event_id: continuingEvent?.id || 1,
+          event_id: continuingEvent?.id,
         });
         setIsVotingActive(false);
         setShowCategoryGrid(false);
@@ -70,7 +70,7 @@ export const useVotingControl = (continuingEvent) => {
         // Starting voting session
 
         await votingAPI.start({
-          event_id: continuingEvent?.id || 1,
+          event_id: continuingEvent?.id,
           day_number: dayNumber,
           day_name: dayName,
         });
@@ -92,7 +92,7 @@ export const useVotingControl = (continuingEvent) => {
       // Activating category
 
       await votingAPI.activateRound({
-        event_id: continuingEvent?.id || 1,
+        event_id: continuingEvent?.id,
         round_id: category.id
       });
       setActiveCategory(category);

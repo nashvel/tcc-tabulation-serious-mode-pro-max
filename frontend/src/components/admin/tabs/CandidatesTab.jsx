@@ -96,13 +96,19 @@ export default function CandidatesTab({ candidates, isLocked = false, onCandidat
   const handleRowContextMenu = (e, candidate, column) => {
     e.preventDefault();
     e.stopPropagation();
-    setContextMenu({
-      visible: true,
-      x: e.clientX,
-      y: e.clientY,
-      row: candidate,
-      column
-    });
+    
+    // Close all other context menus first
+    window.dispatchEvent(new CustomEvent('closeAllContextMenus'));
+    
+    setTimeout(() => {
+      setContextMenu({
+        visible: true,
+        x: e.clientX,
+        y: e.clientY,
+        row: candidate,
+        column
+      });
+    }, 0);
   };
 
   const closeContextMenu = () => {
@@ -114,12 +120,24 @@ export default function CandidatesTab({ candidates, isLocked = false, onCandidat
     saveColors(candidateColors);
   }, [candidateColors]);
 
+  // Listen for global close event
+  useEffect(() => {
+    const handleCloseAllMenus = () => closeContextMenu();
+    window.addEventListener('closeAllContextMenus', handleCloseAllMenus);
+    return () => window.removeEventListener('closeAllContextMenus', handleCloseAllMenus);
+  }, []);
+
   // Close context menu when clicking elsewhere
   useEffect(() => {
     const handleClick = () => closeContextMenu();
+    const handleScroll = () => closeContextMenu();
     if (contextMenu.visible) {
       document.addEventListener('click', handleClick);
-      return () => document.removeEventListener('click', handleClick);
+      document.addEventListener('scroll', handleScroll, true);
+      return () => {
+        document.removeEventListener('click', handleClick);
+        document.removeEventListener('scroll', handleScroll, true);
+      };
     }
   }, [contextMenu.visible]);
 
@@ -237,6 +255,7 @@ export default function CandidatesTab({ candidates, isLocked = false, onCandidat
               return (
                 <tr 
                   key={candidate.id} 
+                  data-has-context-menu="true"
                   className="group border-b border-gray-200 hover:bg-gray-50 cursor-context-menu"
                   style={{ backgroundColor: getGroupColor(candidateColors, `gender-${candidate.gender}`) }}
                   title="Right-click for color options"
