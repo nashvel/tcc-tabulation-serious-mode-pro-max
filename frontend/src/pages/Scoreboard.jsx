@@ -37,8 +37,8 @@ export default function Scoreboard() {
         roundsAPI.getAll(),
       ]);
       setCandidates(candidatesRes.data);
-      setRounds(roundsRes.data);
-      if (roundsRes.data.length > 0) {
+      setRounds(roundsRes.data || []);
+      if ((roundsRes.data || []).length > 0) {
         setSelectedRound(roundsRes.data[0].id);
       }
     } catch (error) {

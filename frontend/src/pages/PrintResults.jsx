@@ -25,15 +25,15 @@ export default function PrintResults() {
         pointsAPI.getAll()
       ]);
 
-      const selectedRound = roundsRes.data.find(r => r.id == roundId);
+      const selectedRound = roundsRes.data.find(r => r.id === parseInt(roundId));
       setRound(selectedRound);
 
-      const roundCriteria = criteriaRes.data.filter(c => c.round_id == roundId);
+      const roundCriteria = criteriaRes.data.filter(c => c.round_id === parseInt(roundId));
       setCriteria(roundCriteria);
 
       // Calculate scores per candidate
       const candidates = candidatesRes.data.filter(c => c.gender === category);
-      const scores = scoresRes.data.filter(p => p.round_id == roundId && p.category === category);
+      const scores = scoresRes.data.filter(p => p.round_id === parseInt(roundId) && p.category === category);
 
       const resultsData = candidates.map(candidate => {
         const candidateScores = scores.filter(s => s.candidate_id === candidate.id);

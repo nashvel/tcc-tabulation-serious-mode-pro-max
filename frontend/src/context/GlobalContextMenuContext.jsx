@@ -140,7 +140,7 @@ export const GlobalContextMenuProvider = ({ children, eventId, eventSequence = [
 
     document.addEventListener('contextmenu', handleGlobalContextMenu);
     return () => document.removeEventListener('contextmenu', handleGlobalContextMenu);
-  }, []);
+  }, [setContextMenu]);
 
   // Lock/Unlock handler
   const handleLockToggle = async () => {

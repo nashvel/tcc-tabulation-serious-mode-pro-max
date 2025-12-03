@@ -22,13 +22,13 @@ export default function useJudgeData(eventId) {
         criteriaAPI.getAll(eventId),
       ]);
       
-      setCandidates(candidatesRes.data);
-      setRounds(roundsRes.data);
-      setCriteria(criteriaRes.data);
+      setCandidates(candidatesRes.data || []);
+      setRounds(roundsRes.data || []);
+      setCriteria(criteriaRes.data || []);
       
-      console.log('Loaded candidates:', candidatesRes.data.length);
-      console.log('Loaded rounds:', roundsRes.data.length);
-      console.log('Loaded criteria:', criteriaRes.data.length);
+      console.log('Loaded candidates:', (candidatesRes.data || []).length);
+      console.log('Loaded rounds:', (roundsRes.data || []).length);
+      console.log('Loaded criteria:', (criteriaRes.data || []).length);
     } catch (error) {
       console.error('Error loading data:', error);
       alert('Failed to load data from server. Please check your connection.');
@@ -50,13 +50,19 @@ export default function useJudgeData(eventId) {
     
     if (!points || points === '') return;
 
+    const numPoints = parseFloat(points);
+    if (isNaN(numPoints)) {
+      alert('Invalid points value');
+      return;
+    }
+
     try {
       await pointsAPI.create({
         candidate_id: candidateId,
         criteria_id: criteriaId,
         judge_id: judgeId,
         round_id: selectedRound,
-        points: parseFloat(points)
+        points: numPoints
       });
       console.log('Score saved:', { candidateId, criteriaId, points });
     } catch (error) {

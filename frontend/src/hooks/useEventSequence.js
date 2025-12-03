@@ -29,6 +29,7 @@ export const useEventSequence = (continuingEvent, setActiveCategory) => {
       // Load rounds created from the event's categories
       const apiBase = getApiBase();
       const response = await fetch(`${apiBase}/api/rounds?event_id=${eventId}`);
+      if (!response.ok) throw new Error('Failed to fetch rounds');
       const rounds = await response.json();
 
       // Rounds loaded successfully
@@ -178,12 +179,18 @@ export const useEventSequence = (continuingEvent, setActiveCategory) => {
     const nextCategory = eventSequence[nextIndex];
     setCurrentSequenceIndex(nextIndex);
 
+    const eventId = continuingEvent?.id;
+    if (!eventId) {
+      showError('Event ID not available');
+      return;
+    }
+
     try {
       // Use the actual round ID from the category - no mapping needed
       // Activating next round
 
       await votingAPI.activateRound({
-        event_id: continuingEvent?.id,
+        event_id: eventId,
         round_id: nextCategory.id
       });
 

@@ -53,7 +53,7 @@ const pointsAPI = {
         'Accept': 'application/json'
       },
       body: JSON.stringify(data)
-    });
+    });  
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -87,6 +87,7 @@ const votingAPI = {
   getState: async (params) => {
     const queryString = new URLSearchParams(params).toString();
     const response = await fetch(`${apiBase}/api/voting/state?${queryString}`);
+    if (!response.ok) throw new Error(`Failed to fetch voting state: ${response.status}`);
     return { data: await response.json() };
   }
 };
@@ -277,7 +278,7 @@ export default function Judge() {
       // Filter points for this judge (redundant check but safe)
       const judgeId = parseInt(jid);
       const judgePoints = allPoints.filter(p => {
-        return p.judge_id === judgeId;
+        return parseInt(p.judge_id) === judgeId;
       });
 
       // Transform into scores object
@@ -374,7 +375,7 @@ export default function Judge() {
 
   // Filter criteria by selected round (if rounds exist)
   const filteredCriteria = selectedRound && rounds.length > 0
-    ? criteria.filter(c => c.round_id == selectedRound)
+    ? criteria.filter(c => c.round_id === parseInt(selectedRound))
     : criteria;
 
   // Show all candidates (both Female and Male in one table)

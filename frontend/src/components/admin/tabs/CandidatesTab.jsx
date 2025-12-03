@@ -125,7 +125,7 @@ export default function CandidatesTab({ candidates, isLocked = false, onCandidat
     const handleCloseAllMenus = () => closeContextMenu();
     window.addEventListener('closeAllContextMenus', handleCloseAllMenus);
     return () => window.removeEventListener('closeAllContextMenus', handleCloseAllMenus);
-  }, []);
+  }, [closeContextMenu]);
 
   // Close context menu when clicking elsewhere
   useEffect(() => {

@@ -63,10 +63,12 @@ export default function JudgesScoringTab({
         // If no event in localStorage, get from voting state
         if (!event) {
           const votingStateResponse = await fetch(`${apiBase}/api/voting/state`);
+          if (!votingStateResponse.ok) throw new Error('Failed to fetch voting state');
           const votingState = await votingStateResponse.json();
 
           if (votingState.event_id) {
             const eventResponse = await fetch(`${apiBase}/api/events/${votingState.event_id}`);
+            if (!eventResponse.ok) throw new Error('Failed to fetch event');
             event = await eventResponse.json();
           } else {
             setLoading(false);
@@ -200,7 +202,7 @@ export default function JudgesScoringTab({
 
   // Fetch scores when judges/categories/candidates change
   useEffect(() => {
-    if (!hasInitialized.current || judges.length === 0 || categories.length === 0) {
+    if (!hasInitialized.current || judges.length === 0 || categories.length === 0 || !eventId) {
       return;
     }
 
@@ -210,6 +212,13 @@ export default function JudgesScoringTab({
         const response = await fetch(`${apiBase}/api/points?event_id=${eventId}`);
         if (response.ok) {
           const pointsData = await response.json();
+
+          // Create a Map for O(1) lookup instead of O(n) find
+          const pointsMap = new Map();
+          pointsData.forEach(point => {
+            const key = `${point.judge_id}-${point.candidate_id}-${point.criteria_id}`;
+            pointsMap.set(key, point.points);
+          });
 
           // Transform points data into scores structure
           const newScores = {};
@@ -226,13 +235,8 @@ export default function JudgesScoringTab({
               }
 
               categories.forEach(criterion => {
-                const point = pointsData.find(p =>
-                  p.judge_id === judge.id &&
-                  p.candidate_id === candidate.id &&
-                  p.criteria_id === criterion.id
-                );
-
-                newScores[judge.id][candidate.id][criterion.id] = point?.points || null;
+                const key = `${judge.id}-${candidate.id}-${criterion.id}`;
+                newScores[judge.id][candidate.id][criterion.id] = pointsMap.get(key) || null;
               });
             });
           });

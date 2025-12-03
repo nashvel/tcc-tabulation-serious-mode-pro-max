@@ -184,10 +184,12 @@ export default function BestInTab({ candidates, continuingEvent }) {
   // Close context menu when clicking elsewhere
   useEffect(() => {
     const handleClick = () => closeContextMenu();
+    
     if (contextMenu.visible) {
       document.addEventListener('click', handleClick);
-      return () => document.removeEventListener('click', handleClick);
     }
+    
+    return () => document.removeEventListener('click', handleClick);
   }, [contextMenu.visible]);
 
   const handleOpenNewWindow = () => {

@@ -47,6 +47,11 @@ export default function JudgeConfigure() {
         body: formData
       });
 
+      if (!response) {
+        showError('Network error - no response from server');
+        return;
+      }
+
       if (response.ok) {
         showSuccess(`${files.length} image(s) uploaded successfully!`);
         loadImages();

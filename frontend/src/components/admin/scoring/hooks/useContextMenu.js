@@ -56,7 +56,7 @@ export const useContextMenu = () => {
     window.dispatchEvent(new CustomEvent('closeAllContextMenus'));
     
     // Small delay to ensure other menus close first
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       setContextMenu({
         visible: true,
         x: e.clientX,
@@ -65,6 +65,9 @@ export const useContextMenu = () => {
         column
       });
     }, 0);
+    
+    // Return cleanup function to clear timeout if needed
+    return () => clearTimeout(timeoutId);
   };
 
   return {
