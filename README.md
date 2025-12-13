@@ -6,40 +6,6 @@
 
 A comprehensive real-time event tabulation and judging system built for managing pageants, competitions, and contests. The system provides live score tracking, judge management, and real-time synchronization across multiple devices using WebSocket technology.
 
-## Contributors
-
-<!-- ALL-CONTRIBUTORS-LIST:START -->
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/nashvel">
-        <img src="https://github.com/nashvel.png" width="100px;" alt="nashvel"/>
-        <br />
-        <sub><b>nashvel</b></sub>
-      </a>
-      <br />
-      <sub>11 commits (92%)</sub>
-    </td>
-    <td align="center">
-      <a href="https://github.com/brandonnagangga">
-        <img src="https://github.com/brandonnagangga.png" width="100px;" alt="brandonnagangga"/>
-        <br />
-        <sub><b>brandonnagangga</b></sub>
-      </a>
-      <br />
-      <sub>1 commits (8%)</sub>
-    </td>
-  </tr>
-</table>
-
-```bash
-npm run update-contributors
-```
-
-This script fetches the latest contributor data from the GitHub API and automatically updates the README.
-
----
-
 ## Quick Start
 
 ### Development
