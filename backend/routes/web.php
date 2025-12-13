@@ -55,3 +55,7 @@ Route::get('/admin/login', function () {
 Route::get('/admin/documentation', function () {
     return view('vue');
 })->name('admin.documentation');
+
+Route::get('/admin/certificates', function () {
+    return view('vue');
+})->name('admin.certificates');

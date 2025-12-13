@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center justify-between mb-4">
       <h2 class="text-lg font-semibold text-gray-900">Results</h2>
       <div class="flex gap-2">
         <select v-model="selectedRound" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
@@ -16,44 +16,60 @@
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <div class="text-center">
+        <div class="w-8 h-8 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+        <p class="text-sm text-gray-600">Loading results...</p>
+      </div>
+    </div>
+
     <!-- Results Table -->
-    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      <table class="w-full">
-        <thead class="bg-gray-50 border-b border-gray-200">
-          <tr>
-            <th class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase">Rank</th>
-            <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Candidate</th>
-            <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Gender</th>
-            <th class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase">Total Score</th>
-            <th class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase">Average</th>
+    <div v-else class="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+      <table class="w-full min-w-max border-collapse">
+        <thead>
+          <tr class="bg-white border-b border-gray-300">
+            <th class="px-4 py-2.5 text-center text-xs font-medium text-gray-900 border-r border-gray-300 w-16">RANK</th>
+            <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-900 border-r border-gray-300 min-w-[280px]">CANDIDATE</th>
+            <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-900 border-r border-gray-300 min-w-[100px]">GENDER</th>
+            <th class="px-4 py-2.5 text-center text-xs font-medium text-gray-900 border-r border-gray-300 min-w-[120px]">TOTAL SCORE</th>
+            <th class="px-4 py-2.5 text-center text-xs font-medium text-gray-900 min-w-[100px]">AVERAGE</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100">
-          <tr v-for="(result, index) in rankedResults" :key="result.candidate.id" class="hover:bg-gray-50">
-            <td class="py-3 px-4 text-center">
+        <tbody>
+          <tr 
+            v-for="(result, index) in rankedResults" 
+            :key="result.candidate.id" 
+            class="border-b border-gray-200 hover:bg-gray-50"
+          >
+            <td class="px-4 py-3 text-center border-r border-gray-200">
               <span :class="[
                 'inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold',
-                index === 0 ? 'bg-yellow-100 text-yellow-800' :
-                index === 1 ? 'bg-gray-100 text-gray-800' :
-                index === 2 ? 'bg-orange-100 text-orange-800' :
-                'bg-gray-50 text-gray-600'
+                index === 0 ? 'bg-yellow-400 text-white' :
+                index === 1 ? 'bg-gray-400 text-white' :
+                index === 2 ? 'bg-orange-400 text-white' :
+                'text-gray-600'
               ]">
                 {{ index + 1 }}
               </span>
             </td>
-            <td class="py-3 px-4 text-sm font-medium text-gray-900">
-              {{ result.candidate.number }} - {{ result.candidate.name }}
+            <td class="px-4 py-3 text-left text-sm text-gray-900 border-r border-gray-200">
+              {{ result.candidate.number }} - {{ result.candidate.name?.toUpperCase() }}
             </td>
-            <td class="py-3 px-4 text-sm text-gray-600">{{ result.candidate.gender }}</td>
-            <td class="py-3 px-4 text-center text-sm font-mono font-bold text-indigo-600">
-              {{ result.total.toFixed(2) }}
+            <td class="px-4 py-3 text-left text-sm text-gray-600 border-r border-gray-200">
+              {{ result.candidate.gender }}
             </td>
-            <td class="py-3 px-4 text-center text-sm font-mono text-gray-600">
+            <td class="px-4 py-3 text-center text-sm font-bold border-r border-gray-200">
+              <span class="text-indigo-600">{{ result.total.toFixed(2) }}</span>
+            </td>
+            <td class="px-4 py-3 text-center text-sm text-gray-600">
               {{ result.average.toFixed(2) }}
             </td>
           </tr>
           <tr v-if="!rankedResults.length">
-            <td colspan="5" class="py-8 text-center text-gray-500">No results yet</td>
+            <td colspan="5" class="px-4 py-8 text-center text-sm text-gray-500">
+              No results available
+            </td>
           </tr>
         </tbody>
       </table>
@@ -62,7 +78,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { showError, showSuccess, showInfo } from '../../../utils/alerts';
 
 const props = defineProps({
@@ -74,11 +90,23 @@ const props = defineProps({
 
 const selectedRound = ref('');
 const scores = ref([]);
+const loading = ref(true);
+let refreshInterval = null;
 
 const rankedResults = computed(() => {
   const results = (props.candidates || []).map(candidate => {
-    const candidateScores = scores.value.filter(s => s.candidate_id === candidate.id);
-    const total = candidateScores.reduce((sum, s) => sum + (s.points || 0), 0);
+    // Filter scores by selected round if applicable
+    let candidateScores = scores.value.filter(s => s.candidate_id === candidate.id);
+    
+    if (selectedRound.value) {
+      // Get criteria IDs for the selected round
+      const roundCriteriaIds = (props.criteria || [])
+        .filter(c => c.round_id === parseInt(selectedRound.value))
+        .map(c => c.id);
+      candidateScores = candidateScores.filter(s => roundCriteriaIds.includes(s.criteria_id));
+    }
+    
+    const total = candidateScores.reduce((sum, s) => sum + (parseFloat(s.points) || 0), 0);
     const judgeCount = new Set(candidateScores.map(s => s.judge_id)).size || 1;
     
     return {
@@ -91,14 +119,23 @@ const rankedResults = computed(() => {
   return results.sort((a, b) => b.total - a.total);
 });
 
-const loadScores = async () => {
+const loadScores = async (showLoadingSpinner = true) => {
   if (!props.eventId) return;
   
   try {
+    if (showLoadingSpinner) {
+      loading.value = true;
+    }
     const response = await fetch(`/api/points?event_id=${props.eventId}`);
     scores.value = await response.json();
   } catch (error) {
-    showError('Failed to load scores');
+    if (showLoadingSpinner) {
+      showError('Failed to load scores');
+    }
+  } finally {
+    if (showLoadingSpinner) {
+      loading.value = false;
+    }
   }
 };
 
@@ -107,7 +144,22 @@ const exportResults = () => {
   showInfo('Export feature coming soon');
 };
 
+// Watch for round changes
+watch(selectedRound, () => {
+  // Results will automatically update via computed property
+});
+
 onMounted(() => {
-  loadScores();
+  // Initial load with spinner
+  loadScores(true);
+  
+  // Refresh every 2 seconds silently
+  refreshInterval = setInterval(() => loadScores(false), 2000);
+});
+
+onUnmounted(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+  }
 });
 </script>

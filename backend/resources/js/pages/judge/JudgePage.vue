@@ -104,10 +104,33 @@
 
     <!-- Scoring Interface -->
     <div v-if="!isLocked && showScoringInterface" class="bg-gray-50">
-      <!-- Round Header -->
-      <div class="text-center py-4 bg-white border-b border-gray-200">
-        <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-0.5">Currently Scoring</p>
-        <h1 class="text-xl font-bold text-gray-900 uppercase tracking-wide">{{ activeRoundName }}</h1>
+      <!-- Round Header with Progress Counter -->
+      <div class="flex items-center justify-between py-3 px-4 bg-white border-b border-gray-200">
+        <div class="flex-1"></div>
+        <div class="text-center flex-1">
+          <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-0.5">Currently Scoring</p>
+          <h1 class="text-xl font-bold text-gray-900 uppercase tracking-wide">{{ activeRoundName }}</h1>
+        </div>
+        <!-- Progress Counter - Right side of header -->
+        <div class="flex-1 flex justify-end">
+          <div class="bg-white rounded-md px-3 py-1.5 border border-gray-200">
+            <p class="text-[8px] text-gray-400 uppercase tracking-widest text-center">Scores Entered</p>
+            <div class="text-center">
+              <span class="text-xl font-bold text-gray-900">{{ filledInputsCount }}</span>
+              <span class="text-sm text-gray-400 mx-0.5">/</span>
+              <span class="text-xl font-bold text-gray-900">{{ totalInputsCount }}</span>
+            </div>
+            <div class="mt-1 bg-gray-200 rounded-full h-1 overflow-hidden" style="width: 80px">
+              <div 
+                class="h-full transition-all duration-300 ease-out rounded-full"
+                :style="{ 
+                  width: progressPercent + '%',
+                  backgroundColor: progressPercent === 100 ? '#22c55e' : '#3b82f6'
+                }"
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Main Content -->
@@ -204,6 +227,20 @@ const filteredCriteria = computed(() =>
     ? criteria.value.filter(c => c.round_id === parseInt(selectedRound.value))
     : criteria.value
 );
+
+// Progress counter computed properties
+const totalInputsCount = computed(() => candidates.value.length * filteredCriteria.value.length);
+
+const filledInputsCount = computed(() => {
+  return Object.keys(scores.value).filter(key => {
+    const value = scores.value[key];
+    return value !== '' && value !== null && value !== undefined;
+  }).length;
+});
+
+const progressPercent = computed(() => {
+  return totalInputsCount.value > 0 ? (filledInputsCount.value / totalInputsCount.value) * 100 : 0;
+});
 
 // Methods
 const handleJudgeSelect = (id) => {

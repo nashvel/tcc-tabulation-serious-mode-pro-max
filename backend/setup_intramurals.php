@@ -28,7 +28,14 @@ try {
 
     // Delete existing event with id = 1 if exists
     Event::where('id', 1)->delete();
-    DB::statement('ALTER TABLE events AUTO_INCREMENT = 1');
+    
+    // Reset auto-increment (works for both MySQL and SQLite)
+    $driver = DB::connection()->getDriverName();
+    if ($driver === 'mysql') {
+        DB::statement('ALTER TABLE events AUTO_INCREMENT = 1');
+    } elseif ($driver === 'sqlite') {
+        DB::statement("DELETE FROM sqlite_sequence WHERE name='events'");
+    }
     
     DB::beginTransaction();
 

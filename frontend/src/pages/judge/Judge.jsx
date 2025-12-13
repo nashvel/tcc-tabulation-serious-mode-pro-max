@@ -654,10 +654,44 @@ export default function Judge() {
       {/* Show scoring interface only when activated by admin and not locked */}
       {!isLocked && showScoringInterface && (
         <div className="bg-gray-50">
+          {/* Fixed Progress Counter - Top Right Corner */}
+          {(() => {
+            const totalInputs = filteredCandidates.length * filteredCriteria.length;
+            const filledInputs = Object.keys(scores).filter(key => {
+              const value = scores[key];
+              return value !== '' && value !== null && value !== undefined;
+            }).length;
+            const progressPercent = totalInputs > 0 ? (filledInputs / totalInputs) * 100 : 0;
+            
+            return (
+              <div className="fixed top-4 right-4 z-50">
+                <div className="bg-slate-800 rounded-lg px-5 py-3 shadow-xl">
+                  <p className="text-[9px] text-slate-400 uppercase tracking-widest text-center mb-1">Scores Entered</p>
+                  <div className="text-center">
+                    <span className="text-3xl font-bold text-white">{filledInputs}</span>
+                    <span className="text-xl text-slate-500 mx-1">/</span>
+                    <span className="text-3xl font-bold text-white">{totalInputs}</span>
+                  </div>
+                  <div className="mt-2 bg-slate-700 rounded-full h-2 overflow-hidden" style={{ width: '140px' }}>
+                    <div 
+                      className="h-full transition-all duration-300 ease-out rounded-full"
+                      style={{ 
+                        width: `${progressPercent}%`,
+                        backgroundColor: progressPercent === 100 ? '#22c55e' : '#3b82f6'
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Round Header */}
-          <div className="text-center py-4 bg-white border-b border-gray-200">
-            <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-0.5">Currently Scoring</p>
-            <h1 className="text-xl font-bold text-gray-900 uppercase tracking-wide">{activeRoundName}</h1>
+          <div className="py-4 bg-white border-b border-gray-200">
+            <div className="text-center">
+              <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-0.5">Currently Scoring</p>
+              <h1 className="text-xl font-bold text-gray-900 uppercase tracking-wide">{activeRoundName}</h1>
+            </div>
           </div>
 
           {/* Main Content - Full width, no edge spacing */}

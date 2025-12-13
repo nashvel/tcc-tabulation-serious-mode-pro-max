@@ -9,7 +9,7 @@ import Setup from './pages/admin/Setup';
 import CreateEvent from './pages/admin/CreateEvent';
 
 import Certificates from './pages/admin/Certificates';
-import Documentation from './pages/admin/Documentation';
+
 import JudgeConfigure from './pages/judges/JudgeConfigure';
 import EventSummary from './pages/EventSummary';
 import Scoreboard from './pages/Scoreboard';
@@ -54,11 +54,7 @@ function App() {
             <Certificates />
           </ProtectedRoute>
         } />
-        <Route path="/admin/documentation" element={
-          <ProtectedRoute>
-            <Documentation />
-          </ProtectedRoute>
-        } />
+
         <Route path="/judges/configure" element={
           <ProtectedRoute>
             <JudgeConfigure />

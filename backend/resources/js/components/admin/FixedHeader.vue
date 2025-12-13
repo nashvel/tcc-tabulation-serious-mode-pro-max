@@ -60,15 +60,7 @@
           >
             Edit
           </button>
-          <button
-            @click="goToDocumentation"
-            :class="[
-              'px-4 py-2 text-sm font-medium transition-colors',
-              isDocPath ? 'border-b-2 border-gray-900 text-gray-900' : 'text-gray-700 hover:text-gray-900'
-            ]"
-          >
-            Documentation
-          </button>
+
           <button
             @click="goToJudges"
             :class="[
@@ -118,7 +110,7 @@ const route = useRoute();
 const isHoveringTitle = ref(false);
 
 const isAdminPath = computed(() => route.path === '/admin');
-const isDocPath = computed(() => route.path === '/admin/documentation');
+
 const isJudgesPath = computed(() => route.path === '/judges/configure');
 const isCertPath = computed(() => route.path === '/admin/certificates');
 
@@ -131,7 +123,7 @@ const goToAdmin = () => {
     router.push('/setup');
   }
 };
-const goToDocumentation = () => router.push('/admin/documentation');
+
 const goToJudges = () => router.push('/judges/configure');
 const goToCertificates = () => router.push('/admin/certificates');
 </script>

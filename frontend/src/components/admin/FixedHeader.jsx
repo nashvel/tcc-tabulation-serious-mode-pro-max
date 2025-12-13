@@ -115,16 +115,7 @@ export default function FixedHeader({
             >
               Edit
             </button>
-            <button
-              onClick={() => navigate('/admin/documentation')}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${isActivePath('/admin/documentation')
-                ? 'text-theme-primary border-b-2 border-theme-primary'
-                : 'text-gray-700 hover:text-gray-900'
-                }`}
-              style={{ color: isActivePath('/admin/documentation') ? undefined : '#374151' }}
-            >
-              Documentation
-            </button>
+
             <button
               onClick={() => navigate('/judges/configure')}
               className={`px-4 py-2 text-sm font-medium transition-colors ${isActivePath('/judges/configure')

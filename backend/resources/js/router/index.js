@@ -6,6 +6,7 @@ import AdminPage from '../pages/admin/AdminPage.vue';
 import SetupPage from '../pages/admin/SetupPage.vue';
 import LoginPage from '../pages/admin/LoginPage.vue';
 import DocumentationPage from '../pages/admin/DocumentationPage.vue';
+import CertificatesPage from '../pages/admin/CertificatesPage.vue';
 
 const routes = [
   {
@@ -32,6 +33,11 @@ const routes = [
     path: '/admin/documentation',
     name: 'documentation',
     component: DocumentationPage,
+  },
+  {
+    path: '/admin/certificates',
+    name: 'certificates',
+    component: CertificatesPage,
   },
   // Redirect old vue paths
   {

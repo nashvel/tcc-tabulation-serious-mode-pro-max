@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Home, Edit, FileText, Gavel, Award } from 'lucide-react';
+import { Home, Edit, Gavel, Award } from 'lucide-react';
 
 export default function AdminHeaderButtons({ onEditClick, onCertificatesClick, activeCategory }) {
   const navigate = useNavigate();
@@ -50,15 +50,7 @@ export default function AdminHeaderButtons({ onEditClick, onCertificatesClick, a
         <Edit size={16} />
         Edit
       </button>
-      <button
-        style={buttonStyle}
-        onMouseOver={handleMouseOver}
-        onMouseOut={handleMouseOut}
-        onClick={() => navigate('/admin/documentation')}
-      >
-        <FileText size={16} />
-        Documentation
-      </button>
+
       <button
         style={buttonStyle}
         onMouseOver={handleMouseOver}
