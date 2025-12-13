@@ -4,8 +4,8 @@ import Pusher from 'pusher-js';
 window.Pusher = Pusher;
 
 /**
- * Initialize Laravel Echo with Pusher
- * Cloud-based real-time broadcasting
+ * Initialize Laravel Echo with Reverb (Local WebSocket Server)
+ * Much faster than Pusher for local/LAN deployments
  */
 export const initializeEcho = () => {
   if (window.Echo) {
@@ -13,39 +13,28 @@ export const initializeEcho = () => {
   }
 
   try {
-    // Initializing Laravel Echo with Pusher
-
     window.Echo = new Echo({
-      broadcaster: 'pusher',
-      key: import.meta.env.VITE_PUSHER_APP_KEY,
-      cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
-      forceTLS: true,
-      // Public channels don't need authentication
-      // authEndpoint: 'http://localhost:8000/broadcasting/auth',
-      enabledTransports: ['ws', 'wss']
+      broadcaster: 'reverb',
+      key: import.meta.env.VITE_REVERB_APP_KEY || 'tcc-local-key',
+      wsHost: import.meta.env.VITE_REVERB_HOST || 'localhost',
+      wsPort: import.meta.env.VITE_REVERB_PORT || 8080,
+      wssPort: import.meta.env.VITE_REVERB_PORT || 8080,
+      forceTLS: false,
+      enabledTransports: ['ws', 'wss'],
+      disableStats: true,
     });
 
-    // Echo instance created
+    console.log('Echo initialized with Reverb (local WebSocket)');
 
     // Monitor connection status
     if (window.Echo?.connector?.pusher) {
-      // Pusher connector available
-      
       window.Echo.connector.pusher.connection.bind('connected', () => {
-        console.log('🟢 WebSocket is connected');
-      });
-
-      window.Echo.connector.pusher.connection.bind('error', (err) => {
-        console.error(' Echo connection error:', err);
+        console.log('🟢 WebSocket connected to Reverb');
       });
 
       window.Echo.connector.pusher.connection.bind('disconnected', () => {
-        // Echo disconnected
+        console.log('🔴 WebSocket disconnected');
       });
-      
-      // Channel subscription initialized
-    } else {
-      // Pusher connector not available
     }
 
     return window.Echo;

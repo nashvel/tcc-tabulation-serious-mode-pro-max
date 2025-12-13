@@ -24,7 +24,7 @@ Route::options('/broadcasting/auth', function () {
 })->withoutMiddleware(['web', 'csrf']);
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/judge');
 });
 
 Route::get('/flowcharts', function () {
@@ -34,3 +34,24 @@ Route::get('/flowcharts', function () {
 Route::get('/erd', function () {
     return view('erd.index');
 })->name('erd');
+
+// Vue page routes
+Route::get('/judge', function () {
+    return view('vue');
+})->name('judge');
+
+Route::get('/admin', function () {
+    return view('vue');
+})->name('admin');
+
+Route::get('/setup', function () {
+    return view('vue');
+})->name('setup');
+
+Route::get('/admin/login', function () {
+    return view('vue');
+})->name('admin.login');
+
+Route::get('/admin/documentation', function () {
+    return view('vue');
+})->name('admin.documentation');

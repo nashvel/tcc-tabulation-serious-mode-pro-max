@@ -4,6 +4,8 @@ import 'widgets/events_screen.dart';
 import 'widgets/settings_screen.dart';
 import 'widgets/help_screen.dart';
 import 'widgets/setup_screen.dart';
+import 'login_screen.dart';
+import '../theme/app_theme.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,164 +16,135 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  final List<String> _menuItems = ['Dashboard', 'Setup', 'Events', 'Settings', 'Help'];
+  
   final List<IconData> _menuIcons = [
-    Icons.dashboard,
-    Icons.build,
-    Icons.event,
-    Icons.settings,
-    Icons.help,
+    Icons.grid_view_outlined,
+    Icons.build_outlined,
+    Icons.event_outlined,
+    Icons.settings_outlined,
+    Icons.help_outline,
+  ];
+  
+  final List<String> _menuLabels = [
+    'Dashboard',
+    'Setup',
+    'Events',
+    'Settings',
+    'Help',
   ];
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 600;
-        final sidebarWidth = isMobile ? 60.0 : 80.0;
-        final logoPadding = isMobile ? 12.0 : 16.0;
-        final logoSize = isMobile ? 36.0 : 48.0;
-        final logoIconSize = isMobile ? 20.0 : 28.0;
-        final menuIconSize = isMobile ? 20.0 : 28.0;
-        final menuPadding = isMobile ? 4.0 : 8.0;
-        final menuVerticalPadding = isMobile ? 4.0 : 8.0;
-
-        return Scaffold(
-          body: Row(
-            children: [
-              // Sidebar
-              Container(
-                width: sidebarWidth,
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade900,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(2, 0),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    // Logo
-                    Padding(
-                      padding: EdgeInsets.all(logoPadding),
-                      child: Container(
-                        width: logoSize,
-                        height: logoSize,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.assessment,
-                          color: Colors.blue.shade900,
-                          size: logoIconSize,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: isMobile ? 12 : 24),
-                    // Menu Items
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: _menuItems.length,
-                        itemBuilder: (context, index) {
-                          final isSelected = _selectedIndex == index;
-                          return Padding(
-                            padding: EdgeInsets.symmetric(vertical: menuVerticalPadding),
-                            child: Tooltip(
-                              message: _menuItems[index],
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () {
-                                    setState(() => _selectedIndex = index);
-                                  },
-                                  child: Container(
-                                    margin: EdgeInsets.symmetric(
-                                      horizontal: menuPadding,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? Colors.white.withOpacity(0.2)
-                                          : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(
-                                      _menuIcons[index],
-                                      color: isSelected
-                                          ? Colors.white
-                                          : Colors.white70,
-                                      size: menuIconSize,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    // Logout Button
-                    Padding(
-                      padding: EdgeInsets.all(logoPadding),
-                      child: Tooltip(
-                        message: 'Logout',
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () {
-                              Navigator.of(context).pushNamedAndRemoveUntil(
-                                '/',
-                                (route) => false,
-                              );
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              padding: EdgeInsets.all(isMobile ? 6 : 8),
-                              child: Icon(
-                                Icons.logout,
-                                color: Colors.white,
-                                size: menuIconSize,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Main Content
-              Expanded(
-                child: _buildContent(),
-              ),
-            ],
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Row(
+        children: [
+          // Narrow Sidebar
+          _buildSidebar(),
+          // Vertical divider
+          Container(width: 1, color: AppColors.border),
+          // Main Content
+          Expanded(
+            child: Column(
+              children: [
+                _buildHeader(),
+                Container(height: 1, color: AppColors.border),
+                Expanded(child: _buildContent()),
+              ],
+            ),
           ),
-        );
-      },
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidebar() {
+    return Container(
+      width: 50,
+      color: AppColors.background,
+      child: Column(
+        children: [
+          const SizedBox(height: AppSpacing.md),
+          // Logo
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              border: AppBorders.all,
+              borderRadius: AppBorders.radius,
+            ),
+            child: const Icon(Icons.grid_view, size: 16, color: AppColors.text),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          // Nav items
+          ...List.generate(_menuIcons.length, (i) => Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: _buildNavItem(_menuIcons[i], i),
+          )),
+          const Spacer(),
+          // Logout
+          GestureDetector(
+            onTap: () => Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+            ),
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                borderRadius: AppBorders.radius,
+              ),
+              child: const Icon(Icons.logout, size: 18, color: AppColors.textMuted),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, int index) {
+    final isSelected = _selectedIndex == index;
+    return Tooltip(
+      message: _menuLabels[index],
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedIndex = index),
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.selected : Colors.transparent,
+            borderRadius: AppBorders.radius,
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: isSelected ? AppColors.text : AppColors.textMuted,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Row(
+        children: [
+          Text(_menuLabels[_selectedIndex], style: AppTextStyles.heading),
+        ],
+      ),
     );
   }
 
   Widget _buildContent() {
     switch (_selectedIndex) {
-      case 0:
-        return const DashboardScreen();
-      case 1:
-        return const SetupScreen();
-      case 2:
-        return const EventsScreen();
-      case 3:
-        return const SettingsScreen();
-      case 4:
-        return const HelpScreen();
-      default:
-        return const DashboardScreen();
+      case 0: return const DashboardScreen();
+      case 1: return const SetupScreen();
+      case 2: return const EventsScreen();
+      case 3: return const SettingsScreen();
+      case 4: return const HelpScreen();
+      default: return const DashboardScreen();
     }
   }
 }

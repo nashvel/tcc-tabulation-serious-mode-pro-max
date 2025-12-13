@@ -32,7 +32,7 @@ export default function ScoreTable({
   // Use custom hooks for state management
   const { contextMenu, contextMenuRef, closeContextMenu, handleRowContextMenu } = useContextMenu();
   const { colorScrollIndex, setColorScrollIndex, scoreColors, setScoreColors } = useColorPalette();
-  const { isLocked, handleLockToggle } = useLockState(eventId);
+  const { isLocked, handleLockToggle, isTogglingLock } = useLockState(eventId);
   const {
     categorySubmenu,
     setCategorySubmenu,
@@ -251,6 +251,7 @@ export default function ScoreTable({
           <ContextMenuContent
             isLocked={isLocked}
             onLockToggle={handleLockToggleWithClose}
+            isTogglingLock={isTogglingLock}
             colorScrollIndex={colorScrollIndex}
             onColorScrollChange={setColorScrollIndex}
             scoreColors={scoreColors}

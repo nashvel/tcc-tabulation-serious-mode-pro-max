@@ -25,6 +25,7 @@ export const GlobalContextMenuProvider = ({ children, eventId, eventSequence = [
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
   const [isSwitchingCategory, setIsSwitchingCategory] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [isTogglingLock, setIsTogglingLock] = useState(false);
   const contextMenuRef = useRef(null);
   
   // Get eventId from prop or localStorage
@@ -168,19 +169,20 @@ export const GlobalContextMenuProvider = ({ children, eventId, eventSequence = [
 
   // Lock/Unlock handler
   const handleLockToggle = async () => {
-    if (!eventId) {
+    if (!resolvedEventId) {
       showError('Event not loaded yet');
       closeContextMenu();
       return;
     }
     
+    setIsTogglingLock(true);
     try {
       const apiBase = getApiBase();
       const endpoint = isLocked ? 'unlock' : 'lock';
       const response = await fetch(`${apiBase}/api/voting/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event_id: eventId })
+        body: JSON.stringify({ event_id: resolvedEventId })
       });
 
       if (response.ok) {
@@ -193,8 +195,10 @@ export const GlobalContextMenuProvider = ({ children, eventId, eventSequence = [
     } catch (error) {
       console.error('Lock toggle error:', error);
       showError('Failed to toggle lock');
+    } finally {
+      setIsTogglingLock(false);
+      closeContextMenu();
     }
-    closeContextMenu();
   };
 
   // Switch category handler
@@ -209,7 +213,7 @@ export const GlobalContextMenuProvider = ({ children, eventId, eventSequence = [
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          event_id: eventId,
+          event_id: resolvedEventId,
           round_id: selectedCategory.id
         })
       });
@@ -241,10 +245,13 @@ export const GlobalContextMenuProvider = ({ children, eventId, eventSequence = [
   const value = {
     contextMenu,
     closeContextMenu,
+    handleLockToggle,
     isLocked,
+    isTogglingLock,
     eventSequence,
     selectedCategoryIndex,
-    isSwitchingCategory
+    isSwitchingCategory,
+    handleSwitchCategory
   };
 
   return (
@@ -263,10 +270,21 @@ export const GlobalContextMenuProvider = ({ children, eventId, eventSequence = [
           {/* Lock/Unlock */}
           <button
             onClick={handleLockToggle}
-            className="w-full px-4 py-2 text-left text-sm flex items-center gap-3 text-gray-700 hover:bg-gray-100 border-b border-gray-200"
+            disabled={isTogglingLock}
+            className={`w-full px-4 py-2 text-left text-sm flex items-center gap-3 border-b border-gray-200 transition-colors ${
+              isTogglingLock
+                ? 'opacity-50 cursor-not-allowed text-gray-500'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
           >
-            {isLocked ? <Unlock size={16} /> : <Lock size={16} />}
-            {isLocked ? 'Unlock Judges' : 'Lock Judges'}
+            {isTogglingLock ? (
+              <span className="animate-spin">⟳</span>
+            ) : isLocked ? (
+              <Unlock size={16} />
+            ) : (
+              <Lock size={16} />
+            )}
+            {isTogglingLock ? 'Toggling...' : isLocked ? 'Unlock Judges' : 'Lock Judges'}
           </button>
 
           {/* Switch Category with Submenu */}
@@ -277,13 +295,22 @@ export const GlobalContextMenuProvider = ({ children, eventId, eventSequence = [
               onMouseLeave={() => setCategorySubmenu({ visible: false, position: 'right' })}
             >
               <button
-                className="w-full px-4 py-2 text-left text-sm flex items-center justify-between gap-3 text-gray-700 hover:bg-gray-100 border-b border-gray-200"
+                disabled={isSwitchingCategory}
+                className={`w-full px-4 py-2 text-left text-sm flex items-center justify-between gap-3 border-b border-gray-200 transition-colors ${
+                  isSwitchingCategory
+                    ? 'opacity-50 cursor-not-allowed text-gray-500'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
               >
                 <span className="flex items-center gap-3">
-                  <SkipForward size={16} />
-                  Switch Category
+                  {isSwitchingCategory ? (
+                    <span className="animate-spin">⟳</span>
+                  ) : (
+                    <SkipForward size={16} />
+                  )}
+                  {isSwitchingCategory ? 'Switching...' : 'Switch Category'}
                 </span>
-                <ChevronRight size={14} className="text-gray-400" />
+                <ChevronRight size={14} className={isSwitchingCategory ? 'text-gray-300' : 'text-gray-400'} />
               </button>
 
               {/* Category Submenu */}

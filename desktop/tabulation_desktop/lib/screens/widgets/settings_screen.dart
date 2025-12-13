@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:rflutter_alert/rflutter_alert.dart';
-import '../../utils/responsive.dart';
 import 'dart:convert';
+import '../../theme/app_theme.dart';
+import '../../widgets/podium_loader.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -16,7 +17,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _newPinController = TextEditingController();
   final _confirmPinController = TextEditingController();
   bool _isChangingPin = false;
-  bool _showPinConfirm = false;
+  String? _errorMessage;
+  String? _successMessage;
 
   @override
   void dispose() {
@@ -26,67 +28,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
-  void _handleChangePinClick() {
-    // Validate inputs
-    if (_currentPinController.text.isEmpty ||
-        _newPinController.text.isEmpty ||
-        _confirmPinController.text.isEmpty) {
-      _showError('All PIN fields are required');
+  Future<void> _handleChangePin() async {
+    setState(() { _errorMessage = null; _successMessage = null; });
+
+    if (_currentPinController.text.isEmpty || _newPinController.text.isEmpty || _confirmPinController.text.isEmpty) {
+      setState(() => _errorMessage = 'All fields are required');
       return;
     }
-
-    if (_newPinController.text.length < 4) {
-      _showError('New PIN must be at least 4 digits');
+    if (_newPinController.text.length != 6) {
+      setState(() => _errorMessage = 'PIN must be exactly 6 digits');
       return;
     }
-
-    if (_newPinController.text.length > 6) {
-      _showError('New PIN must not exceed 6 digits');
-      return;
-    }
-
     if (_newPinController.text != _confirmPinController.text) {
-      _showError('New PIN and confirmation do not match');
+      setState(() => _errorMessage = 'PINs do not match');
       return;
     }
 
-    // Show confirmation dialog using rflutter_alert
-    Alert(
-      context: context,
-      type: AlertType.warning,
-      title: 'Confirm PIN Change',
-      desc: 'Are you sure you want to change your admin PIN?',
-      buttons: [
-        DialogButton(
-          child: const Text(
-            'Cancel',
-            style: TextStyle(color: Colors.white, fontSize: 14),
-          ),
-          onPressed: () => Navigator.pop(context),
-          color: Colors.grey,
-        ),
-        DialogButton(
-          child: const Text(
-            'Confirm',
-            style: TextStyle(color: Colors.white, fontSize: 14),
-          ),
-          onPressed: _handleConfirmPinChange,
-          color: Colors.indigo,
-        ),
-      ],
-    ).show();
-  }
-
-  Future<void> _handleConfirmPinChange() async {
     setState(() => _isChangingPin = true);
     try {
-      final adminToken = 'your_admin_token'; // Get from localStorage equivalent
       final response = await http.post(
         Uri.parse('http://localhost:8000/api/admin/change-pin'),
-        headers: {
-          'Authorization': 'Bearer $adminToken',
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'old_pin': _currentPinController.text,
           'new_pin': _newPinController.text,
@@ -95,375 +57,103 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        _showSuccess('Admin PIN changed successfully');
-        setState(() => _showPinConfirm = false);
-
-        // Clear form
+        setState(() => _successMessage = 'PIN changed successfully');
         _currentPinController.clear();
         _newPinController.clear();
         _confirmPinController.clear();
       } else {
         final data = jsonDecode(response.body);
-        final errorMessage = data['message'] ?? 'Failed to change PIN';
-
-        if (errorMessage.contains('Invalid current PIN')) {
-          _showError('Current PIN is incorrect');
-        } else {
-          _showError(errorMessage);
-        }
-
-        setState(() => _showPinConfirm = false);
+        setState(() => _errorMessage = data['message'] ?? 'Failed to change PIN');
       }
-    } catch (error) {
-      print('Error changing PIN: $error');
-      _showError('Failed to change PIN');
-      setState(() => _showPinConfirm = false);
+    } catch (e) {
+      setState(() => _errorMessage = 'Connection error');
     } finally {
       setState(() => _isChangingPin = false);
     }
   }
 
-  void _showError(String message) {
-    Alert(
-      context: context,
-      type: AlertType.error,
-      title: 'Error',
-      desc: message,
-      buttons: [
-        DialogButton(
-          child: const Text(
-            'OK',
-            style: TextStyle(color: Colors.white, fontSize: 14),
-          ),
-          onPressed: () => Navigator.pop(context),
-          color: Colors.red,
-        ),
-      ],
-    ).show();
-  }
-
-  void _showSuccess(String message) {
-    Alert(
-      context: context,
-      type: AlertType.success,
-      title: 'Success',
-      desc: message,
-      buttons: [
-        DialogButton(
-          child: const Text(
-            'OK',
-            style: TextStyle(color: Colors.white, fontSize: 14),
-          ),
-          onPressed: () => Navigator.pop(context),
-          color: Colors.green,
-        ),
-      ],
-    ).show();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    final padding = isMobile ? 12.0 : 24.0;
-    final titleFontSize = isMobile ? 18.0 : 28.0;
-    
     return Container(
-      color: Colors.grey.shade50,
+      color: AppColors.background,
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text('Change Admin PIN', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: AppSpacing.sm),
+          Text('Default PIN is 123456', style: AppTextStyles.small),
+          const SizedBox(height: AppSpacing.lg),
+          // Form
           Container(
-            color: Colors.white,
-            padding: EdgeInsets.all(padding),
-            child: Text(
-              'General Settings',
-              style: TextStyle(
-                fontSize: titleFontSize,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.all(padding),
-              child: ListView(
-                children: [
-                  // Change Admin PIN Section
-                  Container(
-                    constraints: BoxConstraints(
-                      maxWidth: isMobile ? double.infinity : 400,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                    padding: EdgeInsets.all(isMobile ? 12.0 : 16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.indigo.shade100,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                Icons.lock,
-                                color: Colors.indigo.shade700,
-                                size: isMobile ? 14 : 18,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Change Admin PIN',
-                                style: TextStyle(
-                                  fontSize: isMobile ? 12 : 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        // Info Box
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            border: Border.all(
-                              color: Colors.blue.shade200,
-                              width: 1.5,
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isMobile ? 8 : 12,
-                            vertical: isMobile ? 8 : 10,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline,
-                                color: Colors.blue.shade700,
-                                size: isMobile ? 14 : 16,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Default PIN is 123456. Change it to secure your admin panel.',
-                                  style: TextStyle(
-                                    fontSize: isMobile ? 9 : 11,
-                                    color: Colors.blue.shade900,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        // Current PIN
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Current PIN',
-                              style: TextStyle(
-                                fontSize: isMobile ? 10 : 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            TextField(
-                              controller: _currentPinController,
-                              obscureText: true,
-                              maxLength: 6,
-                              decoration: InputDecoration(
-                                hintText: 'Enter current PIN',
-                                isDense: true,
-                                prefixIcon: Icon(
-                                  Icons.lock_outline,
-                                  size: 18,
-                                  color: Colors.grey.shade400,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey.shade300,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey.shade300,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                    color: Colors.indigo,
-                                    width: 2,
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        // New PIN
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'New PIN',
-                              style: TextStyle(
-                                fontSize: isMobile ? 10 : 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            TextField(
-                              controller: _newPinController,
-                              obscureText: true,
-                              maxLength: 6,
-                              decoration: InputDecoration(
-                                hintText: 'Enter new PIN (4-6 digits)',
-                                isDense: true,
-                                prefixIcon: Icon(
-                                  Icons.lock_outline,
-                                  size: 18,
-                                  color: Colors.grey.shade400,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey.shade300,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey.shade300,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                    color: Colors.indigo,
-                                    width: 2,
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        // Confirm New PIN
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Confirm New PIN',
-                              style: TextStyle(
-                                fontSize: isMobile ? 10 : 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            TextField(
-                              controller: _confirmPinController,
-                              obscureText: true,
-                              maxLength: 6,
-                              decoration: InputDecoration(
-                                hintText: 'Confirm new PIN',
-                                isDense: true,
-                                prefixIcon: Icon(
-                                  Icons.lock_outline,
-                                  size: 18,
-                                  color: Colors.grey.shade400,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey.shade300,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey.shade300,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                    color: Colors.indigo,
-                                    width: 2,
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        // Change PIN Button
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _handleChangePinClick,
-                            icon: Icon(Icons.check_circle_outline, size: isMobile ? 14 : 18),
-                            label: Text(
-                              'Change PIN',
-                              style: TextStyle(
-                                fontSize: isMobile ? 12 : 14,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.indigo,
-                              foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isMobile ? 16 : 20,
-                                vertical: isMobile ? 8 : 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              elevation: 2,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+            constraints: const BoxConstraints(maxWidth: 300),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildPinField('Current PIN', _currentPinController),
+                const SizedBox(height: AppSpacing.md),
+                _buildPinField('New PIN', _newPinController),
+                const SizedBox(height: AppSpacing.md),
+                _buildPinField('Confirm PIN', _confirmPinController),
+                const SizedBox(height: AppSpacing.lg),
+                // Messages
+                if (_errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                    child: Text(_errorMessage!, style: AppTextStyles.small.copyWith(color: Colors.red)),
                   ),
-                ],
-              ),
+                if (_successMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                    child: Text(_successMessage!, style: AppTextStyles.small.copyWith(color: Colors.green)),
+                  ),
+                // Button
+                GestureDetector(
+                  onTap: _isChangingPin ? null : _handleChangePin,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: _isChangingPin ? AppColors.disabled : AppColors.text,
+                      borderRadius: AppBorders.radius,
+                    ),
+                    child: _isChangingPin
+                        ? const SizedBox(width: 60, height: 14, child: Center(child: PodiumLoader(size: 12)))
+                        : Text('Change PIN', style: AppTextStyles.button.copyWith(color: Colors.white, fontSize: 11)),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPinField(String label, TextEditingController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.small),
+        const SizedBox(height: 4),
+        Container(
+          decoration: BoxDecoration(border: AppBorders.all, borderRadius: AppBorders.radius),
+          child: TextField(
+            controller: controller,
+            obscureText: true,
+            maxLength: 6,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
+            style: AppTextStyles.body,
+            decoration: const InputDecoration(
+              hintText: '••••••',
+              hintStyle: TextStyle(color: AppColors.disabled, fontSize: 12),
+              border: InputBorder.none,
+              counterText: '',
+              contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -170,19 +170,57 @@ export default function JudgesScoringTab({
     fetchData();
   }, []); // Empty dependency - only run on mount
 
-  // WebSocket handler for real-time score updates
-  const handleScoreUpdate = useCallback((data) => {
-    // Update single score from WebSocket event
-    if (data.judge_id && data.candidate_id && data.criteria_id !== undefined) {
-      setScores(prevScores => {
-        const newScores = { ...prevScores };
-        if (newScores[data.judge_id] && newScores[data.judge_id][data.candidate_id]) {
-          newScores[data.judge_id][data.candidate_id][data.criteria_id] = data.points;
-        }
-        return newScores;
+  // Buffer for batching multiple WebSocket updates into single React render
+  const pendingUpdatesRef = useRef([]);
+  const updateTimeoutRef = useRef(null);
+
+  // Flush all pending updates in a single React state update
+  const flushPendingUpdates = useCallback(() => {
+    if (pendingUpdatesRef.current.length === 0) return;
+    
+    const updates = [...pendingUpdatesRef.current];
+    pendingUpdatesRef.current = [];
+    
+    setScores(prevScores => {
+      const newScores = { ...prevScores };
+      updates.forEach(({ judgeId, scores: batchScores }) => {
+        if (!newScores[judgeId]) return;
+        batchScores.forEach(score => {
+          if (newScores[judgeId][score.candidate_id]) {
+            newScores[judgeId][score.candidate_id][score.criteria_id] = score.points;
+          }
+        });
       });
-    }
+      return newScores;
+    });
   }, []);
+
+  // WebSocket handler - buffers updates for 50ms then flushes
+  const handleScoreUpdate = useCallback((data) => {
+    // Handle batch updates from judges
+    if (data.is_batch && data.batch_scores) {
+      pendingUpdatesRef.current.push({
+        judgeId: data.judge_id,
+        scores: data.batch_scores
+      });
+      
+      // Debounce: wait 50ms for more updates before rendering
+      if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
+      updateTimeoutRef.current = setTimeout(flushPendingUpdates, 50);
+      return;
+    }
+
+    // Handle single score update (backward compatibility)
+    if (data.judge_id && data.candidate_id && data.criteria_id !== undefined) {
+      pendingUpdatesRef.current.push({
+        judgeId: data.judge_id,
+        scores: [{ candidate_id: data.candidate_id, criteria_id: data.criteria_id, points: data.points }]
+      });
+      
+      if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
+      updateTimeoutRef.current = setTimeout(flushPendingUpdates, 50);
+    }
+  }, [flushPendingUpdates]);
 
   // Get eventId from continuingEvent in localStorage or prop
   const eventId = useMemo(() => {
@@ -259,15 +297,11 @@ export default function JudgesScoringTab({
     const echo = initializeEcho();
     if (echo) {
       const channelName = `scores.${eventId}`;
-      console.log('📡 Attempting to connect to channel:', channelName);
+      console.log('📡 JudgesScoringTab: Attempting to connect to channel:', channelName);
       const channel = echo.channel(channelName);
 
       channel.subscribed(() => {
-        console.log('✅ Successfully subscribed to channel:', channelName);
-      });
-
-      channel.error((error) => {
-        console.error('❌ Channel subscription error:', error);
+        console.log(' Suc JudgesScoringTab: successfully subscribed to channel:', channelName);
       });
 
       channel.listen('.ScoreUpdated', (data) => {
@@ -287,7 +321,7 @@ export default function JudgesScoringTab({
     };
   }, [eventId, handleScoreUpdate]);
 
-  if (loading) {
+  if (loading || !eventId) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">

@@ -1,0 +1,32 @@
+# Implementation Plan
+
+- [x] 1. Update DevRunnerPanel with Reverb Server section
+  - [x] 1.1 Add Reverb server state and process management
+    - Add `reverbProcess`, `reverbRunning` state variables
+    - Add `reverbCommand` with default `php artisan reverb:start`
+    - Add `_startReverb()` and `_stopReverb()` methods
+    - _Requirements: 1.2, 1.3, 1.4_
+  - [x] 1.2 Add Reverb Server UI section
+    - Display Reverb Server section between Backend and Frontend
+    - Include start/stop button with teal color theme
+    - Include "Running" status indicator
+    - Include terminal button
+    - _Requirements: 1.1, 1.4_
+  - [x] 1.3 Update command persistence
+    - Add `reverbCommand` to `database.json` storage
+    - Load/save reverb command with other commands
+    - _Requirements: 2.2, 2.3_
+  - [x] 1.4 Add right-click command editing for Reverb
+    - Enable right-click on Reverb start button to edit command
+    - _Requirements: 2.1_
+
+- [x] 2. Simplify app flow (Reverb only, no Pusher switching)
+  - [x] 2.1 Remove WebSocketConfigScreen
+    - Delete `websocket_config_screen.dart`
+    - _Requirements: N/A (simplification)_
+  - [x] 2.2 Remove EnvService
+    - Delete `env_service.dart`
+    - _Requirements: N/A (simplification)_
+  - [x] 2.3 Revert main.dart to use LoginScreen
+    - Change initial route back to LoginScreen
+    - _Requirements: N/A (simplification)_

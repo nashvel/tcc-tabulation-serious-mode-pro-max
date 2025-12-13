@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'templates.dart';
+import '../../../theme/app_theme.dart';
 
 class TemplateSelector extends StatelessWidget {
   final String eventType;
@@ -8,6 +8,7 @@ class TemplateSelector extends StatelessWidget {
   final VoidCallback onApplyCriteriaTemplate;
 
   const TemplateSelector({
+    super.key,
     required this.eventType,
     required this.onApplyCandidateTemplate,
     required this.onApplyCategoryTemplate,
@@ -18,48 +19,28 @@ class TemplateSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        border: Border.all(color: Colors.blue.shade200),
-        borderRadius: BorderRadius.circular(8),
+        border: AppBorders.all,
+        borderRadius: AppBorders.radius,
       ),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.lightbulb, color: Colors.blue.shade600, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                'Quick Templates',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade900,
-                ),
-              ),
+              const Icon(Icons.lightbulb_outline, size: 14, color: AppColors.textMuted),
+              const SizedBox(width: AppSpacing.sm),
+              Text('Quick Templates', style: AppTextStyles.small.copyWith(fontWeight: FontWeight.w500)),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
             children: [
-              _buildTemplateButton(
-                'Sample Candidates',
-                Icons.person_add,
-                onApplyCandidateTemplate,
-              ),
-              _buildTemplateButton(
-                'Categories',
-                Icons.category,
-                onApplyCategoryTemplate,
-              ),
-              _buildTemplateButton(
-                'Criteria',
-                Icons.checklist,
-                onApplyCriteriaTemplate,
-              ),
+              _templateBtn('Candidates', onApplyCandidateTemplate),
+              _templateBtn('Categories', onApplyCategoryTemplate),
+              _templateBtn('Criteria', onApplyCriteriaTemplate),
             ],
           ),
         ],
@@ -67,23 +48,16 @@ class TemplateSelector extends StatelessWidget {
     );
   }
 
-  Widget _buildTemplateButton(
-    String label,
-    IconData icon,
-    VoidCallback onPressed,
-  ) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 14),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blue.shade600,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        textStyle: const TextStyle(fontSize: 11),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
+  Widget _templateBtn(String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.text,
+          borderRadius: AppBorders.radius,
         ),
+        child: Text(label, style: AppTextStyles.small.copyWith(color: Colors.white, fontSize: 10)),
       ),
     );
   }

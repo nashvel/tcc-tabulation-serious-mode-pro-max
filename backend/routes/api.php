@@ -22,6 +22,7 @@ Route::get('events', [EventController::class, 'index']);
 Route::get('events/active', [EventController::class, 'getActiveEvent']);
 Route::get('events/{event}', [EventController::class, 'show']);
 Route::post('events/{id}/activate', [EventController::class, 'activate']);
+Route::post('events/{id}/set-active-for-judging', [EventController::class, 'setActiveForJudging']);
 
 // Public Data Routes (no auth needed)
 Route::get('candidates', [CandidateController::class, 'index']);
@@ -29,6 +30,7 @@ Route::get('rounds', [RoundController::class, 'index']);
 Route::get('criteria', [CriteriaController::class, 'index']);
 Route::get('points', [PointController::class, 'index']);
 Route::post('points', [PointController::class, 'store']); // Judges submit scores (no auth needed)
+Route::post('points/batch', [PointController::class, 'storeBatch']); // Batch score submission (optimized)
 Route::get('judges', [JudgeController::class, 'index']);
 Route::get('scoreboard', [PointController::class, 'getScoreboard']);
 

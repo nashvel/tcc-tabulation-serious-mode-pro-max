@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_theme.dart';
 
 class SectionCard extends StatelessWidget {
   final String title;
@@ -7,6 +8,7 @@ class SectionCard extends StatelessWidget {
   final Widget child;
 
   const SectionCard({
+    super.key,
     required this.title,
     required this.padding,
     required this.labelFontSize,
@@ -17,14 +19,9 @@ class SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-          ),
-        ],
+        color: AppColors.background,
+        border: AppBorders.all,
+        borderRadius: AppBorders.radius,
       ),
       padding: EdgeInsets.all(padding),
       child: Column(
@@ -32,13 +29,12 @@ class SectionCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: TextStyle(
-              fontSize: labelFontSize + 2,
-              fontWeight: FontWeight.bold,
-              color: Colors.blue.shade900,
+            style: AppTextStyles.body.copyWith(
+              fontSize: labelFontSize,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
           child,
         ],
       ),

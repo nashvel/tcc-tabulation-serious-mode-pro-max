@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_theme.dart';
 
 class Step1BasicInfo extends StatelessWidget {
   final TextEditingController titleController;
@@ -9,10 +10,9 @@ class Step1BasicInfo extends StatelessWidget {
   final ValueChanged<String?> onEventTypeChanged;
   final int numberOfJudges;
   final ValueChanged<String> onNumberOfJudgesChanged;
-  final double padding;
-  final double labelFontSize;
 
   const Step1BasicInfo({
+    super.key,
     required this.titleController,
     required this.descriptionController,
     required this.selectedDate,
@@ -21,8 +21,6 @@ class Step1BasicInfo extends StatelessWidget {
     required this.onEventTypeChanged,
     required this.numberOfJudges,
     required this.onNumberOfJudgesChanged,
-    required this.padding,
-    required this.labelFontSize,
   });
 
   @override
@@ -30,112 +28,121 @@ class Step1BasicInfo extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildLabel('Event Title *'),
-        _buildTextField(titleController, 'e.g., TCC Intramurals 2025'),
-        const SizedBox(height: 16),
-        _buildLabel('Event Date *'),
-        _buildDatePicker(),
-        const SizedBox(height: 16),
-        _buildLabel('Description'),
-        _buildTextField(descriptionController, 'Event description', maxLines: 3),
-        const SizedBox(height: 16),
-        _buildLabel('Event Type'),
-        DropdownButtonFormField<String>(
-          value: eventType,
-          items: ['pageant', 'talent_show', 'competition']
-              .map((type) => DropdownMenuItem(
-                    value: type,
-                    child: Text(type),
-                  ))
-              .toList(),
-          onChanged: onEventTypeChanged,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+        _label('Title *'),
+        _textField(titleController, 'Event name'),
+        const SizedBox(height: AppSpacing.md),
+        _label('Date *'),
+        _datePicker(),
+        const SizedBox(height: AppSpacing.md),
+        _label('Description'),
+        _textField(descriptionController, 'Optional description', maxLines: 2),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _label('Type'),
+                  _dropdown(),
+                ],
+              ),
             ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 10,
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _label('Judges'),
+                  _judgesField(),
+                ],
+              ),
             ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        _buildLabel('Number of Judges'),
-        TextField(
-          keyboardType: TextInputType.number,
-          onChanged: onNumberOfJudgesChanged,
-          decoration: InputDecoration(
-            hintText: '$numberOfJudges',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 10,
-            ),
-          ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildLabel(String label) {
-    return Text(
-      label,
-      style: TextStyle(
-        fontSize: labelFontSize,
-        fontWeight: FontWeight.bold,
-        color: Colors.grey.shade700,
-      ),
+  Widget _label(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Text(text, style: AppTextStyles.small),
     );
   }
 
-  Widget _buildTextField(
-    TextEditingController controller,
-    String hint, {
-    int maxLines = 1,
-  }) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        hintText: hint,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 10,
+  Widget _textField(TextEditingController controller, String hint, {int maxLines = 1}) {
+    return Container(
+      decoration: BoxDecoration(border: AppBorders.all, borderRadius: AppBorders.radius),
+      child: TextField(
+        controller: controller,
+        maxLines: maxLines,
+        style: AppTextStyles.body,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: AppColors.disabled, fontSize: 12),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
         ),
       ),
     );
   }
 
-  Widget _buildDatePicker() {
-    return InkWell(
+  Widget _datePicker() {
+    return GestureDetector(
       onTap: onSelectDate,
       child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 10,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
+        decoration: BoxDecoration(border: AppBorders.all, borderRadius: AppBorders.radius),
         child: Row(
           children: [
-            Icon(Icons.calendar_today, color: Colors.blue.shade600, size: 18),
-            const SizedBox(width: 12),
+            const Icon(Icons.calendar_today, size: 14, color: AppColors.textMuted),
+            const SizedBox(width: AppSpacing.sm),
             Text(
               selectedDate == null
                   ? 'Select date'
                   : '${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}',
-              style: TextStyle(
-                color: selectedDate == null ? Colors.grey : Colors.black,
+              style: AppTextStyles.body.copyWith(
+                color: selectedDate == null ? AppColors.disabled : AppColors.text,
+                fontSize: 12,
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _dropdown() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      decoration: BoxDecoration(border: AppBorders.all, borderRadius: AppBorders.radius),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: eventType,
+          isExpanded: true,
+          style: AppTextStyles.body.copyWith(fontSize: 12),
+          items: ['pageant', 'talent_show', 'competition']
+              .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+              .toList(),
+          onChanged: onEventTypeChanged,
+        ),
+      ),
+    );
+  }
+
+  Widget _judgesField() {
+    return Container(
+      decoration: BoxDecoration(border: AppBorders.all, borderRadius: AppBorders.radius),
+      child: TextField(
+        keyboardType: TextInputType.number,
+        onChanged: onNumberOfJudgesChanged,
+        style: AppTextStyles.body.copyWith(fontSize: 12),
+        decoration: InputDecoration(
+          hintText: '$numberOfJudges',
+          hintStyle: const TextStyle(color: AppColors.disabled, fontSize: 12),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
         ),
       ),
     );

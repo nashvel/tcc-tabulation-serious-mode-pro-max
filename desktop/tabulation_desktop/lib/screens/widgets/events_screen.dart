@@ -1,141 +1,133 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'dart:async';
+import 'package:http/http.dart' as http;
+import '../../theme/app_theme.dart';
+import '../../widgets/podium_loader.dart';
 import '../create_event_screen.dart';
 
-class EventsScreen extends StatelessWidget {
+class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
 
   @override
+  State<EventsScreen> createState() => _EventsScreenState();
+}
+
+class _EventsScreenState extends State<EventsScreen> {
+  List<dynamic> events = [];
+  bool isLoading = true;
+  late Timer _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEvents();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) => _loadEvents());
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadEvents() async {
+    try {
+      final response = await http.get(Uri.parse('http://localhost:8000/api/events')).timeout(const Duration(seconds: 3));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is List && mounted) setState(() { events = data; isLoading = false; });
+      }
+    } catch (_) {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    final padding = isMobile ? 12.0 : 24.0;
-    final titleFontSize = isMobile ? 18.0 : 28.0;
-    final itemPadding = isMobile ? 12.0 : 16.0;
-    final iconSize = isMobile ? 40.0 : 48.0;
-    
     return Container(
-      color: Colors.grey.shade50,
+      color: AppColors.background,
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            color: Colors.white,
-            padding: EdgeInsets.all(padding),
-            child: Row(
-              children: [
-                Text(
-                  'Events',
-                  style: TextStyle(
-                    fontSize: titleFontSize,
-                    fontWeight: FontWeight.bold,
+          // Header row
+          Row(
+            children: [
+              Text('All Events', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
+              const SizedBox(width: AppSpacing.sm),
+              Text('(${events.length})', style: AppTextStyles.small),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const CreateEventScreen()),
+                ).then((_) => _loadEvents()),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                  decoration: BoxDecoration(color: AppColors.text, borderRadius: AppBorders.radius),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.add, size: 14, color: Colors.white),
+                      const SizedBox(width: 4),
+                      Text('New', style: AppTextStyles.button.copyWith(color: Colors.white, fontSize: 11)),
+                    ],
                   ),
                 ),
-                const Spacer(),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const CreateEventScreen(),
-                      ),
-                    );
-                  },
-                  icon: Icon(Icons.add, size: isMobile ? 16 : 18),
-                  label: Text(
-                    'New Event',
-                    style: TextStyle(
-                      fontSize: isMobile ? 12 : 14,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isMobile ? 12 : 16,
-                      vertical: isMobile ? 6 : 10,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.all(padding),
-              child: ListView.builder(
-                itemCount: 5,
-                itemBuilder: (context, index) {
-                  return Container(
-                    margin: EdgeInsets.only(bottom: isMobile ? 12 : 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                    padding: EdgeInsets.all(itemPadding),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: iconSize,
-                          height: iconSize,
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade100,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.event,
-                            color: Colors.blue.shade900,
-                            size: isMobile ? 20 : 24,
-                          ),
-                        ),
-                        SizedBox(width: isMobile ? 12 : 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Event ${index + 1}',
-                                style: TextStyle(
-                                  fontSize: isMobile ? 14 : 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Created on ${DateTime.now().toString().split(' ')[0]}',
-                                style: TextStyle(
-                                  fontSize: isMobile ? 11 : 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Chip(
-                          label: Text(
-                            'Active',
-                            style: TextStyle(
-                              fontSize: isMobile ? 10 : 12,
-                            ),
-                          ),
-                          backgroundColor: Colors.green.shade100,
-                          labelStyle: TextStyle(
-                            color: Colors.green.shade900,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isMobile ? 6 : 8,
-                            vertical: isMobile ? 2 : 4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
               ),
-            ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Container(height: 1, color: AppColors.border),
+          // Events list
+          Expanded(
+            child: isLoading
+                ? const Center(child: PodiumLoader(size: 24))
+                : events.isEmpty
+                    ? Center(child: Text('No events', style: AppTextStyles.small))
+                    : ListView.separated(
+                        itemCount: events.length,
+                        separatorBuilder: (_, __) => Container(height: 1, color: AppColors.border),
+                        itemBuilder: (context, index) {
+                          final event = events[index];
+                          final status = event['status'] ?? 'Draft';
+                          final isActive = status == 'Active';
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 6, height: 6,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isActive ? AppColors.text : Colors.transparent,
+                                    border: Border.all(color: AppColors.text, width: 1),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.md),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(event['title'] ?? event['name'] ?? 'Untitled', style: AppTextStyles.body),
+                                      if (event['event_type'] != null)
+                                        Text(event['event_type'], style: AppTextStyles.small),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    border: AppBorders.all,
+                                    borderRadius: AppBorders.radius,
+                                  ),
+                                  child: Text(status, style: AppTextStyles.small.copyWith(fontSize: 10)),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
           ),
         ],
       ),

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { getApiBase } from '../../config/api';
 import JudgesScoringTab from './tabs/JudgesScoringTab';
 import VotingControlTab from './tabs/VotingControlTab';
@@ -8,6 +8,59 @@ import ResultsTab from './tabs/ResultsTab';
 import BestInTab from './tabs/BestInTab';
 import { Gavel, Users, List, BarChart2, Trophy, ExternalLink } from 'lucide-react';
 import { ColorPaletteContextMenu } from 'nachtify';
+
+// PodiumLedger Footer with scroll-triggered animation
+function PodiumLedgerFooter() {
+  const footerRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [animationKey, setAnimationKey] = useState(0);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(false);
+          // Reset and trigger animation
+          setTimeout(() => {
+            setAnimationKey(prev => prev + 1);
+            setIsVisible(true);
+          }, 50);
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    if (footerRef.current) {
+      observer.observe(footerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <footer ref={footerRef} className="mt-16 pb-8">
+      <div className="text-center select-none">
+        <h1 className="text-[11vw] text-gray-900 leading-none inline-flex items-end" style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 600, letterSpacing: '-0.02em' }}>
+          <span>PodiumLed</span>
+          <span className="inline-flex items-end" key={animationKey}>
+            <span className={isVisible ? 'rise-up' : ''} style={{ animationDelay: '0ms', display: 'inline-block' }}>g</span>
+            <span className={isVisible ? 'rise-up' : ''} style={{ animationDelay: '100ms', display: 'inline-block' }}>e</span>
+            <span className={`${isVisible ? 'rise-up' : ''} text-[1.1em]`} style={{ animationDelay: '200ms', display: 'inline-block' }}>r</span>
+          </span>
+        </h1>
+      </div>
+      <style>{`
+        @keyframes rise-up {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(-0.15em); }
+        }
+        .rise-up {
+          animation: rise-up 0.5s ease-out forwards;
+        }
+      `}</style>
+    </footer>
+  );
+}
 
 export default function DataTableManager({
   candidates,
@@ -288,6 +341,9 @@ export default function DataTableManager({
         onClose={closeContextMenu}
         menuItems={menuItems}
       />
+
+      {/* PodiumLedger Footer */}
+      <PodiumLedgerFooter />
     </div>
   );
 }

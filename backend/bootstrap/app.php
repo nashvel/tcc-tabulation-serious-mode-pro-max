@@ -20,9 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
-        // Exclude broadcasting auth from CSRF protection
+        // Exclude routes from CSRF protection
         $middleware->validateCsrfTokens(except: [
             'broadcasting/auth',
+            'api/*',
         ]);
 
         $middleware->alias([

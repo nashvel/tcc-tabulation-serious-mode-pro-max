@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ActiveEventChanged;
 use App\Models\Event;
 use App\Models\EventDay;
 use Illuminate\Http\Request;
@@ -315,5 +316,72 @@ class EventController extends Controller
             'message' => 'Event activated successfully',
             'event' => $event
         ]);
+    }
+
+    /**
+     * Set an event as the active judging event
+     * Clears all other events and makes this one active for judges
+     */
+    public function setActiveForJudging($id)
+    {
+        $event = Event::findOrFail($id);
+        
+        // Clear active_round_id from ALL other events WITHOUT updating their timestamps
+        \DB::table('voting_states')
+            ->where('event_id', '!=', $id)
+            ->update(['active_round_id' => null]);
+        
+        // Get or create voting state for this event
+        $votingState = \App\Models\VotingState::firstOrCreate(
+            ['event_id' => $id],
+            ['is_active' => false, 'is_locked' => false]
+        );
+        
+        // Touch the voting state to update its timestamp (makes it the most recent)
+        $votingState->touch();
+        
+        \Log::info("Event {$id} set as active for judging, updated_at: " . $votingState->updated_at);
+        
+        // Broadcast to all judges that the active event has changed
+        broadcast(new ActiveEventChanged($id, $event->title));
+        
+        return response()->json([
+            'message' => 'Event set as active for judging',
+            'event' => $event
+        ]);
+    }
+
+    /**
+     * Get the currently active event for judges
+     * Returns the event with the most recently updated voting state
+     */
+    public function getActiveEvent()
+    {
+        // Return the event with the most recently updated voting state
+        // This is set when admin loads an event via /admin?event_id=X
+        $votingState = \App\Models\VotingState::orderBy('updated_at', 'desc')->first();
+        
+        if ($votingState) {
+            $event = Event::find($votingState->event_id);
+            if ($event) {
+                \Log::info("Returning event from most recent voting state:", [
+                    'event_id' => $event->id,
+                    'voting_state_updated_at' => $votingState->updated_at
+                ]);
+                return response()->json($event);
+            }
+        }
+
+        // Fallback: return the most recently updated active event
+        $event = Event::where('status', 'active')
+            ->orderBy('updated_at', 'desc')
+            ->first();
+
+        if (!$event) {
+            return response()->json(null, 404);
+        }
+
+        \Log::info("Returning fallback active event:", ['event_id' => $event->id]);
+        return response()->json($event);
     }
 }

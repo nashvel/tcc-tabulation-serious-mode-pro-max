@@ -4,42 +4,16 @@ import './JudgePreloader.css';
 export default function JudgePreloader() {
   return (
     <div className="judge-preloader">
-      <div className="preloader-content">
-        <img src="/assets/main-logo.png" alt="Logo" className="preloader-logo" />
-        
-        {/* Google Chrome */}
-        <div className="infinityChrome">
-          <div></div>
-          <div></div>
-          <div></div>
-        </div>
-
-        {/* Safari and others */}
-        <div className="infinity">
-          <div>
-            <span></span>
-          </div>
-          <div>
-            <span></span>
-          </div>
-          <div>
-            <span></span>
-          </div>
-        </div>
-
-        {/* SVG Filter */}
-        <svg xmlns="http://www.w3.org/2000/svg" version="1.1" style={{ display: 'none' }}>
-          <defs>
-            <filter id="goo">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
-              <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo" />
-              <feBlend in="SourceGraphic" in2="goo" />
-            </filter>
-          </defs>
-        </svg>
-
-        <p className="preloader-text">Loading Judge Panel...</p>
-      </div>
+      <svg xmlns="http://www.w3.org/2000/svg" height="128px" width="128px" viewBox="0 0 128 128" className="pl">
+        <defs>
+          <linearGradient y2="1" x2="0" y1="0" x1="0" id="pl-grad">
+            <stop stopColor="hsl(193,90%,55%)" offset="0%"></stop>
+            <stop stopColor="hsl(223,90%,55%)" offset="100%"></stop>
+          </linearGradient>
+        </defs>
+        <circle strokeLinecap="round" strokeWidth="16" stroke="hsla(0,10%,10%,0.1)" fill="none" cy="64" cx="64" r="56" className="pl__ring"></circle>
+        <path strokeDashoffset="10" strokeDasharray="44 1111" strokeLinejoin="round" strokeLinecap="round" strokeWidth="16" stroke="url(#pl-grad)" fill="none" d="M92,15.492S78.194,4.967,66.743,16.887c-17.231,17.938-28.26,96.974-28.26,96.974L119.85,59.892l-99-31.588,57.528,89.832L97.8,19.349,13.636,88.51l89.012,16.015S81.908,38.332,66.1,22.337C50.114,6.156,36,15.492,36,15.492a56,56,0,1,0,56,0Z" className="pl__worm"></path>
+      </svg>
     </div>
   );
 }

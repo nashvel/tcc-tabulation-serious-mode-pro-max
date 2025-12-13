@@ -34,156 +34,35 @@ class PointController extends Controller
         }
 
         $points = $query->get();
-        
-        Log::info('Fetching points', [
-            'count' => $points->count(),
-            'filters' => $request->all()
-        ]);
 
         return response()->json($points);
     }
 
     public function store(Request $request): JsonResponse
     {
-        Log::info('=== SCORE SUBMISSION START ===');
-        Log::info('Raw request data', $request->all());
-        
         try {
+            // Minimal validation for speed
             $validated = $request->validate([
-                'candidate_id' => 'required|exists:candidates,id',
-                'round_id' => 'required|exists:rounds,id',
-                'criteria_id' => 'required|exists:criteria,id',
+                'candidate_id' => 'required|integer',
+                'round_id' => 'required|integer',
+                'criteria_id' => 'required|integer',
                 'points' => 'required|numeric',
                 'judge_id' => 'required|integer',
-                'event_id' => 'required|exists:events,id',
+                'event_id' => 'required|integer',
             ]);
             
-            Log::info('Validation passed', $validated);
-            
-            // Store event_id for broadcasting later
-            $eventId = $validated['event_id'];
-            
-            // Validate judge belongs to the event
-            $judge = \App\Models\Judge::where('id', $validated['judge_id'])
-                ->where('event_id', $eventId)
-                ->first();
-            
-            if (!$judge) {
-                Log::error('Judge not found for event', [
-                    'judge_id' => $validated['judge_id'],
-                    'event_id' => $eventId,
-                ]);
-                return response()->json([
-                    'error' => 'Judge not found for this event'
-                ], 422);
-            }
-            
-            // Remove event_id from validated data since points table doesn't have it
             unset($validated['event_id']);
 
-            // Check if point already exists for this combination
-            $existing = Point::where('candidate_id', $validated['candidate_id'])
-                ->where('round_id', $validated['round_id'])
-                ->where('criteria_id', $validated['criteria_id'])
-                ->where('judge_id', $validated['judge_id'])
-                ->first();
-
-            if ($existing) {
-                Log::info('Found existing score record', [
-                    'point_id' => $existing->id,
-                    'old_points' => $existing->points,
-                    'new_points' => $validated['points'],
-                ]);
-                $existing->update(['points' => $validated['points']]);
-                Log::info('Score updated successfully', [
-                    'point_id' => $existing->id,
-                    'updated_points' => $existing->points,
-                ]);
-                
-                // Broadcast score update event
-                Log::info('Broadcasting ScoreUpdated event', [
-                    'channel' => 'scores.' . $eventId,
-                    'event' => 'ScoreUpdated',
-                    'judge_id' => $existing->judge_id,
-                    'candidate_id' => $existing->candidate_id,
-                    'criteria_id' => $existing->criteria_id,
-                    'points' => $existing->points,
-                    'BROADCAST_CONNECTION' => config('broadcasting.default'),
-                    'PUSHER_APP_ID' => config('broadcasting.connections.pusher.app_id'),
-                    'PUSHER_KEY' => substr(config('broadcasting.connections.pusher.key') ?? '', 0, 5),
-                    'QUEUE_CONNECTION' => config('queue.default'),
-                ]);
-                
-                Log::info('About to broadcast ScoreUpdated event');
-                try {
-                    // Dispatch event immediately (synchronously)
-                    Event::dispatch(new ScoreUpdated(
-                        $existing->judge_id,
-                        $existing->candidate_id,
-                        $existing->criteria_id,
-                        $existing->points,
-                        $eventId
-                    ));
-                    
-                    Log::info('Event dispatched via Event::dispatch()');
-                } catch (\Exception $e) {
-                    Log::error('Broadcast error:', [
-                        'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString()
-                    ]);
-                }
-                
-                Log::info('✓ Score update broadcasted via WebSocket');
-                
-                return response()->json($existing);
-            }
-
-            Log::info('Creating new score record', $validated);
-            
-            $point = Point::create($validated);
-            Log::info('✓ Score saved successfully to database', [
-                'point_id' => $point->id,
-                'candidate_id' => $point->candidate_id,
-                'round_id' => $point->round_id,
-                'criteria_id' => $point->criteria_id,
-                'judge_id' => $point->judge_id,
-                'points' => $point->points,
-            ]);
-            
-            // Broadcast score update event
-            Log::info('Broadcasting ScoreUpdated event (new)', [
-                'channel' => 'scores.' . $eventId,
-                'event' => 'ScoreUpdated',
-                'judge_id' => $point->judge_id,
-                'candidate_id' => $point->candidate_id,
-                'criteria_id' => $point->criteria_id,
-                'points' => $point->points,
-                'BROADCAST_CONNECTION' => config('broadcasting.default'),
-                'PUSHER_APP_ID' => config('broadcasting.connections.pusher.app_id'),
-                'PUSHER_KEY' => substr(config('broadcasting.connections.pusher.key') ?? '', 0, 5),
-                'QUEUE_CONNECTION' => config('queue.default'),
-            ]);
-            
-            Log::info('About to broadcast ScoreUpdated event');
-            try {
-                // Dispatch event immediately (synchronously)
-                Event::dispatch(new ScoreUpdated(
-                    $point->judge_id,
-                    $point->candidate_id,
-                    $point->criteria_id,
-                    $point->points,
-                    $eventId
-                ));
-                
-                Log::info('Event dispatched via Event::dispatch()');
-            } catch (\Exception $e) {
-                Log::error('Broadcast error:', [
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-            }
-            
-            Log::info('✓ Score creation broadcasted via WebSocket');
+            // Use updateOrCreate for speed
+            $point = Point::updateOrCreate(
+                [
+                    'candidate_id' => $validated['candidate_id'],
+                    'round_id' => $validated['round_id'],
+                    'criteria_id' => $validated['criteria_id'],
+                    'judge_id' => $validated['judge_id'],
+                ],
+                ['points' => $validated['points']]
+            );
             
             return response()->json($point, 201);
             
@@ -247,5 +126,65 @@ class PointController extends Controller
 
         $scores = $query->orderBy('total_points', 'desc')->get();
         return response()->json($scores);
+    }
+
+    /**
+     * Store multiple scores at once (batch submission)
+     * Ultra-optimized for 10+ concurrent judges on LAN
+     */
+    public function storeBatch(Request $request): JsonResponse
+    {
+        $judgeId = $request->input('judge_id');
+        $eventId = $request->input('event_id');
+        $scores = $request->input('scores', []);
+        
+        // Quick validation - skip heavy Laravel validation for speed
+        if (empty($scores) || !$judgeId || !$eventId) {
+            return response()->json(['error' => 'Missing required fields'], 400);
+        }
+        
+        $now = now();
+        
+        // Prepare data for bulk upsert - minimal processing
+        $upsertData = [];
+        foreach ($scores as $score) {
+            $upsertData[] = [
+                'candidate_id' => (int)$score['candidate_id'],
+                'round_id' => (int)$score['round_id'],
+                'criteria_id' => (int)$score['criteria_id'],
+                'judge_id' => (int)$judgeId,
+                'points' => (float)$score['points'],
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+        
+        // Single bulk upsert - handles concurrent writes safely
+        Point::upsert(
+            $upsertData,
+            ['candidate_id', 'round_id', 'criteria_id', 'judge_id'],
+            ['points', 'updated_at']
+        );
+        
+        // Fire-and-forget broadcast (don't wait for WebSocket response)
+        try {
+            broadcast(new ScoreUpdated(
+                (int)$judgeId,
+                null,
+                null,
+                null,
+                (int)$eventId,
+                $scores
+            ))->toOthers(); // Don't send back to the judge who submitted
+        } catch (\Exception $e) {
+            // Log but don't fail the request if broadcast fails
+            Log::warning('Broadcast failed', ['error' => $e->getMessage()]);
+        }
+        
+        // Minimal response for speed
+        return response()->json([
+            'success' => true,
+            'saved' => count($upsertData)
+        ]);
     }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Clock, Eye, EyeOff } from 'lucide-react';
 import { getApiBase, getCurrentEventId } from '../../config/api';
@@ -53,7 +53,29 @@ const pointsAPI = {
         'Accept': 'application/json'
       },
       body: JSON.stringify(data)
-    });  
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API error: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  },
+  // Batch create - submits multiple scores at once (reduces WebSocket broadcasts)
+  createBatch: async (scores, judgeId, eventId) => {
+    const response = await fetch(`${apiBase}/api/points/batch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        scores,
+        judge_id: judgeId,
+        event_id: eventId
+      })
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -115,8 +137,8 @@ export default function Judge() {
   const [rounds, setRounds] = useState([]);
   const [criteria, setCriteria] = useState([]);
   const [judges, setJudges] = useState([]);
-  const [selectedRound, setSelectedRound] = useState('1');
-  const [selectedCriteria, setSelectedCriteria] = useState('1');
+  const [selectedRound, setSelectedRound] = useState('');
+  const [selectedCriteria, setSelectedCriteria] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Female');
   const [scoresHidden, setScoresHidden] = useState(false);
   const [judgeId, setJudgeId] = useState(() => localStorage.getItem('judgeId') || '');
@@ -145,26 +167,33 @@ export default function Judge() {
   useEffect(() => {
     const initializeEvent = async () => {
       try {
-        // Get event ID from voting state
-        const response = await votingAPI.getState({});
-
-        if (response.data?.event_id) {
-          const eid = response.data.event_id;
-          setEventId(eid);
-
-          // Event name fetch removed as it was unused
-
-          await loadData(eid);
-          await loadInitialVotingState(eid);
-
-          // If judge is already selected from localStorage, load their scores
-          const savedJudgeId = localStorage.getItem('judgeId');
-          if (savedJudgeId) {
-            await loadJudgeScores(savedJudgeId);
+        // Get event ID from localStorage first
+        let eid = null;
+        const continuingEvent = localStorage.getItem('continuingEvent');
+        if (continuingEvent) {
+          try {
+            const event = JSON.parse(continuingEvent);
+            eid = event?.id || event?.unique_id;
+          } catch (e) {
+            console.error('Error parsing continuingEvent from localStorage:', e);
           }
-        } else {
-          console.warn('No event_id in voting state response');
+        }
+
+        // If no event in localStorage, we can't proceed
+        if (!eid) {
+          console.warn('No event found in localStorage. Judge page requires an event to be selected from admin panel.');
           setLoading(false);
+          return;
+        }
+
+        setEventId(eid);
+        await loadData(eid);
+        await loadInitialVotingState(eid);
+
+        // If judge is already selected from localStorage, load their scores
+        const savedJudgeId = localStorage.getItem('judgeId');
+        if (savedJudgeId) {
+          await loadJudgeScores(savedJudgeId, eid);
         }
       } catch (error) {
         console.error('Error initializing event:', error);
@@ -179,18 +208,22 @@ export default function Judge() {
   const loadInitialVotingState = async (eid) => {
     try {
       const response = await votingAPI.getState({ event_id: eid });
-      console.log('Initial voting state:', response.data);
 
       if (response.data) {
         // Load lock state
-        if (response.data.is_locked) {
-          setIsLocked(true);
-        }
+        setIsLocked(response.data.is_locked ?? false);
 
-        // Load active round
-        if (response.data.active_round && response.data.active_round.id) {
-          setSelectedRound(response.data.active_round.id.toString());
-          setActiveRoundName(response.data.active_round.name || 'Loading...');
+        // Load active round - check both active_round object and active_round_id
+        const activeRound = response.data.active_round;
+        const activeRoundId = response.data.active_round_id;
+        
+        if (activeRound && activeRound.id) {
+          setSelectedRound(activeRound.id.toString());
+          setActiveRoundName(activeRound.name || 'Loading...');
+          setShowScoringInterface(true);
+        } else if (activeRoundId) {
+          // Fallback: if we have active_round_id but no active_round object
+          setSelectedRound(activeRoundId.toString());
           setShowScoringInterface(true);
         }
       }
@@ -259,19 +292,12 @@ export default function Judge() {
 
   const loadData = async (eid) => {
     try {
-      console.time('loadData');
-      console.time('fetchCandidates');
-      console.time('fetchRounds');
-      console.time('fetchCriteria');
-      console.time('fetchJudges');
-
       const [candidatesRes, roundsRes, criteriaRes, judgesRes] = await Promise.all([
-        candidatesAPI.getAll(eid).then(res => { console.timeEnd('fetchCandidates'); return res; }),
-        roundsAPI.getAll(eid).then(res => { console.timeEnd('fetchRounds'); return res; }),
-        criteriaAPI.getAll(eid).then(res => { console.timeEnd('fetchCriteria'); return res; }),
-        judgesAPI.getAll(eid).then(res => { console.timeEnd('fetchJudges'); return res; }),
+        candidatesAPI.getAll(eid),
+        roundsAPI.getAll(eid),
+        criteriaAPI.getAll(eid),
+        judgesAPI.getAll(eid),
       ]);
-      console.timeEnd('loadData');
 
       setCandidates(candidatesRes.data || []);
       setRounds(roundsRes.data || []);
@@ -287,12 +313,13 @@ export default function Judge() {
   };
 
   // Load existing scores for the current judge
-  const loadJudgeScores = async (jid) => {
+  const loadJudgeScores = async (jid, eid = null) => {
     try {
-      if (!eventId) return;
+      const effectiveEventId = eid || eventId;
+      if (!effectiveEventId) return;
 
       const pointsRes = await pointsAPI.getAll({
-        event_id: eventId,
+        event_id: effectiveEventId,
         judge_id: jid
       });
 
@@ -323,11 +350,13 @@ export default function Judge() {
   const handleScoreChange = (candidateId, criteriaId, value, maxPoints) => {
     // Only allow numbers and decimal points
     if (value === '') {
-      // Allow empty input
+      // Allow empty input - queue deletion (send 0 to server)
       setScores(prev => ({
         ...prev,
         [`${candidateId}-${criteriaId}`]: value
       }));
+      // Queue score deletion as 0
+      queueScore(candidateId, criteriaId, 0);
       return;
     }
 
@@ -341,48 +370,118 @@ export default function Judge() {
     if (!isNaN(numValue)) {
       // Cap the value at maxPoints if it exceeds
       const cappedValue = numValue > maxPoints ? maxPoints : numValue;
+      const cappedValueStr = cappedValue.toString();
+      
       setScores(prev => ({
         ...prev,
-        [`${candidateId}-${criteriaId}`]: cappedValue.toString()
+        [`${candidateId}-${criteriaId}`]: cappedValueStr
       }));
+      
+      // Queue for submission with the ACTUAL value (not from state)
+      queueScore(candidateId, criteriaId, cappedValue);
     }
   };
 
-  const handleSubmit = async (candidateId, criteriaId) => {
-    const key = `${candidateId}-${criteriaId}`;
-    const points = scores[key];
-
-    if (!points || points === '') {
-      return; // Silently ignore empty submissions
+  // Handle Enter key to immediately flush scores
+  const handleKeyDown = (e, candidateId, criteriaId) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // Immediately flush on Enter
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      flushPendingScores();
     }
+  };
+
+  // Pending scores buffer and debounce timer refs
+  const pendingScoresRef = useRef({});
+  const debounceTimerRef = useRef(null);
+  const isFlushingRef = useRef(false);
+
+  // Flush pending scores to server (batch submission)
+  const flushPendingScores = async () => {
+    // Prevent concurrent flushes
+    if (isFlushingRef.current) return;
+    
+    const pending = { ...pendingScoresRef.current };
+    const scoresArray = Object.entries(pending).map(([key, data]) => ({
+      candidate_id: data.candidateId,
+      round_id: parseInt(selectedRound),
+      criteria_id: data.criteriaId,
+      points: data.points
+    }));
+
+    if (scoresArray.length === 0) return;
+
+    // Clear pending before submitting
+    pendingScoresRef.current = {};
+    isFlushingRef.current = true;
 
     try {
-      const response = await pointsAPI.create({
-        candidate_id: candidateId,
-        round_id: selectedRound,
-        criteria_id: criteriaId,
-        points: parseFloat(points),
-        judge_id: parseInt(judgeId),
-        event_id: eventId
-      });
-
-      // Only show success if response is valid
-      if (response && response.id) {
-        console.log('Score saved successfully:', response);
-        // Don't clear the field - keep it for reference
-      }
+      await pointsAPI.createBatch(scoresArray, parseInt(judgeId), eventId);
     } catch (error) {
-      console.error('Error saving score:', error);
-      // Don't show alert on error - just log it
+      // Re-add failed scores back to pending for retry
+      // Re-add failed scores back to pending for retry
+      Object.entries(pending).forEach(([key, data]) => {
+        if (!pendingScoresRef.current[key]) {
+          pendingScoresRef.current[key] = data;
+        }
+      });
+    } finally {
+      isFlushingRef.current = false;
     }
   };
+
+  // Queue score for batch submission - takes value directly (not from state)
+  const queueScore = (candidateId, criteriaId, points) => {
+    if (points === null || points === undefined) {
+      return;
+    }
+
+    const key = `${candidateId}-${criteriaId}`;
+    
+    // Add to pending scores buffer with the ACTUAL value passed in
+    pendingScoresRef.current[key] = {
+      candidateId,
+      criteriaId,
+      points: parseFloat(points)
+    };
+
+    // Clear existing timer and start new one
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Flush after 300ms of no new inputs
+    debounceTimerRef.current = setTimeout(() => {
+      flushPendingScores();
+    }, 300);
+    
+    // Also flush immediately if 5+ scores pending
+    if (Object.keys(pendingScoresRef.current).length >= 5 && !isFlushingRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      flushPendingScores();
+    }
+  };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        // Flush any remaining scores on unmount
+        flushPendingScores();
+      }
+    };
+  }, []);
 
   const handleJudgeSelect = (id) => {
     setJudgeId(id.toString());
     localStorage.setItem('judgeId', id.toString());
 
     // Load existing scores for this judge
-    loadJudgeScores(id.toString());
+    loadJudgeScores(id.toString(), eventId);
     // Don't hide the selection screen yet - wait for PROCEED
   };
 
@@ -491,325 +590,212 @@ export default function Judge() {
     setShowJudgeSelection(true);
   };
 
-  // Scoring Interface
+  // Scoring Interface - Minimalist design matching admin panel
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#fff', position: 'relative' }}>
+    <div className="min-h-screen bg-gray-50 relative font-sans antialiased">
       {/* Lock Screen Overlay */}
       {isLocked && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.95)',
-          zIndex: 9999,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#fff'
-        }}>
-          <span className="material-icons" style={{ fontSize: '120px', marginBottom: '30px', color: '#f59e0b' }}>
-            lock
-          </span>
-          <h1 style={{ fontSize: '48px', fontWeight: 'bold', marginBottom: '20px' }}>
-            Screen Locked
-          </h1>
-          <p style={{ fontSize: '24px', color: '#9ca3af' }}>
-            Waiting for admin to unlock...
-          </p>
+        <div className="fixed inset-0 bg-black/95 z-[9999] flex flex-col items-center justify-center text-white">
+          <span className="material-icons text-amber-500 mb-8" style={{ fontSize: '120px' }}>lock</span>
+          <h1 className="text-5xl font-bold mb-5">Screen Locked</h1>
+          <p className="text-2xl text-gray-400">Waiting for admin to unlock...</p>
         </div>
       )}
 
-
-      {/* Show empty state by default - matching old system behavior */}
+      {/* Waiting for Admin Screen - Skeleton UI */}
       {!isLocked && !showScoringInterface && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '400px',
-          backgroundColor: '#fff'
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <img src="/assets/lnk-logo.png" alt="LNK Logo" style={{ height: '300px', opacity: 0.8 }} />
-            <br /><br />
-            <p style={{ color: '#666', fontSize: '24px', marginTop: '20px' }}>
-              Waiting for Admin to select criteria...
-            </p>
+        <div className="min-h-screen bg-gray-50">
+          {/* Skeleton Header */}
+          <div className="bg-white border-b border-gray-200 py-4 px-6">
+            <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mx-auto mb-2"></div>
+            <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mx-auto"></div>
+          </div>
+
+          {/* Skeleton Table */}
+          <div className="p-4">
+            {/* Section Title */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="h-4 w-40 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-6 w-16 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+
+            {/* Table Header */}
+            <div className="bg-white border border-gray-200 rounded-sm overflow-hidden">
+              <div className="bg-gray-50 border-b border-gray-200 flex gap-4 p-3">
+                <div className="h-3 w-32 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-3 w-28 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-3 w-16 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+
+              {/* Skeleton Rows */}
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="flex items-center gap-4 p-3 border-b border-gray-100">
+                  <div className="h-4 w-36 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 w-32 bg-gray-100 rounded animate-pulse"></div>
+                  <div className="h-8 w-20 bg-gray-100 rounded animate-pulse"></div>
+                  <div className="h-8 w-20 bg-gray-100 rounded animate-pulse"></div>
+                  <div className="h-8 w-20 bg-gray-100 rounded animate-pulse"></div>
+                  <div className="h-4 w-14 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+
+            {/* Waiting Message */}
+            <div className="text-center mt-8">
+              <p className="text-sm text-gray-400">Waiting for admin to activate a round...</p>
+            </div>
           </div>
         </div>
       )}
 
       {/* Show scoring interface only when activated by admin and not locked */}
       {!isLocked && showScoringInterface && (
-        <div style={{ backgroundColor: '#fff' }}>
-          {/* Professional Header with Logos - Same as Admin */}
-          <div className="bg-white px-8 py-6 border-b border-slate-100 relative overflow-hidden">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-
-              {/* Left: Time Display */}
-              <div className="flex-1 min-w-[200px]">
-                <div className="text-2xl font-light text-slate-900 tracking-tight uppercase">
-                  <TimeDisplay />
-                </div>
-              </div>
-
-              {/* Center: Logos (Balanced) */}
-              <div className="flex items-center justify-center gap-6 py-2">
-                <img src="/assets/logo-3.png" className="h-14 object-contain drop-shadow-sm filter hover:brightness-110 transition-all" alt="Logo 1" />
-                <div className="h-10 w-px bg-slate-200"></div>
-                <img src="/assets/tcc_seal.png" className="h-14 object-contain drop-shadow-sm filter hover:brightness-110 transition-all" alt="Seal" />
-                <div className="h-10 w-px bg-slate-200"></div>
-                <img src="/src/assets/logo.png" className="h-16 object-contain drop-shadow-sm filter hover:brightness-110 transition-all" alt="App Logo" />
-                <div className="h-10 w-px bg-slate-200"></div>
-                <img src="/assets/it.png" className="h-14 object-contain drop-shadow-sm filter hover:brightness-110 transition-all" alt="IT" />
-                <div className="h-10 w-px bg-slate-200"></div>
-                <img src="/assets/bsit.png" className="h-14 object-contain drop-shadow-sm filter hover:brightness-110 transition-all" alt="BSIT" />
-              </div>
-
-              {/* Right: Empty space for balance */}
-              <div className="flex-1 min-w-[200px]"></div>
-            </div>
+        <div className="bg-gray-50">
+          {/* Round Header */}
+          <div className="text-center py-4 bg-white border-b border-gray-200">
+            <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-0.5">Currently Scoring</p>
+            <h1 className="text-xl font-bold text-gray-900 uppercase tracking-wide">{activeRoundName}</h1>
           </div>
 
-          {/* Hide Scores Button - Below Header */}
-          <div style={{
-            backgroundColor: '#fff',
-            padding: '15px 20px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            borderBottom: '1px solid #ddd',
-            position: 'relative'
-          }}>
-            {/* Minimal Accent Line at bottom */}
-            <div style={{ position: 'absolute', bottom: '0', left: '0', width: '100%', height: '2px', backgroundColor: '#1e293b' }}></div>
+          {/* Main Content - Full width, no edge spacing */}
+          <div className="w-full">
+            {/* Female Candidates Table */}
+            <div className="mb-0">
+              <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-100">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-pink-600">Female Candidates</h3>
+                <button
+                  onClick={() => setScoresHidden(!scoresHidden)}
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest transition-all
+                    ${scoresHidden ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
+                >
+                  {scoresHidden ? <EyeOff size={10} /> : <Eye size={10} />}
+                  {scoresHidden ? 'Hidden' : 'Hide'}
+                </button>
+              </div>
 
-            {/* Active Round Display */}
-            <div style={{
-              fontSize: '16px',
-              fontWeight: 'bold',
-              color: '#1e293b',
-              textTransform: 'uppercase',
-              letterSpacing: '1px'
-            }}>
-              Active Round: <span style={{ color: '#f97316' }}>{activeRoundName}</span>
+              <div className="bg-white overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider" style={{ minWidth: '200px' }}>Candidate</th>
+                      <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider" style={{ minWidth: '180px' }}>Team/Dept</th>
+                      {filteredCriteria.map(crit => (
+                        <th key={crit.id} className="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider" style={{ minWidth: '120px' }}>
+                          {crit.name} ({crit.points}%)
+                        </th>
+                      ))}
+                      <th className="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider" style={{ minWidth: '80px' }}>AVG</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filteredCandidates.filter(c => (c.category === 'Female' || c.gender === 'Female')).map(candidate => {
+                      const candidateScores = filteredCriteria.map(crit => parseFloat(scores[`${candidate.id}-${crit.id}`] || 0));
+                      const average = candidateScores.reduce((sum, score) => sum + score, 0);
+
+                      return (
+                        <tr key={candidate.id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="py-3 px-4">
+                            <span className="font-semibold text-gray-900 text-sm uppercase tracking-wide">
+                              {candidate.number} - {candidate.name?.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="text-sm text-gray-600 font-medium">{candidate.team || candidate.department || '-'}</span>
+                          </td>
+                          {filteredCriteria.map(crit => (
+                            <td key={crit.id} className="py-2 px-2 text-center">
+                              <input
+                                type="number"
+                                value={scores[`${candidate.id}-${crit.id}`] || ''}
+                                onChange={(e) => handleScoreChange(candidate.id, crit.id, e.target.value, crit.points)}
+                                onKeyDown={(e) => handleKeyDown(e, candidate.id, crit.id)}
+                                max={crit.points}
+                                min="0"
+                                step="0.01"
+                                placeholder={`0-${crit.points}`}
+                                className={`w-full text-center py-2 px-1 text-sm font-mono border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${scoresHidden ? 'blur-md' : ''}`}
+                              />
+                            </td>
+                          ))}
+                          <td className="py-3 px-4 text-center">
+                            <span className={`font-mono text-sm font-bold tracking-tight ${average > 0 ? 'text-blue-500' : 'text-gray-300'} ${scoresHidden ? 'blur-md' : ''}`}>
+                              {average > 0 ? average.toFixed(2) : '-'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <button
-              onClick={() => setScoresHidden(!scoresHidden)}
-              style={{
-                backgroundColor: '#f97316',
-                color: '#fff',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                letterSpacing: '2px',
-                textTransform: 'uppercase',
-                fontWeight: 'bold',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              {scoresHidden ? <Eye size={18} /> : <EyeOff size={18} />}
-              {scoresHidden ? 'Show My Scores' : 'Hide My Scores'}
-            </button>
+            {/* Male Candidates Table */}
+            <div className="mb-0">
+              <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-100">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-blue-600">Male Candidates</h3>
+              </div>
+
+              <div className="bg-white overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider" style={{ minWidth: '200px' }}>Candidate</th>
+                      <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider" style={{ minWidth: '180px' }}>Team/Dept</th>
+                      {filteredCriteria.map(crit => (
+                        <th key={crit.id} className="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider" style={{ minWidth: '120px' }}>
+                          {crit.name} ({crit.points}%)
+                        </th>
+                      ))}
+                      <th className="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider" style={{ minWidth: '80px' }}>AVG</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filteredCandidates.filter(c => (c.category === 'Male' || c.gender === 'Male')).map(candidate => {
+                      const candidateScores = filteredCriteria.map(crit => parseFloat(scores[`${candidate.id}-${crit.id}`] || 0));
+                      const average = candidateScores.reduce((sum, score) => sum + score, 0);
+
+                      return (
+                        <tr key={candidate.id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="py-3 px-4">
+                            <span className="font-semibold text-gray-900 text-sm uppercase tracking-wide">
+                              {candidate.number} - {candidate.name?.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="text-sm text-gray-600 font-medium">{candidate.team || candidate.department || '-'}</span>
+                          </td>
+                          {filteredCriteria.map(crit => (
+                            <td key={crit.id} className="py-2 px-2 text-center">
+                              <input
+                                type="number"
+                                value={scores[`${candidate.id}-${crit.id}`] || ''}
+                                onChange={(e) => handleScoreChange(candidate.id, crit.id, e.target.value, crit.points)}
+                                onKeyDown={(e) => handleKeyDown(e, candidate.id, crit.id)}
+                                max={crit.points}
+                                min="0"
+                                step="0.01"
+                                placeholder={`0-${crit.points}`}
+                                className={`w-full text-center py-2 px-1 text-sm font-mono border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${scoresHidden ? 'blur-md' : ''}`}
+                              />
+                            </td>
+                          ))}
+                          <td className="py-3 px-4 text-center">
+                            <span className={`font-mono text-sm font-bold tracking-tight ${average > 0 ? 'text-blue-500' : 'text-gray-300'} ${scoresHidden ? 'blur-md' : ''}`}>
+                              {average > 0 ? average.toFixed(2) : '-'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
-
-          {/* Female Category Table */}
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px' }}>
-            <thead>
-              <tr>
-                <td style={{
-                  letterSpacing: '2px',
-                  textTransform: 'uppercase',
-                  fontWeight: '800',
-                  color: 'red',
-                  padding: '10px',
-                  border: '1px solid #ddd'
-                }}>
-                  Female Category
-                </td>
-                {filteredCriteria.map(criteriaItem => (
-                  <th key={criteriaItem.id} style={{
-                    textAlign: 'center',
-                    padding: '10px',
-                    border: '1px solid #ddd',
-                    backgroundColor: '#f9f9f9'
-                  }}>
-                    {criteriaItem.name} <b>({criteriaItem.points}%)</b>
-                  </th>
-                ))}
-                <th style={{
-                  textAlign: 'center',
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  backgroundColor: '#f9f9f9'
-                }}>
-                  AVERAGE <b>(100%)</b>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCandidates.filter(c => (c.category === 'Female' || c.gender === 'Female')).map(candidate => {
-                const candidateScores = filteredCriteria.map(crit =>
-                  parseFloat(scores[`${candidate.id}-${crit.id}`] || 0)
-                );
-                const average = candidateScores.reduce((sum, score) => sum + score, 0);
-
-                return (
-                  <tr key={candidate.id}>
-                    <td style={{
-                      padding: '15px 10px',
-                      textTransform: 'uppercase',
-                      fontWeight: '800',
-                      color: '#000',
-                      border: '1px solid #ddd'
-                    }}>
-                      &ensp;&ensp;(#{candidate.number}). &nbsp; {candidate.name}
-                    </td>
-                    {filteredCriteria.map(criteriaItem => (
-                      <td key={criteriaItem.id} style={{ border: '1px solid #ddd', padding: '5px' }}>
-                        <input
-                          type={scoresHidden ? 'password' : 'number'}
-                          value={scores[`${candidate.id}-${criteriaItem.id}`] || ''}
-                          onChange={(e) => handleScoreChange(candidate.id, criteriaItem.id, e.target.value, criteriaItem.points)}
-                          onBlur={() => handleSubmit(candidate.id, criteriaItem.id)}
-                          max={criteriaItem.points}
-                          min="0"
-                          step="0.01"
-                          placeholder={`Score: 1-${criteriaItem.points}`}
-                          style={{
-                            width: '100%',
-                            border: 'none',
-                            borderBottom: '1px solid #ccc',
-                            textAlign: 'center',
-                            padding: '8px',
-                            fontSize: '14px',
-                            filter: scoresHidden ? 'blur(8px)' : 'none',
-                            transition: 'filter 0.3s ease'
-                          }}
-                        />
-                      </td>
-                    ))}
-                    <td style={{ border: '1px solid #ddd', padding: '5px', textAlign: 'center' }}>
-                      <input
-                        type={scoresHidden ? 'password' : 'number'}
-                        value={average.toFixed(2)}
-                        readOnly
-                        style={{
-                          width: '100%',
-                          border: 'none',
-                          textAlign: 'center',
-                          padding: '8px',
-                          fontWeight: 'bold',
-                          backgroundColor: '#f9f9f9'
-                        }}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {/* Male Category Header */}
-              <tr>
-                <td style={{
-                  letterSpacing: '2px',
-                  textTransform: 'uppercase',
-                  fontWeight: '800',
-                  color: 'red',
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  textAlign: 'center'
-                }}>
-                  Male Category
-                </td>
-                {filteredCriteria.map(criteriaItem => (
-                  <th key={criteriaItem.id} style={{
-                    textAlign: 'center',
-                    padding: '10px',
-                    border: '1px solid #ddd',
-                    backgroundColor: '#f9f9f9'
-                  }}>
-                    {criteriaItem.name} <b>({criteriaItem.points}%)</b>
-                  </th>
-                ))}
-                <th style={{
-                  textAlign: 'center',
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  backgroundColor: '#f9f9f9'
-                }}>
-                  AVERAGE <b>(100%)</b>
-                </th>
-              </tr>
-
-              {/* Male Candidates */}
-              {filteredCandidates.filter(c => (c.category === 'Male' || c.gender === 'Male')).map(candidate => {
-                const candidateScores = filteredCriteria.map(crit =>
-                  parseFloat(scores[`${candidate.id}-${crit.id}`] || 0)
-                );
-                const average = candidateScores.reduce((sum, score) => sum + score, 0);
-
-                return (
-                  <tr key={candidate.id}>
-                    <td style={{
-                      padding: '15px 10px',
-                      textTransform: 'uppercase',
-                      fontWeight: '800',
-                      color: '#000',
-                      border: '1px solid #ddd'
-                    }}>
-                      &ensp;&ensp;(#{candidate.number}). &nbsp; {candidate.name}
-                    </td>
-                    {filteredCriteria.map(criteriaItem => (
-                      <td key={criteriaItem.id} style={{ border: '1px solid #ddd', padding: '5px' }}>
-                        <input
-                          type={scoresHidden ? 'password' : 'number'}
-                          value={scores[`${candidate.id}-${criteriaItem.id}`] || ''}
-                          onChange={(e) => handleScoreChange(candidate.id, criteriaItem.id, e.target.value, criteriaItem.points)}
-                          onBlur={() => handleSubmit(candidate.id, criteriaItem.id)}
-                          max={criteriaItem.points}
-                          min="0"
-                          step="0.01"
-                          placeholder={`Score: 1-${criteriaItem.points}`}
-                          style={{
-                            width: '100%',
-                            border: 'none',
-                            borderBottom: '1px solid #ccc',
-                            textAlign: 'center',
-                            padding: '8px',
-                            fontSize: '14px',
-                            filter: scoresHidden ? 'blur(8px)' : 'none',
-                            transition: 'filter 0.3s ease'
-                          }}
-                        />
-                      </td>
-                    ))}
-                    <td style={{ border: '1px solid #ddd', padding: '5px', textAlign: 'center' }}>
-                      <input
-                        type={scoresHidden ? 'password' : 'number'}
-                        value={average.toFixed(2)}
-                        readOnly
-                        style={{
-                          width: '100%',
-                          border: 'none',
-                          textAlign: 'center',
-                          padding: '8px',
-                          fontWeight: 'bold',
-                          backgroundColor: '#f9f9f9'
-                        }}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
         </div>
       )}
     </div>

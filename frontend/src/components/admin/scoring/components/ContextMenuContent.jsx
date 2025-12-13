@@ -6,6 +6,7 @@ import CategorySubmenu from './CategorySubmenu';
 export default function ContextMenuContent({
   isLocked,
   onLockToggle,
+  isTogglingLock,
   colorScrollIndex,
   onColorScrollChange,
   scoreColors,
@@ -58,10 +59,21 @@ export default function ContextMenuContent({
       {/* Lock/Unlock */}
       <button
         onClick={onLockToggle}
-        className="w-full px-4 py-2 text-left text-sm flex items-center gap-3 text-gray-700 hover:bg-gray-100 border-b border-gray-200"
+        disabled={isTogglingLock}
+        className={`w-full px-4 py-2 text-left text-sm flex items-center gap-3 border-b border-gray-200 transition-colors ${
+          isTogglingLock
+            ? 'opacity-50 cursor-not-allowed text-gray-500'
+            : 'text-gray-700 hover:bg-gray-100'
+        }`}
       >
-        {isLocked ? <Unlock size={16} /> : <Lock size={16} />}
-        {isLocked ? 'Unlock Judges' : 'Lock Judges'}
+        {isTogglingLock ? (
+          <span className="animate-spin">⟳</span>
+        ) : isLocked ? (
+          <Unlock size={16} />
+        ) : (
+          <Lock size={16} />
+        )}
+        {isTogglingLock ? 'Toggling...' : isLocked ? 'Unlock Judges' : 'Lock Judges'}
       </button>
 
       {/* Switch Category with Submenu */}
@@ -71,13 +83,22 @@ export default function ContextMenuContent({
         onMouseLeave={onCategoryLeave}
       >
         <button
-          className="w-full px-4 py-2 text-left text-sm flex items-center justify-between gap-3 text-gray-700 hover:bg-gray-100 border-b border-gray-200"
+          disabled={isSwitchingCategory}
+          className={`w-full px-4 py-2 text-left text-sm flex items-center justify-between gap-3 border-b border-gray-200 transition-colors ${
+            isSwitchingCategory
+              ? 'opacity-50 cursor-not-allowed text-gray-500'
+              : 'text-gray-700 hover:bg-gray-100'
+          }`}
         >
           <span className="flex items-center gap-3">
-            <SkipForward size={16} />
-            Switch Category
+            {isSwitchingCategory ? (
+              <span className="animate-spin">⟳</span>
+            ) : (
+              <SkipForward size={16} />
+            )}
+            {isSwitchingCategory ? 'Switching...' : 'Switch Category'}
           </span>
-          <ChevronRight size={14} className="text-gray-400" />
+          <ChevronRight size={14} className={isSwitchingCategory ? 'text-gray-300' : 'text-gray-400'} />
         </button>
 
         {/* Category Submenu */}

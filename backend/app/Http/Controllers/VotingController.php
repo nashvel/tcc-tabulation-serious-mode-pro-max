@@ -334,6 +334,12 @@ class VotingController extends Controller
 
             DB::beginTransaction();
 
+            // Clear active_round_id from ALL other events first
+            // This ensures only one event can be active for judging at a time
+            VotingState::where('event_id', '!=', $eventId)
+                ->whereNotNull('active_round_id')
+                ->update(['active_round_id' => null]);
+
             // Get or create voting state - no prerequisites
             $votingState = VotingState::firstOrCreate(
                 ['event_id' => $eventId],
@@ -470,13 +476,26 @@ class VotingController extends Controller
     public function lock(Request $request)
     {
         try {
-            $eventId = $request->input('event_id', 1);
+            $eventIdInput = $request->input('event_id');
             
-            $votingState = VotingState::where('event_id', $eventId)->first();
-            
-            if (!$votingState) {
-                return response()->json(['error' => 'Voting state not found'], 404);
+            if (!$eventIdInput) {
+                return response()->json(['error' => 'No event_id provided'], 400);
             }
+            
+            // Convert to integer or lookup by unique_id
+            $eventId = (int) $eventIdInput;
+            if ($eventId <= 0) {
+                $event = Event::where('unique_id', $eventIdInput)->first();
+                if (!$event) {
+                    return response()->json(['error' => 'Event not found'], 404);
+                }
+                $eventId = $event->id;
+            }
+            
+            $votingState = VotingState::firstOrCreate(
+                ['event_id' => $eventId],
+                ['is_locked' => false]
+            );
             
             $votingState->update(['is_locked' => true]);
             
@@ -521,13 +540,26 @@ class VotingController extends Controller
     public function unlock(Request $request)
     {
         try {
-            $eventId = $request->input('event_id', 1);
+            $eventIdInput = $request->input('event_id');
             
-            $votingState = VotingState::where('event_id', $eventId)->first();
-            
-            if (!$votingState) {
-                return response()->json(['error' => 'Voting state not found'], 404);
+            if (!$eventIdInput) {
+                return response()->json(['error' => 'No event_id provided'], 400);
             }
+            
+            // Convert to integer or lookup by unique_id
+            $eventId = (int) $eventIdInput;
+            if ($eventId <= 0) {
+                $event = Event::where('unique_id', $eventIdInput)->first();
+                if (!$event) {
+                    return response()->json(['error' => 'Event not found'], 404);
+                }
+                $eventId = $event->id;
+            }
+            
+            $votingState = VotingState::firstOrCreate(
+                ['event_id' => $eventId],
+                ['is_locked' => true]
+            );
             
             $votingState->update(['is_locked' => false]);
             
@@ -885,4 +917,5 @@ class VotingController extends Controller
             ], 500);
         }
     }
+
 }
