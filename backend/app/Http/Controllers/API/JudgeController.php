@@ -79,4 +79,39 @@ class JudgeController extends Controller
         
         return response()->json(['message' => 'Judge deleted successfully']);
     }
+
+    /**
+     * Swap chair numbers between two judges
+     */
+    public function swapChairs(Request $request)
+    {
+        $validated = $request->validate([
+            'judge1_id' => 'required|exists:judges,id',
+            'judge2_id' => 'required|exists:judges,id|different:judge1_id',
+        ]);
+
+        $judge1 = Judge::findOrFail($validated['judge1_id']);
+        $judge2 = Judge::findOrFail($validated['judge2_id']);
+
+        // Ensure both judges belong to the same event
+        if ($judge1->event_id !== $judge2->event_id) {
+            return response()->json([
+                'error' => 'Judges must belong to the same event'
+            ], 400);
+        }
+
+        // Swap chair numbers atomically
+        $tempChair = $judge1->chair_number;
+        $judge1->chair_number = $judge2->chair_number;
+        $judge2->chair_number = $tempChair;
+
+        $judge1->save();
+        $judge2->save();
+
+        return response()->json([
+            'message' => 'Chairs swapped successfully',
+            'judge1' => $judge1,
+            'judge2' => $judge2
+        ]);
+    }
 }

@@ -2,12 +2,12 @@
   <div class="font-sans antialiased min-h-screen bg-white pb-20">
     <!-- Empty State -->
     <div v-if="!judges.length && !loading" class="text-center py-20">
-      <span class="material-icons text-gray-300 mb-4" style="font-size: 64px">people</span>
+      <Users class="w-16 h-16 text-gray-300 mx-auto mb-4" />
       <p class="text-gray-500">No judges configured yet</p>
     </div>
 
     <!-- Main Content -->
-    <template v-else-if="judges.length">
+    <template v-else-if="judges.length && (femaleCandidates.length || maleCandidates.length || groupCandidates.length || soloCandidates.length)">
       <!-- Round Header -->
       <div class="bg-white border-b border-gray-200 px-6 py-3">
         <div class="flex items-center justify-between">
@@ -37,7 +37,8 @@
               class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-all"
               :class="scoresHidden ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 border border-slate-300'"
             >
-              <span class="material-icons" style="font-size: 14px">{{ scoresHidden ? 'visibility_off' : 'visibility' }}</span>
+              <EyeOff v-if="scoresHidden" :size="14" />
+              <Eye v-else :size="14" />
               {{ scoresHidden ? 'Hidden' : 'Hide' }}
             </button>
           </div>
@@ -53,7 +54,16 @@
                 <tr class="bg-gray-50 border-b border-gray-300">
                   <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Candidate</th>
                   <th v-for="judge in judges" :key="judge.id" class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
-                    Judge {{ judge.chair_number || judge.id }}
+                    <div class="flex items-center justify-center gap-1.5">
+                      <span>Judge {{ judge.chair_number || judge.id }}</span>
+                      <button
+                        @click="printJudgeScores(judge.id)"
+                        class="p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                        title="Print judge scores"
+                      >
+                        <Printer :size="14" />
+                      </button>
+                    </div>
                   </th>
                   <th class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
                 </tr>
@@ -98,7 +108,16 @@
                 <tr class="bg-gray-50 border-b border-gray-300">
                   <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Candidate</th>
                   <th v-for="judge in judges" :key="judge.id" class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
-                    Judge {{ judge.chair_number || judge.id }}
+                    <div class="flex items-center justify-center gap-1.5">
+                      <span>Judge {{ judge.chair_number || judge.id }}</span>
+                      <button
+                        @click="printJudgeScores(judge.id)"
+                        class="p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                        title="Print judge scores"
+                      >
+                        <Printer :size="14" />
+                      </button>
+                    </div>
                   </th>
                   <th class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
                 </tr>
@@ -125,6 +144,136 @@
             </table>
           </div>
         </div>
+
+        <!-- Group/Team Candidates (for competitions like Battle of the Bands) -->
+        <div v-if="groupCandidates.length > 0">
+          <div class="flex items-center justify-between px-6 py-3 bg-purple-50 border-b border-purple-200">
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-purple-600">Teams / Groups</h3>
+            <button
+              v-if="!femaleCandidates.length && !maleCandidates.length"
+              @click="scoresHidden = !scoresHidden"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-all"
+              :class="scoresHidden ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 border border-slate-300'"
+            >
+              <EyeOff v-if="scoresHidden" :size="14" />
+              <Eye v-else :size="14" />
+              {{ scoresHidden ? 'Hidden' : 'Hide' }}
+            </button>
+          </div>
+          
+          <div class="bg-white overflow-x-auto">
+            <table class="w-full border-collapse table-fixed">
+              <colgroup>
+                <col style="width: 30%">
+                <col v-for="judge in judges" :key="'col-g-'+judge.id" :style="{ width: (60 / judges.length) + '%' }">
+                <col style="width: 10%">
+              </colgroup>
+              <thead>
+                <tr class="bg-gray-50 border-b border-gray-300">
+                  <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Team / Group</th>
+                  <th v-for="judge in judges" :key="judge.id" class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
+                    <div class="flex items-center justify-center gap-1.5">
+                      <span>Judge {{ judge.chair_number || judge.id }}</span>
+                      <button
+                        @click="printJudgeScores(judge.id)"
+                        class="p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                        title="Print judge scores"
+                      >
+                        <Printer :size="14" />
+                      </button>
+                    </div>
+                  </th>
+                  <th class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="candidate in groupCandidates" :key="candidate.id" class="border-b border-gray-100 hover:bg-gray-50/50">
+                  <td class="py-3 px-6 border-r border-gray-200">
+                    <span class="font-semibold text-gray-900 text-sm uppercase">
+                      {{ candidate.number }} - {{ candidate.name }}
+                    </span>
+                    <span v-if="candidate.department" class="block text-xs text-gray-500">{{ candidate.department }}</span>
+                  </td>
+                  <td v-for="judge in judges" :key="judge.id" class="py-3 px-4 text-center border-r border-gray-200">
+                    <span :class="['font-mono text-sm', scoresHidden ? 'blur-md' : '']">
+                      {{ getJudgeTotal(judge.id, candidate.id) || '-' }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-center">
+                    <span :class="['font-mono text-sm font-bold text-blue-600', scoresHidden ? 'blur-md' : '']">
+                      {{ getCandidateTotal(candidate.id) || '-' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Solo/Individual Candidates (no gender separation - singing contests, etc.) -->
+        <div v-if="soloCandidates.length > 0">
+          <div class="flex items-center justify-between px-6 py-3 bg-indigo-50 border-b border-indigo-200">
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-indigo-600">Participants</h3>
+            <button
+              v-if="!femaleCandidates.length && !maleCandidates.length && !groupCandidates.length"
+              @click="scoresHidden = !scoresHidden"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-all"
+              :class="scoresHidden ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 border border-slate-300'"
+            >
+              <EyeOff v-if="scoresHidden" :size="14" />
+              <Eye v-else :size="14" />
+              {{ scoresHidden ? 'Hidden' : 'Hide' }}
+            </button>
+          </div>
+          
+          <div class="bg-white overflow-x-auto">
+            <table class="w-full border-collapse table-fixed">
+              <colgroup>
+                <col style="width: 30%">
+                <col v-for="judge in judges" :key="'col-s-'+judge.id" :style="{ width: (60 / judges.length) + '%' }">
+                <col style="width: 10%">
+              </colgroup>
+              <thead>
+                <tr class="bg-gray-50 border-b border-gray-300">
+                  <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Participant</th>
+                  <th v-for="judge in judges" :key="judge.id" class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
+                    <div class="flex items-center justify-center gap-1.5">
+                      <span>Judge {{ judge.chair_number || judge.id }}</span>
+                      <button
+                        @click="printJudgeScores(judge.id)"
+                        class="p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                        title="Print judge scores"
+                      >
+                        <Printer :size="14" />
+                      </button>
+                    </div>
+                  </th>
+                  <th class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="candidate in soloCandidates" :key="candidate.id" class="border-b border-gray-100 hover:bg-gray-50/50">
+                  <td class="py-3 px-6 border-r border-gray-200">
+                    <span class="font-semibold text-gray-900 text-sm uppercase">
+                      {{ candidate.number }} - {{ candidate.name }}
+                    </span>
+                    <span v-if="candidate.department" class="block text-xs text-gray-500">{{ candidate.department }}</span>
+                  </td>
+                  <td v-for="judge in judges" :key="judge.id" class="py-3 px-4 text-center border-r border-gray-200">
+                    <span :class="['font-mono text-sm', scoresHidden ? 'blur-md' : '']">
+                      {{ getJudgeTotal(judge.id, candidate.id) || '-' }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-center">
+                    <span :class="['font-mono text-sm font-bold text-blue-600', scoresHidden ? 'blur-md' : '']">
+                      {{ getCandidateTotal(candidate.id) || '-' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </template>
   </div>
@@ -132,6 +281,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { Eye, EyeOff, Users, Printer } from 'lucide-vue-next';
 import { showError } from '../../../utils/alerts';
 
 const props = defineProps({
@@ -158,6 +308,23 @@ const femaleCandidates = computed(() =>
 
 const maleCandidates = computed(() => 
   (props.candidates || []).filter(c => c.gender?.toLowerCase() === 'male')
+);
+
+// Group/Team candidates (for competitions like Battle of the Bands)
+const groupCandidates = computed(() => 
+  (props.candidates || []).filter(c => 
+    c.gender?.toLowerCase() === 'group' || 
+    c.participant_type?.toLowerCase() === 'group'
+  )
+);
+
+// Solo/Individual candidates (no gender separation - for singing contests, etc.)
+const soloCandidates = computed(() => 
+  (props.candidates || []).filter(c => 
+    c.gender?.toLowerCase() === 'solo' || 
+    c.participant_type?.toLowerCase() === 'solo' ||
+    c.participant_type?.toLowerCase() === 'individual'
+  )
 );
 
 const getJudgeTotal = (judgeId, candidateId) => {
@@ -281,7 +448,7 @@ const setupWebSocket = () => {
     isLive.value = true;
   });
   
-  channel.listen('.ScoreUpdated', (data) => {
+  channel.listen('ScoreUpdated', (data) => {
     console.log('📥 Score update received:', data);
     handleScoreUpdate(data);
   });
@@ -321,4 +488,10 @@ watch(() => props.eventId, (newEventId, oldEventId) => {
     currentChannel = setupWebSocket();
   }
 });
+
+// Open print page for a specific judge
+const printJudgeScores = (judgeId) => {
+  const url = `/admin/print-judge-scores?event_id=${props.eventId}&judge_id=${judgeId}`;
+  window.open(url, '_blank');
+};
 </script>

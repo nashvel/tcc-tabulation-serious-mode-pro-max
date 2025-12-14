@@ -7,6 +7,10 @@ use App\Http\Controllers\API\PointController;
 use App\Http\Controllers\API\JudgeController;
 use App\Http\Controllers\API\TemplateController;
 use App\Http\Controllers\API\CandidateTemplateController;
+use App\Http\Controllers\API\EventTemplateController;
+use App\Http\Controllers\API\EventThemeController;
+use App\Http\Controllers\API\ActivityLogController;
+use App\Http\Controllers\API\ReportController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\VotingController;
@@ -32,7 +36,19 @@ Route::get('points', [PointController::class, 'index']);
 Route::post('points', [PointController::class, 'store']); // Judges submit scores (no auth needed)
 Route::post('points/batch', [PointController::class, 'storeBatch']); // Batch score submission (optimized)
 Route::get('judges', [JudgeController::class, 'index']);
+Route::post('judges', [JudgeController::class, 'store']);
+Route::put('judges/{judge}', [JudgeController::class, 'update']);
+Route::delete('judges/{judge}', [JudgeController::class, 'destroy']);
+Route::post('judges/swap-chairs', [JudgeController::class, 'swapChairs']);
 Route::get('scoreboard', [PointController::class, 'getScoreboard']);
+
+// Judge Screen Registration (alias for voting/register-screen)
+Route::post('judge/register-screen', [VotingController::class, 'registerScreen']);
+Route::get('judge/screen-status', [VotingController::class, 'getScreenStatus']);
+Route::post('judge/unregister-screen', [VotingController::class, 'removeScreen']);
+Route::get('judge/registered-screens', [VotingController::class, 'getRegisteredScreens']);
+Route::post('judge/clear-screens', [VotingController::class, 'clearRegisteredScreens']);
+Route::post('judge/swap-screens', [VotingController::class, 'swapScreens']);
 
 // Public Voting & Event Sequence Routes (no auth needed)
 Route::get('voting/state', [VotingController::class, 'getState']);
@@ -41,6 +57,15 @@ Route::post('voting/start-first-round', [VotingController::class, 'startFirstRou
 Route::post('voting/activate-round', [VotingController::class, 'activateRound']);
 Route::post('voting/lock', [VotingController::class, 'lock']);
 Route::post('voting/unlock', [VotingController::class, 'unlock']);
+Route::get('voting/display-settings', [VotingController::class, 'getDisplaySettings']);
+Route::post('voting/display-settings', [VotingController::class, 'updateDisplaySettings']);
+
+// Screen Registration Routes (for auto-assigning judge screens)
+Route::post('voting/register-screen', [VotingController::class, 'registerScreen']);
+Route::get('voting/registered-screens', [VotingController::class, 'getRegisteredScreens']);
+Route::post('voting/clear-screens', [VotingController::class, 'clearRegisteredScreens']);
+Route::post('voting/reassign-screen', [VotingController::class, 'reassignScreen']);
+Route::post('voting/remove-screen', [VotingController::class, 'removeScreen']);
 
 Route::get('event-sequence', [EventSequenceController::class, 'index']);
 Route::post('event-sequence', [EventSequenceController::class, 'store']);
@@ -53,6 +78,22 @@ Route::post('event-sequence/{id}/move-down', [EventSequenceController::class, 'm
 Route::get('occupied-judges', [VotingController::class, 'getOccupiedJudges']);
 Route::post('occupy-judge', [VotingController::class, 'occupyJudge']);
 Route::post('clear-occupied-judges', [VotingController::class, 'clearOccupiedJudges']);
+
+// Event Templates & Themes (public read, protected write)
+Route::get('event-templates', [EventTemplateController::class, 'index']);
+Route::get('event-templates/{id}', [EventTemplateController::class, 'show']);
+Route::post('event-templates/{id}/create-event', [EventTemplateController::class, 'createFromTemplate']);
+Route::get('event-themes', [EventThemeController::class, 'index']);
+Route::get('event-themes/{id}', [EventThemeController::class, 'show']);
+
+// Activity Logs (for admin to monitor judge activity)
+Route::get('activity-logs', [ActivityLogController::class, 'index']);
+Route::post('activity-logs', [ActivityLogController::class, 'store']);
+Route::get('activity-logs/stats', [ActivityLogController::class, 'getStats']);
+Route::delete('activity-logs/clear', [ActivityLogController::class, 'clear']);
+
+// Reports (for printing and auditing)
+Route::get('reports/judge-scores', [ReportController::class, 'getJudgeScores']);
 
 // Event Management Routes (no auth needed - admin use these)
 Route::post('clear-event-scores', [VotingController::class, 'clearEventScores']);

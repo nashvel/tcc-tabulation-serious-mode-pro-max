@@ -66,9 +66,11 @@
               <div class="space-y-1.5">
                 <label class="block text-sm font-medium text-gray-700">Event Type</label>
                 <select v-model="formData.event_type" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent capitalize">
-                  <option value="pageant">Pageant</option>
+                  <option value="pageant">Pageant (Male/Female)</option>
+                  <option value="solo_contest">Solo Contest</option>
+                  <option value="group_contest">Group/Team Contest</option>
+                  <option value="talent_show">Talent Show</option>
                   <option value="competition">Competition</option>
-                  <option value="contest">Contest</option>
                 </select>
               </div>
             </div>

@@ -4,6 +4,9 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Point;
+use App\Models\ActivityLog;
+use App\Models\Candidate;
+use App\Models\Criteria;
 use App\Events\ScoreUpdated;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -165,6 +168,25 @@ class PointController extends Controller
             ['candidate_id', 'round_id', 'criteria_id', 'judge_id'],
             ['points', 'updated_at']
         );
+        
+        // Log activity (async-friendly, minimal overhead)
+        try {
+            foreach ($scores as $score) {
+                $candidate = Candidate::find($score['candidate_id']);
+                $criteria = Criteria::find($score['criteria_id']);
+                
+                ActivityLog::log($eventId, ActivityLog::ACTION_SCORE_ENTERED, [
+                    'candidate_id' => $score['candidate_id'],
+                    'candidate_name' => $candidate?->name ?? 'Unknown',
+                    'criteria_id' => $score['criteria_id'],
+                    'criteria_name' => $criteria?->name ?? 'Unknown',
+                    'round_id' => $score['round_id'],
+                    'points' => $score['points'],
+                ], $judgeId, $request);
+            }
+        } catch (\Exception $e) {
+            Log::warning('Activity log failed', ['error' => $e->getMessage()]);
+        }
         
         // Fire-and-forget broadcast (don't wait for WebSocket response)
         try {

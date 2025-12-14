@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Point extends Model
 {
+    use HasFactory;
     protected $fillable = ['candidate_id', 'round_id', 'criteria_id', 'points', 'judge_id'];
     
     public function judge()

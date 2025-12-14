@@ -34,8 +34,7 @@ class VotingStateChanged implements ShouldBroadcastNow
 
     public function broadcastAs(): string
     {
-        // Event name for frontend listeners - prefix with dot for client events
-        return '.VotingStateChanged';
+        return 'VotingStateChanged';
     }
 
     public function broadcastWith(): array

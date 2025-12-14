@@ -59,3 +59,11 @@ Route::get('/admin/documentation', function () {
 Route::get('/admin/certificates', function () {
     return view('vue');
 })->name('admin.certificates');
+
+Route::get('/judges/configure', function () {
+    return view('vue');
+})->name('judges.configure');
+
+Route::get('/create-event', function () {
+    return view('vue');
+})->name('create-event');

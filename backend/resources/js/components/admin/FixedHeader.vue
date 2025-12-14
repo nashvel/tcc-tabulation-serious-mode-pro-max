@@ -124,6 +124,13 @@ const goToAdmin = () => {
   }
 };
 
-const goToJudges = () => router.push('/judges/configure');
+const goToJudges = () => {
+  const eventId = props.continuingEvent?.id;
+  if (eventId) {
+    router.push(`/judges/configure?event_id=${eventId}`);
+  } else {
+    router.push('/setup');
+  }
+};
 const goToCertificates = () => router.push('/admin/certificates');
 </script>

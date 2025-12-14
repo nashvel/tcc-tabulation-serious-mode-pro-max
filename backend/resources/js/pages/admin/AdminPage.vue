@@ -102,6 +102,20 @@
                   :criteria="criteria"
                 />
               </div>
+
+              <!-- Activity Logs Tab -->
+              <div v-else-if="activeTab === 'logs'">
+                <ActivityLogsTab
+                  :eventId="continuingEvent?.id"
+                />
+              </div>
+
+              <!-- Settings Tab -->
+              <div v-else-if="activeTab === 'settings'">
+                <SettingsTab
+                  :eventId="continuingEvent?.id"
+                />
+              </div>
           </div>
 
           <!-- PodiumLedger Footer -->
@@ -152,6 +166,8 @@ import RoundsTab from '../../components/admin/tabs/RoundsTab.vue';
 import CriteriaTab from '../../components/admin/tabs/CriteriaTab.vue';
 import ResultsTab from '../../components/admin/tabs/ResultsTab.vue';
 import BestInTab from '../../components/admin/tabs/BestInTab.vue';
+import ActivityLogsTab from '../../components/admin/tabs/ActivityLogsTab.vue';
+import SettingsTab from '../../components/admin/tabs/SettingsTab.vue';
 import ConfigureJudgesModal from '../../components/admin/modals/ConfigureJudgesModal.vue';
 import EventDetailsModal from '../../components/admin/modals/EventDetailsModal.vue';
 import { useGlobalContextMenu } from '../../composables/useGlobalContextMenu';
@@ -189,7 +205,9 @@ const tabs = [
   { id: 'rounds', label: 'Rounds' },
   { id: 'categories', label: 'Criteria' },
   { id: 'results', label: 'Results' },
-  { id: 'bestin', label: 'Best In' }
+  { id: 'bestin', label: 'Best In' },
+  { id: 'logs', label: 'Activity Logs' },
+  { id: 'settings', label: 'Settings' }
 ];
 
 // Methods

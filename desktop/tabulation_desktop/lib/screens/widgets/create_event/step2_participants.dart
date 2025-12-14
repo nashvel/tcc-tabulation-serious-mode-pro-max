@@ -5,19 +5,114 @@ class Step2Participants extends StatelessWidget {
   final List<Map<String, dynamic>> participants;
   final ValueChanged<int> onAddParticipant;
   final Function(int, String, dynamic) onParticipantChanged;
+  final String eventType;
 
   const Step2Participants({
     super.key,
     required this.participants,
     required this.onAddParticipant,
     required this.onParticipantChanged,
+    this.eventType = 'pageant',
   });
+
+  // Get participant type label based on event type
+  String get _typeLabel {
+    switch (eventType) {
+      case 'solo_contest':
+        return 'Type';
+      case 'group_contest':
+        return 'Type';
+      default:
+        return 'Gender';
+    }
+  }
+
+  // Get available options based on event type
+  List<String> get _typeOptions {
+    switch (eventType) {
+      case 'solo_contest':
+        return ['Solo'];
+      case 'group_contest':
+        return ['Group'];
+      case 'pageant':
+        return ['Female', 'Male'];
+      case 'talent_show':
+      case 'competition':
+        return ['Female', 'Male', 'Solo', 'Group'];
+      default:
+        // For custom event types, allow all options
+        return ['Female', 'Male', 'Solo', 'Group', 'Custom'];
+    }
+  }
+
+  // Get default value based on event type
+  String get _defaultType {
+    switch (eventType) {
+      case 'solo_contest':
+        return 'Solo';
+      case 'group_contest':
+        return 'Group';
+      default:
+        return 'Female';
+    }
+  }
+
+  Widget _buildInfoBanner() {
+    String? message;
+    IconData? icon;
+
+    switch (eventType) {
+      case 'solo_contest':
+        message = 'Solo contest: All participants compete together (no gender separation)';
+        icon = Icons.person;
+        break;
+      case 'group_contest':
+        message = 'Group contest: Teams/groups compete together';
+        icon = Icons.groups;
+        break;
+      case 'pageant':
+        message = 'Pageant: Participants separated by gender (Male/Female)';
+        icon = Icons.people;
+        break;
+      default:
+        // Custom event type
+        if (!['talent_show', 'competition'].contains(eventType)) {
+          message = 'Custom event: Choose participant type for each entry';
+          icon = Icons.tune;
+        }
+    }
+
+    if (message == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.border.withOpacity(0.3),
+        borderRadius: AppBorders.radius,
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: AppColors.textMuted),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTextStyles.small.copyWith(color: AppColors.textMuted),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Info banner for event type
+        _buildInfoBanner(),
         // Header row
         Row(
           children: [
@@ -25,7 +120,7 @@ class Step2Participants extends StatelessWidget {
             const SizedBox(width: AppSpacing.sm),
             Expanded(flex: 2, child: Text('Name *', style: AppTextStyles.small)),
             const SizedBox(width: AppSpacing.sm),
-            SizedBox(width: 80, child: Text('Gender', style: AppTextStyles.small)),
+            SizedBox(width: 80, child: Text(_typeLabel, style: AppTextStyles.small)),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -51,7 +146,7 @@ class Step2Participants extends StatelessWidget {
                 const SizedBox(width: AppSpacing.sm),
                 SizedBox(
                   width: 80,
-                  child: _genderDropdown(i, p['gender'] ?? 'Female'),
+                  child: _typeDropdown(i, p['gender'] ?? _defaultType),
                 ),
               ],
             ),
@@ -89,18 +184,22 @@ class Step2Participants extends StatelessWidget {
     );
   }
 
-  Widget _genderDropdown(int index, String value) {
+  Widget _typeDropdown(int index, String value) {
+    // Ensure value is in the options list
+    final options = _typeOptions;
+    final safeValue = options.contains(value) ? value : _defaultType;
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(border: AppBorders.all, borderRadius: AppBorders.radius),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: value,
+          value: safeValue,
           isExpanded: true,
           isDense: true,
           style: AppTextStyles.body.copyWith(fontSize: 11),
-          items: ['Female', 'Male'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
-          onChanged: (v) => onParticipantChanged(index, 'gender', v ?? 'Female'),
+          items: options.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+          onChanged: (v) => onParticipantChanged(index, 'gender', v ?? _defaultType),
         ),
       ),
     );

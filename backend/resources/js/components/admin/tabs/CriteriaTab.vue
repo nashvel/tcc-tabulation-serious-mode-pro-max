@@ -4,8 +4,9 @@
       <h2 class="text-lg font-semibold text-gray-900">Scoring Criteria</h2>
       <button
         @click="showAddModal = true"
-        class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+        class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
       >
+        <Plus :size="16" />
         Add Criteria
       </button>
     </div>
@@ -26,9 +27,23 @@
             <td class="py-3 px-4 text-sm font-medium text-gray-900">{{ criterion.name }}</td>
             <td class="py-3 px-4 text-sm text-gray-600">{{ getRoundName(criterion.round_id) }}</td>
             <td class="py-3 px-4 text-sm text-center text-gray-900">{{ criterion.points }}%</td>
-            <td class="py-3 px-4 text-center">
-              <button @click="editCriteria(criterion)" class="text-indigo-600 hover:text-indigo-800 text-sm mr-2">Edit</button>
-              <button @click="deleteCriteria(criterion.id)" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+            <td class="py-3 px-4">
+              <div class="flex items-center justify-center gap-1">
+                <button 
+                  @click="editCriteria(criterion)" 
+                  class="p-1.5 rounded-md text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                  title="Edit"
+                >
+                  <Pencil :size="16" />
+                </button>
+                <button 
+                  @click="deleteCriteria(criterion.id)" 
+                  class="p-1.5 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 :size="16" />
+                </button>
+              </div>
             </td>
           </tr>
           <tr v-if="!criteria?.length">
@@ -42,6 +57,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import { Plus, Pencil, Trash2 } from 'lucide-vue-next';
 import { showError, showSuccess, showConfirm } from '../../../utils/alerts';
 
 const props = defineProps({

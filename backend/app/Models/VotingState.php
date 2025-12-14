@@ -18,13 +18,39 @@ class VotingState extends Model
         'active_session_id',
         'active_round_id',
         'active_criteria',
+        'occupied_judges',
+        'display_settings',
+        'registered_screens',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'is_locked' => 'boolean',
         'active_criteria' => 'array',
+        'occupied_judges' => 'array',
+        'display_settings' => 'array',
+        'registered_screens' => 'array',
     ];
+
+    /**
+     * Get default display settings
+     */
+    public static function getDefaultDisplaySettings(): array
+    {
+        return [
+            'show_candidate_name' => true,
+            'show_team_department' => true,
+            'judge_login_mode' => 'auto', // 'auto' | 'manual'
+        ];
+    }
+
+    /**
+     * Get display settings with defaults
+     */
+    public function getDisplaySettingsWithDefaults(): array
+    {
+        return array_merge(self::getDefaultDisplaySettings(), $this->display_settings ?? []);
+    }
 
     public function event()
     {

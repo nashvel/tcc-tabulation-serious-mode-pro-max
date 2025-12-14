@@ -7,6 +7,9 @@ import SetupPage from '../pages/admin/SetupPage.vue';
 import LoginPage from '../pages/admin/LoginPage.vue';
 import DocumentationPage from '../pages/admin/DocumentationPage.vue';
 import CertificatesPage from '../pages/admin/CertificatesPage.vue';
+import JudgesConfigurePage from '../pages/admin/JudgesConfigurePage.vue';
+import CreateEventPage from '../pages/admin/CreateEventPage.vue';
+import PrintJudgeScoresPage from '../pages/admin/PrintJudgeScoresPage.vue';
 
 const routes = [
   {
@@ -38,6 +41,21 @@ const routes = [
     path: '/admin/certificates',
     name: 'certificates',
     component: CertificatesPage,
+  },
+  {
+    path: '/judges/configure',
+    name: 'judges-configure',
+    component: JudgesConfigurePage,
+  },
+  {
+    path: '/create-event',
+    name: 'create-event',
+    component: CreateEventPage,
+  },
+  {
+    path: '/admin/print-judge-scores',
+    name: 'print-judge-scores',
+    component: PrintJudgeScoresPage,
   },
   // Redirect old vue paths
   {

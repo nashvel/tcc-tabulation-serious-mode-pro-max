@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ScreenRegistrationChanged;
 use App\Events\VotingStateChanged;
 use App\Models\VotingSession;
 use App\Models\VotingState;
 use App\Models\Round;
 use App\Models\Criteria;
 use App\Models\Event;
+use App\Models\ActivityLog;
+use App\Models\Judge;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -382,62 +385,21 @@ class VotingController extends Controller
 
             DB::commit();
 
-            // Broadcast the change - use dispatch to ensure it's sent
-            Log::info("About to broadcast VotingStateChanged event for event {$eventId}");
-            Log::info("Current BROADCAST_CONNECTION: " . config('broadcasting.default'));
+            // Broadcast the round change to all connected judges
+            $activeSession = $votingState->activeSession;
+            $broadcastData = [
+                'is_active' => $votingState->is_active,
+                'active_session' => $activeSession ? $activeSession->toArray() : null,
+                'active_round' => [
+                    'id' => $round->id,
+                    'name' => $round->name,
+                    'spot' => $round->spot,
+                    'criteria' => $round->criteria ? $round->criteria->toArray() : [],
+                ],
+            ];
             
-            try {
-                // Get active session and convert to array
-                $activeSession = $votingState->activeSession;
-                $sessionArray = $activeSession ? $activeSession->toArray() : null;
-                
-                $broadcastData = [
-                    'is_active' => $votingState->is_active,
-                    'active_session' => $sessionArray,
-                    'active_round' => [
-                        'id' => $round->id,
-                        'name' => $round->name,
-                        'spot' => $round->spot,
-                        'criteria' => $round->criteria ? $round->criteria->toArray() : [],
-                    ],
-                ];
-                
-                Log::info("Broadcasting data: " . json_encode($broadcastData));
-                Log::info("Pusher App ID: " . config('broadcasting.connections.pusher.app_id'));
-                Log::info("Pusher Key: " . substr(config('broadcasting.connections.pusher.key'), 0, 5) . '...');
-                Log::info("Pusher Secret: " . substr(config('broadcasting.connections.pusher.secret'), 0, 5) . '...');
-                Log::info("Pusher Cluster: " . config('broadcasting.connections.pusher.options.cluster'));
-                Log::info("Broadcast Driver: " . config('broadcasting.default'));
-                
-                // Test Pusher connection directly
-                try {
-                    $pusher = new \Pusher\Pusher(
-                        config('broadcasting.connections.pusher.key'),
-                        config('broadcasting.connections.pusher.secret'),
-                        config('broadcasting.connections.pusher.app_id'),
-                        [
-                            'cluster' => config('broadcasting.connections.pusher.options.cluster'),
-                            'useTLS' => true,
-                        ]
-                    );
-                    
-                    $testResult = $pusher->trigger('voting.' . $eventId, 'VotingStateChanged', $broadcastData);
-                    Log::info("Direct Pusher trigger result: " . json_encode($testResult));
-                } catch (\Exception $pusherError) {
-                    Log::error("Direct Pusher error: " . $pusherError->getMessage());
-                }
-                
-                // Broadcast the event using event() helper
-                $event = new VotingStateChanged($eventId, $broadcastData, 'round_changed');
-                event($event);
-                
-                Log::info("Successfully dispatched VotingStateChanged event for event {$eventId}");
-            } catch (\Exception $broadcastError) {
-                Log::error("Broadcast error: " . $broadcastError->getMessage());
-                Log::error("Broadcast error trace: " . $broadcastError->getTraceAsString());
-            }
-
-            Log::info("Round {$roundId} activated for event {$eventId} (no prerequisites)");
+            broadcast(new VotingStateChanged($eventId, $broadcastData, 'round_activated'));
+            Log::info("Round {$roundId} activated for event {$eventId}, broadcast sent");
 
             return response()->json([
                 'message' => 'Round activated successfully',
@@ -790,6 +752,17 @@ class VotingController extends Controller
             
             Log::info("Judge {$judgeId} successfully occupied", ['all_occupied' => $occupied]);
             
+            // Log activity
+            try {
+                $judge = Judge::find($judgeId);
+                ActivityLog::log($eventId, ActivityLog::ACTION_JUDGE_LOGIN, [
+                    'judge_name' => $judge?->name ?? 'Judge #' . $judgeId,
+                    'chair_number' => $judge?->chair_number,
+                ], $judgeId, $request);
+            } catch (\Exception $e) {
+                Log::warning('Activity log failed: ' . $e->getMessage());
+            }
+            
             return response()->json([
                 'success' => true,
                 'occupied' => $occupied
@@ -915,6 +888,629 @@ class VotingController extends Controller
                 'success' => false, 
                 'message' => 'Server error: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Update display settings for judge screens
+     */
+    public function updateDisplaySettings(Request $request)
+    {
+        try {
+            $eventId = $request->input('event_id');
+            
+            if (!$eventId) {
+                return response()->json(['error' => 'No event_id provided'], 400);
+            }
+            
+            $eventId = (int) $eventId;
+            
+            $votingState = VotingState::firstOrCreate(
+                ['event_id' => $eventId],
+                ['display_settings' => VotingState::getDefaultDisplaySettings()]
+            );
+            
+            $currentSettings = $votingState->display_settings ?? VotingState::getDefaultDisplaySettings();
+            
+            if ($request->has('show_candidate_name')) {
+                $currentSettings['show_candidate_name'] = (bool) $request->input('show_candidate_name');
+            }
+            if ($request->has('show_team_department')) {
+                $currentSettings['show_team_department'] = (bool) $request->input('show_team_department');
+            }
+            if ($request->has('judge_login_mode')) {
+                $mode = $request->input('judge_login_mode');
+                // Validate mode is either 'auto' or 'manual'
+                $currentSettings['judge_login_mode'] = in_array($mode, ['auto', 'manual']) ? $mode : 'auto';
+            }
+            
+            $votingState->display_settings = $currentSettings;
+            $votingState->save();
+            
+            // Broadcast the settings change to all judges
+            broadcast(new VotingStateChanged($eventId, [
+                'display_settings' => $currentSettings,
+            ], 'display_settings_changed'));
+            
+            Log::info("Display settings updated for event {$eventId}", $currentSettings);
+            
+            return response()->json([
+                'success' => true,
+                'display_settings' => $currentSettings,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error updating display settings: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to update display settings'], 500);
+        }
+    }
+
+    /**
+     * Get display settings for judge screens
+     */
+    public function getDisplaySettings(Request $request)
+    {
+        try {
+            $eventId = $request->input('event_id');
+            
+            if (!$eventId) {
+                return response()->json(['error' => 'No event_id provided'], 400);
+            }
+            
+            $eventId = (int) $eventId;
+            
+            $votingState = VotingState::where('event_id', $eventId)->first();
+            
+            $settings = $votingState 
+                ? $votingState->getDisplaySettingsWithDefaults()
+                : VotingState::getDefaultDisplaySettings();
+            
+            return response()->json([
+                'display_settings' => $settings,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting display settings: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to get display settings'], 500);
+        }
+    }
+
+    /**
+     * Register a screen/device for judging
+     * Devices connecting get randomly assigned an available judge number
+     */
+    public function registerScreen(Request $request)
+    {
+        try {
+            $eventId = $request->input('event_id');
+            $deviceId = $request->input('device_id'); // Unique browser/device identifier
+            
+            if (!$eventId || !$deviceId) {
+                return response()->json(['error' => 'event_id and device_id required'], 400);
+            }
+            
+            $eventId = (int) $eventId;
+            $ipAddress = $request->ip();
+            
+            // Get all judges for this event
+            $judges = Judge::where('event_id', $eventId)->orderBy('chair_number')->get();
+            $judgeCount = $judges->count();
+            
+            if ($judgeCount === 0) {
+                return response()->json([
+                    'allowed' => false,
+                    'message' => 'No judges configured for this event'
+                ]);
+            }
+            
+            $votingState = VotingState::firstOrCreate(
+                ['event_id' => $eventId],
+                ['registered_screens' => []]
+            );
+            
+            $screens = $votingState->registered_screens ?? [];
+            
+            // Check if this device is already registered
+            $existingScreen = collect($screens)->firstWhere('device_id', $deviceId);
+            if ($existingScreen) {
+                // Get the judge to return chair_number
+                $existingJudge = $judges->firstWhere('id', $existingScreen['judge_id']);
+                return response()->json([
+                    'allowed' => true,
+                    'screen_number' => $existingScreen['screen_number'],
+                    'judge_id' => $existingScreen['judge_id'] ?? null,
+                    'chair_number' => $existingScreen['chair_number'] ?? $existingJudge?->chair_number,
+                    'message' => 'Already registered'
+                ]);
+            }
+            
+            // Check if we have room for more screens
+            if (count($screens) >= $judgeCount) {
+                return response()->json([
+                    'allowed' => false,
+                    'message' => "All {$judgeCount} judge positions are taken",
+                    'max_judges' => $judgeCount
+                ]);
+            }
+            
+            // Get list of already assigned judge IDs
+            $assignedJudgeIds = collect($screens)->pluck('judge_id')->filter()->toArray();
+            
+            // Get available judges (not yet assigned to any screen)
+            $availableJudges = $judges->filter(function ($judge) use ($assignedJudgeIds) {
+                return !in_array($judge->id, $assignedJudgeIds);
+            });
+            
+            // Randomly select one from available judges
+            $selectedJudge = $availableJudges->random();
+            
+            // Screen number is based on registration order (1, 2, 3...)
+            $screenNumber = count($screens) + 1;
+            
+            // Register the new screen
+            $screens[] = [
+                'screen_number' => $screenNumber,
+                'device_id' => $deviceId,
+                'judge_id' => $selectedJudge->id,
+                'chair_number' => $selectedJudge->chair_number,
+                'ip_address' => $ipAddress,
+                'connected_at' => now()->toIso8601String(),
+            ];
+            
+            $votingState->registered_screens = $screens;
+            $votingState->save();
+            
+            // Build affected screen data for broadcast
+            $affectedScreen = [
+                'screen_number' => $screenNumber,
+                'device_id' => $deviceId,
+                'judge_id' => $selectedJudge->id,
+                'chair_number' => $selectedJudge->chair_number,
+                'ip_address' => $ipAddress,
+            ];
+            
+            // Broadcast screen registration update using dedicated event
+            broadcast(new ScreenRegistrationChanged($eventId, $screens, 'registered', $affectedScreen));
+            
+            Log::info("Screen {$screenNumber} registered for event {$eventId}", [
+                'device_id' => $deviceId,
+                'ip' => $ipAddress,
+                'judge_id' => $selectedJudge->id,
+                'chair_number' => $selectedJudge->chair_number
+            ]);
+            
+            return response()->json([
+                'allowed' => true,
+                'screen_number' => $screenNumber,
+                'judge_id' => $selectedJudge->id,
+                'chair_number' => $selectedJudge->chair_number,
+                'message' => "Assigned as Judge #{$selectedJudge->chair_number}"
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error registering screen: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to register screen'], 500);
+        }
+    }
+
+    /**
+     * Get registered screens for an event
+     */
+    public function getRegisteredScreens(Request $request)
+    {
+        try {
+            $eventId = $request->input('event_id');
+            
+            if (!$eventId) {
+                return response()->json(['error' => 'No event_id provided'], 400);
+            }
+            
+            $eventId = (int) $eventId;
+            
+            $votingState = VotingState::where('event_id', $eventId)->first();
+            $screens = $votingState?->registered_screens ?? [];
+            
+            $judgeCount = Judge::where('event_id', $eventId)->count();
+            
+            return response()->json([
+                'registered_screens' => $screens,
+                'max_judges' => $judgeCount,
+                'available_slots' => $judgeCount - count($screens)
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting registered screens: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to get registered screens'], 500);
+        }
+    }
+
+    /**
+     * Get screen status for a specific device
+     * Returns current assignment or null if not registered
+     * 
+     * @OA\Get(
+     *     path="/api/judge/screen-status",
+     *     tags={"Judge Management"},
+     *     summary="Get screen registration status",
+     *     description="Returns current assignment for a device or null if not registered",
+     *     @OA\Parameter(
+     *         name="device_id",
+     *         in="query",
+     *         description="Unique device identifier",
+     *         required=true,
+     *         @OA\Schema(type="string", example="uuid-abc123")
+     *     ),
+     *     @OA\Parameter(
+     *         name="event_id",
+     *         in="query",
+     *         description="Event ID",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Screen status retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="registered", type="boolean", example=true),
+     *             @OA\Property(property="screen_number", type="integer", example=1, nullable=true),
+     *             @OA\Property(property="judge_id", type="integer", example=1, nullable=true),
+     *             @OA\Property(property="chair_number", type="integer", example=1, nullable=true),
+     *             @OA\Property(property="connected_at", type="string", example="2025-12-14T10:30:00Z", nullable=true)
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Missing required parameters")
+     * )
+     */
+    public function getScreenStatus(Request $request)
+    {
+        try {
+            $eventId = $request->query('event_id');
+            $deviceId = $request->query('device_id');
+            
+            if (!$eventId || !$deviceId) {
+                return response()->json(['error' => 'event_id and device_id are required'], 400);
+            }
+            
+            $eventId = (int) $eventId;
+            
+            $votingState = VotingState::where('event_id', $eventId)->first();
+            
+            if (!$votingState) {
+                return response()->json([
+                    'registered' => false,
+                    'screen_number' => null,
+                    'judge_id' => null,
+                    'chair_number' => null,
+                    'connected_at' => null
+                ]);
+            }
+            
+            $screens = $votingState->registered_screens ?? [];
+            
+            // Find the screen with matching device_id
+            $screen = collect($screens)->firstWhere('device_id', $deviceId);
+            
+            if (!$screen) {
+                return response()->json([
+                    'registered' => false,
+                    'screen_number' => null,
+                    'judge_id' => null,
+                    'chair_number' => null,
+                    'connected_at' => null
+                ]);
+            }
+            
+            return response()->json([
+                'registered' => true,
+                'screen_number' => $screen['screen_number'] ?? null,
+                'judge_id' => $screen['judge_id'] ?? null,
+                'chair_number' => $screen['chair_number'] ?? null,
+                'connected_at' => $screen['connected_at'] ?? null,
+                'ip_address' => $screen['ip_address'] ?? null
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting screen status: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to get screen status'], 500);
+        }
+    }
+
+    /**
+     * Clear all registered screens (admin reset)
+     */
+    public function clearRegisteredScreens(Request $request)
+    {
+        try {
+            $eventId = $request->input('event_id');
+            
+            if (!$eventId) {
+                return response()->json(['error' => 'No event_id provided'], 400);
+            }
+            
+            $eventId = (int) $eventId;
+            
+            $votingState = VotingState::where('event_id', $eventId)->first();
+            
+            if ($votingState) {
+                $votingState->registered_screens = [];
+                $votingState->save();
+            }
+            
+            // Broadcast to kick all screens using dedicated event
+            broadcast(new ScreenRegistrationChanged($eventId, [], 'cleared', null));
+            
+            Log::info("All registered screens cleared for event {$eventId}");
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'All screens cleared'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error clearing registered screens: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to clear screens'], 500);
+        }
+    }
+
+    /**
+     * Reassign a screen to a different judge (admin)
+     */
+    public function reassignScreen(Request $request)
+    {
+        try {
+            $eventId = $request->input('event_id');
+            $screenNumber = $request->input('screen_number');
+            $newJudgeId = $request->input('judge_id');
+            
+            if (!$eventId || !$screenNumber) {
+                return response()->json(['error' => 'event_id and screen_number required'], 400);
+            }
+            
+            $eventId = (int) $eventId;
+            
+            $votingState = VotingState::where('event_id', $eventId)->first();
+            
+            if (!$votingState) {
+                return response()->json(['error' => 'No voting state found'], 404);
+            }
+            
+            $screens = $votingState->registered_screens ?? [];
+            
+            // Find and update the screen
+            $updated = false;
+            foreach ($screens as &$screen) {
+                if ($screen['screen_number'] == $screenNumber) {
+                    $screen['judge_id'] = $newJudgeId;
+                    $updated = true;
+                    break;
+                }
+            }
+            
+            if (!$updated) {
+                return response()->json(['error' => 'Screen not found'], 404);
+            }
+            
+            $votingState->registered_screens = $screens;
+            $votingState->save();
+            
+            // Build affected screen data for broadcast
+            $affectedScreen = [
+                'screen_number' => $screenNumber,
+                'new_judge_id' => $newJudgeId,
+            ];
+            
+            // Broadcast the reassignment using dedicated event
+            broadcast(new ScreenRegistrationChanged($eventId, $screens, 'reassigned', $affectedScreen));
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Screen {$screenNumber} reassigned"
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error reassigning screen: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to reassign screen'], 500);
+        }
+    }
+
+    /**
+     * Remove a specific screen registration (unregister/kick a screen)
+     * Admin can remove a screen from registered list by screen_number or device_id
+     * Broadcasts update to all screens
+     */
+    public function removeScreen(Request $request)
+    {
+        try {
+            $eventId = $request->input('event_id');
+            $screenNumber = $request->input('screen_number');
+            $deviceId = $request->input('device_id');
+            
+            if (!$eventId) {
+                return response()->json(['error' => 'event_id is required'], 400);
+            }
+            
+            if (!$screenNumber && !$deviceId) {
+                return response()->json(['error' => 'screen_number or device_id is required'], 400);
+            }
+            
+            $eventId = (int) $eventId;
+            
+            $votingState = VotingState::where('event_id', $eventId)->first();
+            
+            if (!$votingState) {
+                return response()->json(['error' => 'No voting state found'], 404);
+            }
+            
+            $screens = $votingState->registered_screens ?? [];
+            $removedScreen = null;
+            
+            // Find and remove the screen by screen_number or device_id
+            $screens = array_values(array_filter($screens, function($s) use ($screenNumber, $deviceId, &$removedScreen) {
+                $shouldRemove = ($screenNumber && $s['screen_number'] == $screenNumber) ||
+                               ($deviceId && ($s['device_id'] ?? null) == $deviceId);
+                if ($shouldRemove) {
+                    $removedScreen = $s;
+                }
+                return !$shouldRemove;
+            }));
+            
+            if (!$removedScreen) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Screen not found'
+                ], 404);
+            }
+            
+            $votingState->registered_screens = $screens;
+            $votingState->save();
+            
+            // Broadcast to kick that specific screen and update all screens using dedicated event
+            broadcast(new ScreenRegistrationChanged($eventId, $screens, 'unregistered', $removedScreen));
+            
+            Log::info("Screen removed from event {$eventId}", [
+                'screen_number' => $removedScreen['screen_number'],
+                'device_id' => $removedScreen['device_id'] ?? null,
+                'judge_id' => $removedScreen['judge_id'] ?? null,
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Screen {$removedScreen['screen_number']} removed",
+                'removed_screen' => $removedScreen
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error removing screen: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to remove screen'], 500);
+        }
+    }
+
+    /**
+     * Swap judge assignments between two registered screens
+     * Admin can swap judge numbers between two screens
+     * Scores remain tied to judge_id (not screen)
+     * 
+     * @OA\Post(
+     *     path="/api/judge/swap-screens",
+     *     tags={"Judge Management"},
+     *     summary="Swap judge assignments between two screens",
+     *     description="Swaps the judge assignments between two registered screens. Scores remain tied to judge_id.",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"event_id", "screen_number_1", "screen_number_2"},
+     *             @OA\Property(property="event_id", type="integer", example=1, description="Event ID"),
+     *             @OA\Property(property="screen_number_1", type="integer", example=1, description="First screen number"),
+     *             @OA\Property(property="screen_number_2", type="integer", example=2, description="Second screen number")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Screens swapped successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Judge assignments swapped between Screen 1 and Screen 2"),
+     *             @OA\Property(property="screen_1", type="object"),
+     *             @OA\Property(property="screen_2", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Missing required parameters"),
+     *     @OA\Response(response=404, description="Screen not found")
+     * )
+     */
+    public function swapScreens(Request $request)
+    {
+        try {
+            $eventId = $request->input('event_id');
+            $screenNumber1 = $request->input('screen_number_1');
+            $screenNumber2 = $request->input('screen_number_2');
+            
+            if (!$eventId) {
+                return response()->json(['error' => 'event_id is required'], 400);
+            }
+            
+            if (!$screenNumber1 || !$screenNumber2) {
+                return response()->json(['error' => 'screen_number_1 and screen_number_2 are required'], 400);
+            }
+            
+            if ($screenNumber1 == $screenNumber2) {
+                return response()->json(['error' => 'Cannot swap a screen with itself'], 400);
+            }
+            
+            $eventId = (int) $eventId;
+            $screenNumber1 = (int) $screenNumber1;
+            $screenNumber2 = (int) $screenNumber2;
+            
+            $votingState = VotingState::where('event_id', $eventId)->first();
+            
+            if (!$votingState) {
+                return response()->json(['error' => 'No voting state found'], 404);
+            }
+            
+            $screens = $votingState->registered_screens ?? [];
+            
+            // Find both screens
+            $screen1Index = null;
+            $screen2Index = null;
+            
+            foreach ($screens as $index => $screen) {
+                if ($screen['screen_number'] == $screenNumber1) {
+                    $screen1Index = $index;
+                }
+                if ($screen['screen_number'] == $screenNumber2) {
+                    $screen2Index = $index;
+                }
+            }
+            
+            if ($screen1Index === null) {
+                return response()->json(['error' => "Screen {$screenNumber1} not found"], 404);
+            }
+            
+            if ($screen2Index === null) {
+                return response()->json(['error' => "Screen {$screenNumber2} not found"], 404);
+            }
+            
+            // Swap judge_id and chair_number between the two screens
+            $tempJudgeId = $screens[$screen1Index]['judge_id'];
+            $tempChairNumber = $screens[$screen1Index]['chair_number'];
+            
+            $screens[$screen1Index]['judge_id'] = $screens[$screen2Index]['judge_id'];
+            $screens[$screen1Index]['chair_number'] = $screens[$screen2Index]['chair_number'];
+            
+            $screens[$screen2Index]['judge_id'] = $tempJudgeId;
+            $screens[$screen2Index]['chair_number'] = $tempChairNumber;
+            
+            $votingState->registered_screens = $screens;
+            $votingState->save();
+            
+            // Build affected screens data for broadcast
+            $affectedScreens = [
+                'screen_1' => [
+                    'screen_number' => $screenNumber1,
+                    'new_judge_id' => $screens[$screen1Index]['judge_id'],
+                    'new_chair_number' => $screens[$screen1Index]['chair_number'],
+                    'device_id' => $screens[$screen1Index]['device_id'] ?? null,
+                ],
+                'screen_2' => [
+                    'screen_number' => $screenNumber2,
+                    'new_judge_id' => $screens[$screen2Index]['judge_id'],
+                    'new_chair_number' => $screens[$screen2Index]['chair_number'],
+                    'device_id' => $screens[$screen2Index]['device_id'] ?? null,
+                ],
+            ];
+            
+            // Broadcast the swap using dedicated event
+            broadcast(new ScreenRegistrationChanged($eventId, $screens, 'swapped', $affectedScreens));
+            
+            Log::info("Judge assignments swapped for event {$eventId}", [
+                'screen_1' => $screenNumber1,
+                'screen_2' => $screenNumber2,
+                'screen_1_new_judge' => $screens[$screen1Index]['judge_id'],
+                'screen_2_new_judge' => $screens[$screen2Index]['judge_id'],
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Judge assignments swapped between Screen {$screenNumber1} and Screen {$screenNumber2}",
+                'screen_1' => $screens[$screen1Index],
+                'screen_2' => $screens[$screen2Index],
+                'registered_screens' => $screens
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error swapping screens: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to swap screens'], 500);
         }
     }
 

@@ -1,7 +1,8 @@
-const CACHE_NAME = 'podium-v1';
+const CACHE_NAME = 'podium-v2';
 const urlsToCache = [
   '/judge',
-  '/manifest.json'
+  '/manifest.json',
+  '/offline.html'
 ];
 
 self.addEventListener('install', (event) => {
@@ -28,7 +29,19 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network first, fallback to cache
+  // Only handle navigation requests (HTML pages)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => {
+          // If offline, serve the offline page
+          return caches.match('/offline.html');
+        })
+    );
+    return;
+  }
+  
+  // For other requests, try network first, then cache
   event.respondWith(
     fetch(event.request)
       .catch(() => caches.match(event.request))

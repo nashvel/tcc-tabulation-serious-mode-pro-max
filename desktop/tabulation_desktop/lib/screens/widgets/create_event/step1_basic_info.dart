@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 
-class Step1BasicInfo extends StatelessWidget {
+class Step1BasicInfo extends StatefulWidget {
   final TextEditingController titleController;
   final TextEditingController descriptionController;
   final DateTime? selectedDate;
@@ -24,18 +24,53 @@ class Step1BasicInfo extends StatelessWidget {
   });
 
   @override
+  State<Step1BasicInfo> createState() => _Step1BasicInfoState();
+}
+
+class _Step1BasicInfoState extends State<Step1BasicInfo> {
+  bool _isCustomType = false;
+  final _customTypeController = TextEditingController();
+
+  // Predefined event types
+  static const Map<String, String> _eventTypes = {
+    'pageant': 'Pageant (Male/Female)',
+    'solo_contest': 'Solo Contest',
+    'group_contest': 'Group/Team Contest',
+    'talent_show': 'Talent Show',
+    'competition': 'Competition',
+    'custom': '+ Custom Type...',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    // Check if current eventType is custom (not in predefined list)
+    if (!_eventTypes.keys.contains(widget.eventType) && widget.eventType != 'custom') {
+      _isCustomType = true;
+      _customTypeController.text = widget.eventType;
+    }
+  }
+
+  @override
+  void dispose() {
+    _customTypeController.dispose();
+    super.dispose();
+  }
+
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _label('Title *'),
-        _textField(titleController, 'Event name'),
+        _textField(widget.titleController, 'Event name'),
         const SizedBox(height: AppSpacing.md),
         _label('Date *'),
         _datePicker(),
         const SizedBox(height: AppSpacing.md),
         _label('Description'),
-        _textField(descriptionController, 'Optional description', maxLines: 2),
+        _textField(widget.descriptionController, 'Optional description', maxLines: 2),
         const SizedBox(height: AppSpacing.md),
         Row(
           children: [
@@ -44,7 +79,7 @@ class Step1BasicInfo extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _label('Type'),
-                  _dropdown(),
+                  _isCustomType ? _customTypeField() : _dropdown(),
                 ],
               ),
             ),
@@ -90,7 +125,7 @@ class Step1BasicInfo extends StatelessWidget {
 
   Widget _datePicker() {
     return GestureDetector(
-      onTap: onSelectDate,
+      onTap: widget.onSelectDate,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
         decoration: BoxDecoration(border: AppBorders.all, borderRadius: AppBorders.radius),
@@ -99,11 +134,11 @@ class Step1BasicInfo extends StatelessWidget {
             const Icon(Icons.calendar_today, size: 14, color: AppColors.textMuted),
             const SizedBox(width: AppSpacing.sm),
             Text(
-              selectedDate == null
+              widget.selectedDate == null
                   ? 'Select date'
-                  : '${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}',
+                  : '${widget.selectedDate!.year}-${widget.selectedDate!.month.toString().padLeft(2, '0')}-${widget.selectedDate!.day.toString().padLeft(2, '0')}',
               style: AppTextStyles.body.copyWith(
-                color: selectedDate == null ? AppColors.disabled : AppColors.text,
+                color: widget.selectedDate == null ? AppColors.disabled : AppColors.text,
                 fontSize: 12,
               ),
             ),
@@ -113,20 +148,91 @@ class Step1BasicInfo extends StatelessWidget {
     );
   }
 
+
   Widget _dropdown() {
+    // Determine current value for dropdown
+    String dropdownValue = _eventTypes.keys.contains(widget.eventType) 
+        ? widget.eventType 
+        : 'custom';
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       decoration: BoxDecoration(border: AppBorders.all, borderRadius: AppBorders.radius),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: eventType,
+          value: dropdownValue,
           isExpanded: true,
           style: AppTextStyles.body.copyWith(fontSize: 12),
-          items: ['pageant', 'talent_show', 'competition']
-              .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-              .toList(),
-          onChanged: onEventTypeChanged,
+          items: _eventTypes.entries.map((e) {
+            final isCustomOption = e.key == 'custom';
+            return DropdownMenuItem(
+              value: e.key,
+              child: Text(
+                e.value,
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 11,
+                  color: isCustomOption ? AppColors.textMuted : AppColors.text,
+                  fontStyle: isCustomOption ? FontStyle.italic : FontStyle.normal,
+                ),
+              ),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value == 'custom') {
+              setState(() => _isCustomType = true);
+              // Don't change event type yet, wait for user input
+            } else {
+              widget.onEventTypeChanged(value);
+            }
+          },
         ),
+      ),
+    );
+  }
+
+  Widget _customTypeField() {
+    return Container(
+      decoration: BoxDecoration(border: AppBorders.all, borderRadius: AppBorders.radius),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _customTypeController,
+              style: AppTextStyles.body.copyWith(fontSize: 12),
+              decoration: const InputDecoration(
+                hintText: 'Enter custom type...',
+                hintStyle: TextStyle(color: AppColors.disabled, fontSize: 12),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
+              ),
+              onChanged: (value) {
+                // Update event type as user types
+                if (value.isNotEmpty) {
+                  widget.onEventTypeChanged(value.toLowerCase().replaceAll(' ', '_'));
+                }
+              },
+              onSubmitted: (value) {
+                if (value.isEmpty) {
+                  // If empty, go back to dropdown
+                  setState(() => _isCustomType = false);
+                  widget.onEventTypeChanged('pageant');
+                }
+              },
+            ),
+          ),
+          // Back to dropdown button
+          GestureDetector(
+            onTap: () {
+              setState(() => _isCustomType = false);
+              _customTypeController.clear();
+              widget.onEventTypeChanged('pageant');
+            },
+            child: Container(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              child: const Icon(Icons.close, size: 14, color: AppColors.textMuted),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -136,10 +242,10 @@ class Step1BasicInfo extends StatelessWidget {
       decoration: BoxDecoration(border: AppBorders.all, borderRadius: AppBorders.radius),
       child: TextField(
         keyboardType: TextInputType.number,
-        onChanged: onNumberOfJudgesChanged,
+        onChanged: widget.onNumberOfJudgesChanged,
         style: AppTextStyles.body.copyWith(fontSize: 12),
         decoration: InputDecoration(
-          hintText: '$numberOfJudges',
+          hintText: '${widget.numberOfJudges}',
           hintStyle: const TextStyle(color: AppColors.disabled, fontSize: 12),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),

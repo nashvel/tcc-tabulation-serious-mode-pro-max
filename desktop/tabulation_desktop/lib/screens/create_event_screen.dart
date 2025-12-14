@@ -26,6 +26,47 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   List<Map<String, dynamic>> _participants = [
     {'number': '', 'name': '', 'gender': 'Female', 'department': ''}
   ];
+
+  // Update all participants' gender when event type changes
+  void _onEventTypeChanged(String? newType) {
+    if (newType == null) return;
+    setState(() {
+      _eventType = newType;
+      // Update existing participants to use the new default gender
+      final newGender = _getDefaultGenderForType(newType);
+      for (var p in _participants) {
+        // Only update if current gender doesn't match new event type
+        final currentGender = p['gender'] ?? 'Female';
+        if (!_isValidGenderForType(currentGender, newType)) {
+          p['gender'] = newGender;
+        }
+      }
+    });
+  }
+
+  String _getDefaultGenderForType(String eventType) {
+    switch (eventType) {
+      case 'solo_contest':
+        return 'Solo';
+      case 'group_contest':
+        return 'Group';
+      default:
+        return 'Female';
+    }
+  }
+
+  bool _isValidGenderForType(String gender, String eventType) {
+    switch (eventType) {
+      case 'solo_contest':
+        return gender == 'Solo';
+      case 'group_contest':
+        return gender == 'Group';
+      case 'pageant':
+        return gender == 'Female' || gender == 'Male';
+      default:
+        return true; // Allow all for generic types
+    }
+  }
   List<Map<String, String>> _categories = [{'name': '', 'description': ''}];
   List<Map<String, dynamic>> _criteria = [
     {'name': '', 'max_score': 100, 'percentage': 0, 'description': ''}
@@ -149,29 +190,71 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
   }
 
+  String _getDefaultGender() {
+    switch (_eventType) {
+      case 'solo_contest':
+        return 'Solo';
+      case 'group_contest':
+        return 'Group';
+      default:
+        return 'Female';
+    }
+  }
+
   void _applyParticipantTemplate() {
     setState(() {
-      _participants = TemplateLibrary.sampleCandidates.map((t) => t.toMap()).toList();
+      switch (_eventType) {
+        case 'solo_contest':
+          _participants = TemplateLibrary.soloCandidates.map((t) => t.toMap()).toList();
+          break;
+        case 'group_contest':
+          _participants = TemplateLibrary.groupCandidates.map((t) => t.toMap()).toList();
+          break;
+        default:
+          _participants = TemplateLibrary.sampleCandidates.map((t) => t.toMap()).toList();
+      }
     });
   }
 
   void _applyCategoryTemplate() {
     setState(() {
-      _categories = _eventType == 'pageant'
-          ? TemplateLibrary.pageantCategories.map((t) => t.toMap()).toList()
-          : _eventType == 'talent_show'
-              ? TemplateLibrary.talentShowCategories.map((t) => t.toMap()).toList()
-              : TemplateLibrary.pageantCategories.map((t) => t.toMap()).toList();
+      switch (_eventType) {
+        case 'pageant':
+          _categories = TemplateLibrary.pageantCategories.map((t) => t.toMap()).toList();
+          break;
+        case 'talent_show':
+          _categories = TemplateLibrary.talentShowCategories.map((t) => t.toMap()).toList();
+          break;
+        case 'solo_contest':
+          _categories = TemplateLibrary.soloContestCategories.map((t) => t.toMap()).toList();
+          break;
+        case 'group_contest':
+          _categories = TemplateLibrary.groupContestCategories.map((t) => t.toMap()).toList();
+          break;
+        default:
+          _categories = TemplateLibrary.pageantCategories.map((t) => t.toMap()).toList();
+      }
     });
   }
 
   void _applyCriteriaTemplate() {
     setState(() {
-      _criteria = _eventType == 'pageant'
-          ? TemplateLibrary.pageantCriteria.map((t) => t.toMap()).toList()
-          : _eventType == 'talent_show'
-              ? TemplateLibrary.talentCriteria.map((t) => t.toMap()).toList()
-              : TemplateLibrary.standardCriteria.map((t) => t.toMap()).toList();
+      switch (_eventType) {
+        case 'pageant':
+          _criteria = TemplateLibrary.pageantCriteria.map((t) => t.toMap()).toList();
+          break;
+        case 'talent_show':
+          _criteria = TemplateLibrary.talentCriteria.map((t) => t.toMap()).toList();
+          break;
+        case 'solo_contest':
+          _criteria = TemplateLibrary.soloContestCriteria.map((t) => t.toMap()).toList();
+          break;
+        case 'group_contest':
+          _criteria = TemplateLibrary.groupContestCriteria.map((t) => t.toMap()).toList();
+          break;
+        default:
+          _criteria = TemplateLibrary.standardCriteria.map((t) => t.toMap()).toList();
+      }
     });
   }
 
@@ -208,7 +291,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               selectedDate: _selectedDate,
               onSelectDate: _selectDate,
               eventType: _eventType,
-              onEventTypeChanged: (v) => setState(() => _eventType = v ?? 'pageant'),
+              onEventTypeChanged: _onEventTypeChanged,
               numberOfJudges: _numberOfJudges,
               onNumberOfJudgesChanged: (v) => setState(() => _numberOfJudges = int.tryParse(v) ?? 7),
             )),
@@ -216,7 +299,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             // Step 2
             _buildSection('Participants', Step2Participants(
               participants: _participants,
-              onAddParticipant: (_) => setState(() => _participants.add({'number': '', 'name': '', 'gender': 'Female', 'department': ''})),
+              eventType: _eventType,
+              onAddParticipant: (_) => setState(() => _participants.add({'number': '', 'name': '', 'gender': _getDefaultGender(), 'department': ''})),
               onParticipantChanged: (i, f, v) => setState(() => _participants[i][f] = v),
             )),
             const SizedBox(height: AppSpacing.lg),

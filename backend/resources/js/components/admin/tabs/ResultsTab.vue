@@ -9,8 +9,9 @@
         </select>
         <button
           @click="exportResults"
-          class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+          class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
         >
+          <Download :size="16" />
           Export
         </button>
       </div>
@@ -79,6 +80,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { Download } from 'lucide-vue-next';
 import { showError, showSuccess, showInfo } from '../../../utils/alerts';
 
 const props = defineProps({

@@ -4,8 +4,9 @@
       <h2 class="text-lg font-semibold text-gray-900">Rounds</h2>
       <button
         @click="showAddModal = true"
-        class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+        class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
       >
+        <Plus :size="16" />
         Add Round
       </button>
     </div>
@@ -32,16 +33,31 @@
               </span>
               <span v-else class="text-sm text-gray-400">-</span>
             </td>
-            <td class="py-3 px-4 text-center">
-              <button 
-                v-if="activeRoundId !== round.id"
-                @click="activateRound(round)" 
-                class="text-green-600 hover:text-green-800 text-sm font-medium mr-2"
-              >
-                Activate
-              </button>
-              <button @click="editRound(round)" class="text-indigo-600 hover:text-indigo-800 text-sm mr-2">Edit</button>
-              <button @click="deleteRound(round.id)" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+            <td class="py-3 px-4">
+              <div class="flex items-center justify-center gap-1">
+                <button 
+                  v-if="activeRoundId !== round.id"
+                  @click="activateRound(round)" 
+                  class="p-1.5 rounded-md text-gray-500 hover:text-green-600 hover:bg-green-50 transition-colors"
+                  title="Activate Round"
+                >
+                  <Play :size="16" />
+                </button>
+                <button 
+                  @click="editRound(round)" 
+                  class="p-1.5 rounded-md text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                  title="Edit"
+                >
+                  <Pencil :size="16" />
+                </button>
+                <button 
+                  @click="deleteRound(round.id)" 
+                  class="p-1.5 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 :size="16" />
+                </button>
+              </div>
             </td>
           </tr>
           <tr v-if="!rounds?.length">
@@ -55,6 +71,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { Plus, Pencil, Trash2, Play } from 'lucide-vue-next';
 import { showError, showSuccess, showConfirm } from '../../../utils/alerts';
 
 const props = defineProps({
