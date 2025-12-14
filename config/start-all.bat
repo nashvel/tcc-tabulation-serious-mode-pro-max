@@ -7,20 +7,14 @@ echo Starting Tabulation System Services...
 echo.
 
 REM Terminal 1: Laravel Backend
-start "Laravel Backend" cmd /k "cd /d %~dp0..\backend && php artisan serve"
+start "Laravel Backend" cmd /k "cd /d %~dp0..\backend && php artisan serve --host 0.0.0.0"
 
 REM Wait a bit for Laravel to start
 timeout /t 2 /nobreak
 
-REM Terminal 2: Frontend
-start "Frontend Dev" cmd /k "cd /d %~dp0..\frontend && npm run dev"
+REM Terminal 2: Laravel Backend
+start "Laravel Backend" cmd /k "cd /d %~dp0..\backend && php artisan serve"
 
-echo.
-echo All services started! Check the 2 terminal windows.
-echo.
-echo Backend: http://localhost:8000
-echo Frontend: http://localhost:5173
-echo.
-echo Make sure to set PUSHER credentials in backend/.env
-echo.
+REM Terminal 3: Laravel Backend
+start "Laravel Backend" cmd /k "cd /d %~dp0..\backend && npm run dev"
 pause
