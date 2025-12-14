@@ -504,7 +504,7 @@ const performSwap = async () => {
 
 // Handle WebSocket screen registration updates
 const handleScreenRegistrationChange = (data) => {
-  console.log('📥 Screen registration update:', data);
+  console.log('[WebSocket] Screen registration update:', data);
   
   if (data.registered_screens) {
     registeredScreens.value = data.registered_screens;
@@ -518,12 +518,12 @@ const setupWebSocket = () => {
   if (!props.eventId || !window.Echo) return;
   
   const channelName = `voting.${props.eventId}`;
-  console.log('📡 SettingsTab: Connecting to channel:', channelName);
+  console.log('[WebSocket] SettingsTab: Connecting to channel:', channelName);
   
   const channel = window.Echo.channel(channelName);
   
   channel.subscribed(() => {
-    console.log('✅ SettingsTab: Successfully subscribed to channel:', channelName);
+    console.log('[WebSocket] SettingsTab: Subscribed to channel:', channelName);
     isLive.value = true;
   });
   

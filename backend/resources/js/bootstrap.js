@@ -32,7 +32,7 @@ if (broadcastDriver === 'pusher') {
         forceTLS: true,
         disableStats: true,
     });
-    console.log('🌐 Echo initialized with Pusher (cloud WebSocket)');
+    console.log('[Echo] Initialized with Pusher (cloud WebSocket)');
 } else {
     // Reverb Configuration (Local WebSocket)
     window.Echo = new Echo({
@@ -45,5 +45,5 @@ if (broadcastDriver === 'pusher') {
         enabledTransports: ['ws', 'wss'],
         disableStats: true,
     });
-    console.log('🏠 Echo initialized with Reverb (local WebSocket)');
+    console.log('[Echo] Initialized with Reverb (local WebSocket)');
 }

@@ -15,6 +15,13 @@
           </div>
           <div class="flex items-center gap-2">
             <button 
+              @click="showJudgeNumbersModal"
+              class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all bg-gray-900 text-white hover:bg-gray-800"
+            >
+              <Eye :size="16" />
+              Show Numbers
+            </button>
+            <button 
               @click="isSwapMode = !isSwapMode"
               :class="[
                 'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
@@ -223,7 +230,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ArrowLeft, ArrowLeftRight, Plus, Pencil, Trash2, Loader2, Zap, UserCheck, CheckCircle } from 'lucide-vue-next';
+import { ArrowLeft, ArrowLeftRight, Plus, Pencil, Trash2, Loader2, Zap, UserCheck, CheckCircle, Eye } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import { showSuccess, showError, showConfirm, showFormModal } from '../../utils/alerts';
 
@@ -715,6 +722,89 @@ const setLoginMode = async (mode) => {
     }
   } catch (error) {
     showError('Failed to save settings');
+  }
+};
+
+// Show judge numbers on all or specific screens
+const showJudgeNumbersModal = () => {
+  const judgeOptions = sortedJudges.value.map(j => `
+    <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer">
+      <input type="checkbox" name="judge_select" value="${j.id}" class="w-4 h-4 text-gray-900 rounded border-gray-300 focus:ring-gray-500" />
+      <span class="font-medium text-gray-900">Judge ${j.chair_number}</span>
+      <span class="text-sm text-gray-500">${j.name}</span>
+    </label>
+  `).join('');
+
+  Swal.fire({
+    title: 'Show Judge Numbers',
+    html: `
+      <div class="text-left">
+        <p class="text-sm text-gray-600 mb-4">Display the assigned number on judge screens. Select specific judges or show on all screens.</p>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Duration (seconds)</label>
+          <input type="number" id="duration-input" value="5" min="1" max="30" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500" />
+        </div>
+        
+        <div class="mb-4">
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-sm font-medium text-gray-700">Target Judges</label>
+            <button type="button" id="select-all-btn" class="text-xs text-gray-500 hover:text-gray-700 underline">Select All</button>
+          </div>
+          <div class="space-y-2 max-h-48 overflow-y-auto">
+            ${judgeOptions}
+          </div>
+        </div>
+        
+        <p class="text-xs text-gray-400">Leave all unchecked to show on ALL judge screens</p>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Show Numbers',
+    cancelButtonText: 'Cancel',
+    confirmButtonColor: '#111827',
+    didOpen: () => {
+      // Add select all functionality
+      document.getElementById('select-all-btn')?.addEventListener('click', () => {
+        const checkboxes = document.querySelectorAll('input[name="judge_select"]');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        checkboxes.forEach(cb => cb.checked = !allChecked);
+      });
+    },
+    preConfirm: () => {
+      const duration = parseInt(document.getElementById('duration-input').value) || 5;
+      const selectedJudges = Array.from(document.querySelectorAll('input[name="judge_select"]:checked'))
+        .map(cb => parseInt(cb.value));
+      return { duration: duration * 1000, judgeIds: selectedJudges };
+    }
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      await triggerShowJudgeNumbers(result.value.judgeIds, result.value.duration);
+    }
+  });
+};
+
+// Trigger the show judge numbers broadcast
+const triggerShowJudgeNumbers = async (judgeIds, duration) => {
+  try {
+    const response = await fetch('/api/voting/show-judge-numbers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_id: eventId.value,
+        judge_ids: judgeIds,
+        duration: duration
+      })
+    });
+    
+    if (response.ok) {
+      const target = judgeIds.length === 0 ? 'all judges' : `${judgeIds.length} judge(s)`;
+      showSuccess(`Showing numbers on ${target} for ${duration / 1000}s`);
+    } else {
+      showError('Failed to broadcast');
+    }
+  } catch (error) {
+    showError('Failed to broadcast');
   }
 };
 

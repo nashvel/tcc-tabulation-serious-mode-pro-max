@@ -4,12 +4,9 @@
     <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
       <div class="max-w-5xl mx-auto px-6 py-4">
         <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <img src="/assets/main-logo.png" alt="Logo" class="h-10 w-auto" />
-            <div>
-              <h1 class="text-xl font-bold text-gray-900">Event Setup</h1>
-              <p class="text-sm text-gray-500">Create or continue with an event</p>
-            </div>
+          <div>
+            <h1 class="text-xl font-bold text-gray-900">Event Setup</h1>
+            <p class="text-sm text-gray-500">Create or continue with an event</p>
           </div>
           <div class="flex items-center gap-2">
             <button @click="goToDocumentation" class="p-2 rounded-lg hover:bg-gray-100 transition-colors" title="Documentation">

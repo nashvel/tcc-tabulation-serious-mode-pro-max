@@ -59,6 +59,7 @@ Route::post('voting/lock', [VotingController::class, 'lock']);
 Route::post('voting/unlock', [VotingController::class, 'unlock']);
 Route::get('voting/display-settings', [VotingController::class, 'getDisplaySettings']);
 Route::post('voting/display-settings', [VotingController::class, 'updateDisplaySettings']);
+Route::post('voting/show-judge-numbers', [VotingController::class, 'showJudgeNumbers']);
 
 // Screen Registration Routes (for auto-assigning judge screens)
 Route::post('voting/register-screen', [VotingController::class, 'registerScreen']);

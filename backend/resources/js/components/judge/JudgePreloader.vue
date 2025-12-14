@@ -1,6 +1,6 @@
 <template>
   <div class="judge-preloader">
-    <PodiumLoader :size="64" />
+    <PodiumLoader :size="48" />
   </div>
 </template>
 

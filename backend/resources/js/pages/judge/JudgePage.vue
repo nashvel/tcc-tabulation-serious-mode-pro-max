@@ -70,19 +70,13 @@
   </div>
 
   <!-- Assigned Number Display Screen (auto-assign mode) -->
-  <div v-else-if="showAssignedNumber" class="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex flex-col items-center justify-center">
-    <div class="text-center text-white">
-      <div class="mb-4">
-        <Gavel class="w-16 h-16 mx-auto text-white/80" />
-      </div>
-      <p class="text-lg text-white/80 uppercase tracking-widest mb-2">You are assigned as</p>
-      <div class="text-9xl font-bold mb-4 animate-pulse">
+  <div v-else-if="showAssignedNumber" class="min-h-screen bg-white flex flex-col items-center justify-center">
+    <div class="text-center">
+      <div class="assigned-number text-[12rem] text-gray-800 leading-none">
         {{ String(assignedChairNumber).padStart(2, '0') }}
       </div>
-      <p class="text-xl text-white/90 mb-8">Judge #{{ assignedChairNumber }}</p>
-      <div class="flex items-center justify-center gap-2 text-white/60">
-        <Loader2 class="w-5 h-5 animate-spin" />
-        <span>Proceeding to scoring...</span>
+      <div class="flex items-center justify-center gap-2 text-gray-400 mt-8">
+        <Loader2 class="w-4 h-4 animate-spin" />
       </div>
     </div>
   </div>
@@ -103,8 +97,8 @@
     </div>
   </div>
 
-  <!-- Judge Selection Screen -->
-  <div v-else-if="showJudgeSelection" class="min-h-screen bg-gray-50">
+  <!-- Judge Selection Screen (only for manual mode) -->
+  <div v-else-if="showJudgeSelection && judgeLoginMode === 'manual'" class="min-h-screen bg-gray-50">
     <!-- Header -->
     <div class="bg-white border-b border-gray-200 px-6 py-4">
       <div class="max-w-4xl mx-auto">
@@ -169,6 +163,9 @@
     </div>
   </div>
 
+  <!-- Auto-assign mode: Show preloader while waiting -->
+  <JudgePreloader v-else-if="showJudgeSelection && judgeLoginMode === 'auto'" />
+
   <!-- Scoring Interface -->
   <div v-else class="min-h-screen bg-gray-50 relative font-sans antialiased">
     <!-- Lock Screen Overlay -->
@@ -182,9 +179,10 @@
     <JudgePreloader v-if="!isLocked && !showScoringInterface" />
 
     <!-- Scoring Interface -->
-    <div v-if="!isLocked && showScoringInterface" class="bg-gray-50">
+    <div v-if="!isLocked && showScoringInterface" class="bg-white">
       <!-- Round Header with Progress Counter -->
       <div class="flex items-center justify-between py-3 px-4 bg-white border-b border-gray-200">
+        <!-- Empty left side for balance -->
         <div class="flex-1"></div>
         <div class="text-center flex-1">
           <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-0.5">Currently Scoring</p>
@@ -204,7 +202,7 @@
                 class="h-full transition-all duration-300 ease-out rounded-full"
                 :style="{ 
                   width: progressPercent + '%',
-                  backgroundColor: progressPercent === 100 ? '#22c55e' : '#3b82f6'
+                  backgroundColor: progressPercent === 100 ? '#374151' : '#6b7280'
                 }"
               />
             </div>
@@ -225,7 +223,6 @@
           :displaySettings="displaySettings"
           @toggle-hidden="scoresHidden = !scoresHidden"
           @score-change="handleScoreChange"
-          colorTheme="pink"
         />
 
         <!-- Male Candidates Table -->
@@ -238,7 +235,6 @@
           :scoresHidden="scoresHidden"
           :displaySettings="displaySettings"
           @score-change="handleScoreChange"
-          colorTheme="blue"
           :showHideButton="femaleCandidates.length === 0"
         />
 
@@ -253,7 +249,6 @@
           :displaySettings="displaySettings"
           @toggle-hidden="scoresHidden = !scoresHidden"
           @score-change="handleScoreChange"
-          colorTheme="indigo"
         />
 
         <!-- Group Candidates Table -->
@@ -267,10 +262,10 @@
           :displaySettings="displaySettings"
           @toggle-hidden="scoresHidden = !scoresHidden"
           @score-change="handleScoreChange"
-          colorTheme="purple"
           :showHideButton="soloCandidates.length === 0"
         />
       </div>
+
     </div>
   </div>
 </template>
@@ -344,9 +339,9 @@ const getDeviceId = () => {
   if (!id || !isValidUUID) {
     id = generateUUID();
     localStorage.setItem(STORAGE_KEY, id);
-    console.log('🆔 Generated new device UUID:', id);
+    console.log('[Device] Generated new device UUID:', id);
   } else {
-    console.log('🆔 Using existing device UUID:', id);
+    console.log('[Device] Using existing device UUID:', id);
   }
   
   return id;
@@ -439,13 +434,11 @@ const handleScoreChange = async ({ candidateId, criteriaId, value, maxPoints }) 
     return;
   }
 
-  if (!/^\d*\.?\d*$/.test(value)) return;
-
+  // ScoreTable already validates and caps the value, so just use it directly
   const numValue = parseFloat(value);
   if (!isNaN(numValue)) {
-    const cappedValue = numValue > maxPoints ? maxPoints : numValue;
-    scores.value[key] = cappedValue.toString();
-    queueScore(candidateId, criteriaId, cappedValue);
+    scores.value[key] = value.toString();
+    queueScore(candidateId, criteriaId, numValue);
   }
 };
 
@@ -494,7 +487,7 @@ const flushPendingScores = async () => {
 };
 
 const loadData = async (eid) => {
-  console.log('📡 Loading data for event:', eid);
+  console.log('[JudgePage] Loading data for event:', eid);
   try {
     // Fetch all data in parallel
     const [candidatesRes, roundsRes, criteriaRes, judgesRes, occupiedRes, eventRes] = await Promise.all([
@@ -517,8 +510,8 @@ const loadData = async (eid) => {
       } catch (e) { console.log('No theme applied'); }
     }
 
-    console.log('📥 Raw judges response:', judgesRes);
-    console.log('📥 Occupied judges:', occupiedRes);
+    console.log('[JudgePage] Raw judges response:', judgesRes);
+    console.log('[JudgePage] Occupied judges:', occupiedRes);
 
     candidates.value = Array.isArray(candidatesRes) ? candidatesRes : candidatesRes.data || [];
     rounds.value = Array.isArray(roundsRes) ? roundsRes : roundsRes.data || [];
@@ -530,7 +523,7 @@ const loadData = async (eid) => {
     } else if (judgesRes?.data && Array.isArray(judgesRes.data)) {
       judges.value = judgesRes.data;
     } else if (judgesRes?.error) {
-      console.error('❌ Judges API error:', judgesRes.error);
+      console.error('[JudgePage] Judges API error:', judgesRes.error);
       judges.value = [];
     } else {
       judges.value = [];
@@ -538,10 +531,10 @@ const loadData = async (eid) => {
     
     occupiedJudgeIds.value = occupiedRes?.occupied_judge_ids || [];
     
-    console.log('✅ Loaded judges:', judges.value.length, 'Available:', availableJudges.value.length);
+    console.log('[JudgePage] Loaded judges:', judges.value.length, 'Available:', availableJudges.value.length);
     loading.value = false;
   } catch (error) {
-    console.error('❌ Failed to load event data:', error);
+    console.error('[JudgePage] Failed to load event data:', error);
     showError('Failed to load event data');
     loading.value = false;
   }
@@ -575,7 +568,7 @@ const applyTheme = (theme) => {
   if (theme.background_value) {
     root.style.setProperty('--theme-background', theme.background_value);
   }
-  console.log('🎨 Theme applied:', theme.name);
+  console.log('[Theme] Applied:', theme.name);
 };
 
 const loadVotingState = async (eid) => {
@@ -612,8 +605,8 @@ const loadDisplaySettings = async (eid) => {
       displaySettings.value = data.display_settings;
       // Capture judge login mode (default to 'auto' if not set)
       judgeLoginMode.value = data.display_settings.judge_login_mode || 'auto';
-      console.log('📋 Display settings loaded:', displaySettings.value);
-      console.log('🔐 Judge login mode:', judgeLoginMode.value);
+      console.log('[JudgePage] Display settings loaded:', displaySettings.value);
+      console.log('[JudgePage] Judge login mode:', judgeLoginMode.value);
     }
   } catch (error) {
     console.error('Failed to load display settings:', error);
@@ -635,7 +628,7 @@ const registerScreen = async (eid) => {
     });
     
     const data = await response.json();
-    console.log('📱 Screen registration result:', data);
+    console.log('[Screen] Registration result:', data);
     
     if (data.allowed) {
       screenNumber.value = data.screen_number;
@@ -654,7 +647,7 @@ const registerScreen = async (eid) => {
       return false;
     }
   } catch (error) {
-    console.error('❌ Failed to register screen:', error);
+    console.error('[Screen] Failed to register:', error);
     return false;
   }
 };
@@ -669,23 +662,23 @@ const retryRegistration = async () => {
 // Fetch the active event from server
 const fetchActiveEvent = async () => {
   try {
-    console.log('🔍 Fetching active event...');
+    console.log('[JudgePage] Fetching active event...');
     const response = await fetch('/api/events/active');
-    console.log('📥 Active event response status:', response.status);
+    console.log('[JudgePage] Active event response status:', response.status);
     
     if (response.ok) {
       const data = await response.json();
-      console.log('📥 Active event data:', data);
+      console.log('[JudgePage] Active event data:', data);
       if (data && data.id) {
         activeEvent.value = data;
         return data.id;
       }
     } else {
-      console.log('⚠️ No active event found (status:', response.status, ')');
+      console.log('[JudgePage] No active event found (status:', response.status, ')');
     }
     return null;
   } catch (error) {
-    console.error('❌ Failed to fetch active event:', error);
+    console.error('[JudgePage] Failed to fetch active event:', error);
     return null;
   }
 };
@@ -698,9 +691,9 @@ const checkActiveEvent = async () => {
   showAssignedNumber.value = false;
   notAllowed.value = false;
   
-  console.log('🔍 Checking for active event...');
+  console.log('[JudgePage] Checking for active event...');
   const activeEventId = await fetchActiveEvent();
-  console.log('📋 Active event ID:', activeEventId);
+  console.log('[JudgePage] Active event ID:', activeEventId);
   
   if (activeEventId) {
     eventId.value = activeEventId;
@@ -729,10 +722,12 @@ const checkActiveEvent = async () => {
         loading.value = false;
         await loadJudgeScores(judgeId.value);
         
-        // Show assigned number for 3 seconds, then proceed to scoring
+        // Show assigned number for 3 seconds, then update URL and proceed to scoring
         setTimeout(() => {
           showAssignedNumber.value = false;
           showJudgeSelection.value = false;
+          // Update URL with event_id and judge_id parameters
+          router.replace(`/judge?event_id=${activeEventId}&judge_id=${judgeId.value}`);
         }, 3000);
       } else {
         // Fallback to manual selection if no judge assigned
@@ -756,7 +751,7 @@ const checkActiveEvent = async () => {
 
 // WebSocket handler for voting state changes
 const handleVotingStateChange = async (data) => {
-  console.log('📥 Voting state update:', data);
+  console.log('[WebSocket] Voting state update:', data);
   
   // Handle lock/unlock events
   if (data.action === 'locked') {
@@ -766,14 +761,14 @@ const handleVotingStateChange = async (data) => {
   }
   // Handle display settings change
   else if (data.action === 'display_settings_changed' && data.voting_state?.display_settings) {
-    console.log('🎨 Display settings changed:', data.voting_state.display_settings);
+    console.log('[Settings] Display settings changed:', data.voting_state.display_settings);
     displaySettings.value = data.voting_state.display_settings;
     
     // Check if judge_login_mode changed
     if (data.voting_state.display_settings.judge_login_mode) {
       const newMode = data.voting_state.display_settings.judge_login_mode;
       if (newMode !== judgeLoginMode.value) {
-        console.log('🔐 Judge login mode changed to:', newMode);
+        console.log('[Settings] Judge login mode changed to:', newMode);
         judgeLoginMode.value = newMode;
         // If switching to manual mode and we're in auto-assign flow, reload
         if (newMode === 'manual' && showAssignedNumber.value) {
@@ -785,19 +780,19 @@ const handleVotingStateChange = async (data) => {
   }
   // Handle screen cleared (admin kicked all screens)
   else if (data.action === 'screens_cleared') {
-    console.log('🚫 All screens cleared by admin');
+    console.log('[Screen] All screens cleared by admin');
     notAllowed.value = true;
     notAllowedMessage.value = 'Your session was ended by the administrator';
   }
   // Handle this specific screen being removed
   else if (data.action === 'screen_removed' && data.voting_state?.removed_screen === screenNumber.value) {
-    console.log('🚫 This screen was removed by admin');
+    console.log('[Screen] This screen was removed by admin');
     notAllowed.value = true;
     notAllowedMessage.value = 'Your session was ended by the administrator';
   }
   // Handle screen reassignment
   else if (data.action === 'screen_reassigned' && data.voting_state?.reassigned_screen === screenNumber.value) {
-    console.log('🔄 Screen reassigned to judge:', data.voting_state.new_judge_id);
+    console.log('[Screen] Reassigned to judge:', data.voting_state.new_judge_id);
     if (data.voting_state.new_judge_id) {
       judgeId.value = data.voting_state.new_judge_id.toString();
       await loadJudgeScores(judgeId.value);
@@ -806,7 +801,7 @@ const handleVotingStateChange = async (data) => {
   // Handle round activation/change
   else if ((data.action === 'round_activated' || data.action === 'round_changed') && data.voting_state?.active_round) {
     const newRoundId = data.voting_state.active_round.id.toString();
-    console.log('🔄 Round changed to:', newRoundId, data.voting_state.active_round.name);
+    console.log('[Round] Changed to:', newRoundId, data.voting_state.active_round.name);
     
     selectedRound.value = newRoundId;
     activeRoundName.value = data.voting_state.active_round.name || 'Loading...';
@@ -822,15 +817,48 @@ const handleVotingStateChange = async (data) => {
     selectedRound.value = '';
     showScoringInterface.value = false;
   }
+  // Handle show judge numbers broadcast from admin
+  else if (data.action === 'show_judge_numbers') {
+    const targetJudgeIds = data.voting_state?.judge_ids || [];
+    const duration = data.voting_state?.duration || 5000;
+    const target = data.voting_state?.target || 'all';
+    
+    // Check if this judge should show their number
+    const currentJudgeId = parseInt(judgeId.value);
+    const shouldShow = target === 'all' || targetJudgeIds.includes(currentJudgeId);
+    
+    console.log('📢 Show judge numbers event:', { target, targetJudgeIds, currentJudgeId, shouldShow, duration });
+    
+    if (shouldShow && currentJudgeId) {
+      // Ensure assignedChairNumber is set from judges list if not already
+      if (!assignedChairNumber.value) {
+        const currentJudge = judges.value.find(j => j.id === currentJudgeId);
+        if (currentJudge) {
+          assignedChairNumber.value = currentJudge.chair_number;
+        } else {
+          // Fallback to selectedJudgeNumber computed value
+          assignedChairNumber.value = parseInt(selectedJudgeNumber.value);
+        }
+      }
+      
+      console.log('📢 Showing judge number:', assignedChairNumber.value, 'for', duration, 'ms');
+      // Show the assigned number screen
+      showAssignedNumber.value = true;
+      // Hide after duration
+      setTimeout(() => {
+        showAssignedNumber.value = false;
+      }, duration);
+    }
+  }
 };
 
 // WebSocket handler for screen registration changes
 const handleScreenRegistrationChange = (data) => {
-  console.log('📥 Screen registration update:', data);
+  console.log('[WebSocket] Screen registration update:', data);
   
   // Handle all screens cleared
   if (data.action === 'cleared') {
-    console.log('🚫 All screens cleared by admin');
+    console.log('[Screen] All screens cleared by admin');
     notAllowed.value = true;
     notAllowedMessage.value = 'Your session was ended by the administrator';
     showAssignedNumber.value = false;
@@ -840,7 +868,7 @@ const handleScreenRegistrationChange = (data) => {
   else if (data.action === 'unregistered' && data.affected_screen) {
     const affected = data.affected_screen;
     if (affected.device_id === deviceId.value || affected.screen_number === screenNumber.value) {
-      console.log('🚫 This screen was removed by admin');
+      console.log('[Screen] This screen was removed by admin');
       notAllowed.value = true;
       notAllowedMessage.value = 'Your session was ended by the administrator';
       showAssignedNumber.value = false;
@@ -851,7 +879,7 @@ const handleScreenRegistrationChange = (data) => {
   else if (data.action === 'reassigned' && data.affected_screen) {
     const affected = data.affected_screen;
     if (affected.screen_number === screenNumber.value && affected.new_judge_id) {
-      console.log('🔄 Screen reassigned to judge:', affected.new_judge_id);
+      console.log('[Screen] Reassigned to judge:', affected.new_judge_id);
       judgeId.value = affected.new_judge_id.toString();
       // Find the new chair number from judges list
       const newJudge = judges.value.find(j => j.id === affected.new_judge_id);
@@ -870,7 +898,7 @@ const handleScreenRegistrationChange = (data) => {
     
     // Check if this device is screen_1
     if (screen1 && (screen1.device_id === deviceId.value || screen1.screen_number === screenNumber.value)) {
-      console.log('🔄 This screen was swapped - new judge:', screen1.new_judge_id, 'chair:', screen1.new_chair_number);
+      console.log('[Screen] This screen was swapped - new judge:', screen1.new_judge_id, 'chair:', screen1.new_chair_number);
       judgeId.value = screen1.new_judge_id.toString();
       assignedChairNumber.value = screen1.new_chair_number;
       // Reload scores for the new judge assignment
@@ -883,7 +911,7 @@ const handleScreenRegistrationChange = (data) => {
     }
     // Check if this device is screen_2
     else if (screen2 && (screen2.device_id === deviceId.value || screen2.screen_number === screenNumber.value)) {
-      console.log('🔄 This screen was swapped - new judge:', screen2.new_judge_id, 'chair:', screen2.new_chair_number);
+      console.log('[Screen] This screen was swapped - new judge:', screen2.new_judge_id, 'chair:', screen2.new_chair_number);
       judgeId.value = screen2.new_judge_id.toString();
       assignedChairNumber.value = screen2.new_chair_number;
       // Reload scores for the new judge assignment
@@ -910,26 +938,26 @@ const setupVotingWebSocket = () => {
   }
   
   const channelName = `voting.${eventId.value}`;
-  console.log('📡 JudgePage: Connecting to voting channel:', channelName);
+  console.log('[WebSocket] Connecting to voting channel:', channelName);
   
   const channel = window.Echo.channel(channelName);
   
   channel.subscribed(() => {
-    console.log('✅ JudgePage: Subscribed to voting channel:', channelName);
+    console.log('[WebSocket] Subscribed to voting channel:', channelName);
   });
   
   channel.error((error) => {
     console.error('❌ WebSocket error:', error);
   });
   
-  channel.listen('VotingStateChanged', (data) => {
-    console.log('📥 Received VotingStateChanged event:', data);
+  channel.listen('.VotingStateChanged', (data) => {
+    console.log('[WebSocket] Received VotingStateChanged event:', data);
     handleVotingStateChange(data);
   });
   
   // Listen for screen registration changes
-  channel.listen('ScreenRegistrationChanged', (data) => {
-    console.log('📥 Received ScreenRegistrationChanged event:', data);
+  channel.listen('.ScreenRegistrationChanged', (data) => {
+    console.log('[WebSocket] Received ScreenRegistrationChanged event:', data);
     handleScreenRegistrationChange(data);
   });
   
@@ -938,7 +966,7 @@ const setupVotingWebSocket = () => {
 
 // Handle active event change from admin
 const handleActiveEventChange = (data) => {
-  console.log('📥 Active event changed:', data);
+  console.log('[WebSocket] Active event changed:', data);
   
   // If the new active event is different from current, reload the page
   if (data.event_id && data.event_id !== parseInt(eventId.value)) {
@@ -952,15 +980,15 @@ const handleActiveEventChange = (data) => {
 const setupGlobalWebSocket = () => {
   if (!window.Echo) return null;
   
-  console.log('📡 JudgePage: Connecting to global channel');
+  console.log('[WebSocket] Connecting to global channel');
   
   const channel = window.Echo.channel('global');
   
   channel.subscribed(() => {
-    console.log('✅ JudgePage: Subscribed to global channel');
+    console.log('[WebSocket] Subscribed to global channel');
   });
   
-  channel.listen('ActiveEventChanged', handleActiveEventChange);
+  channel.listen('.ActiveEventChanged', handleActiveEventChange);
   
   return 'global';
 };
@@ -992,6 +1020,14 @@ onMounted(async () => {
       judgeId.value = urlJudgeId;
       showJudgeSelection.value = false;
       await loadJudgeScores(urlJudgeId);
+      
+      // Set assignedChairNumber from judges list for show judge numbers feature
+      const currentJudge = judges.value.find(j => j.id === parseInt(urlJudgeId));
+      if (currentJudge) {
+        assignedChairNumber.value = currentJudge.chair_number;
+      }
+      
+      loading.value = false;
     } else if (judgeLoginMode.value === 'auto') {
       // Auto-assign mode: register screen and get assigned judge
       const registered = await registerScreen(urlEventId);
@@ -1007,10 +1043,12 @@ onMounted(async () => {
         loading.value = false;
         await loadJudgeScores(judgeId.value);
         
-        // Show assigned number for 3 seconds, then proceed to scoring
+        // Show assigned number for 3 seconds, then update URL and proceed to scoring
         setTimeout(() => {
           showAssignedNumber.value = false;
           showJudgeSelection.value = false;
+          // Update URL with event_id and judge_id parameters
+          router.replace(`/judge?event_id=${urlEventId}&judge_id=${judgeId.value}`);
         }, 3000);
       } else {
         // Fallback to manual selection if no judge assigned
@@ -1051,3 +1089,12 @@ onUnmounted(() => {
   }
 });
 </script>
+
+<style scoped>
+.assigned-number {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+</style>

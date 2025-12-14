@@ -13,7 +13,7 @@ REM Wait a bit for Laravel to start
 timeout /t 2 /nobreak
 
 REM Terminal 2: Laravel Backend
-start "Laravel Backend" cmd /k "cd /d %~dp0..\backend && php artisan serve"
+start "Laravel Backend" cmd /k "cd /d %~dp0..\backend && php artisan reverb:start"
 
 REM Terminal 3: Laravel Backend
 start "Laravel Backend" cmd /k "cd /d %~dp0..\backend && npm run dev"

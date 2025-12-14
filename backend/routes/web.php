@@ -67,3 +67,7 @@ Route::get('/judges/configure', function () {
 Route::get('/create-event', function () {
     return view('vue');
 })->name('create-event');
+
+Route::get('/admin/print-judge-scores', function () {
+    return view('vue');
+})->name('admin.print-judge-scores');

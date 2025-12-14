@@ -190,6 +190,13 @@ class PointController extends Controller
         
         // Fire-and-forget broadcast (don't wait for WebSocket response)
         try {
+            Log::info('Broadcasting ScoreUpdated event', [
+                'event_id' => $eventId,
+                'judge_id' => $judgeId,
+                'scores_count' => count($scores),
+                'channel' => 'scores.' . $eventId
+            ]);
+            
             broadcast(new ScoreUpdated(
                 (int)$judgeId,
                 null,
@@ -198,9 +205,14 @@ class PointController extends Controller
                 (int)$eventId,
                 $scores
             ))->toOthers(); // Don't send back to the judge who submitted
+            
+            Log::info('ScoreUpdated broadcast dispatched successfully');
         } catch (\Exception $e) {
             // Log but don't fail the request if broadcast fails
-            Log::warning('Broadcast failed', ['error' => $e->getMessage()]);
+            Log::error('Broadcast failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
         }
         
         // Minimal response for speed

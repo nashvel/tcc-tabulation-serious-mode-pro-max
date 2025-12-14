@@ -439,17 +439,17 @@ const setupWebSocket = () => {
   if (!props.eventId || !window.Echo) return;
   
   const channelName = `scores.${props.eventId}`;
-  console.log('📡 JudgesScoringTab: Connecting to channel:', channelName);
+  console.log('[WebSocket] JudgesScoringTab: Connecting to channel:', channelName);
   
   const channel = window.Echo.channel(channelName);
   
   channel.subscribed(() => {
-    console.log('✅ JudgesScoringTab: Successfully subscribed to channel:', channelName);
+    console.log('[WebSocket] JudgesScoringTab: Subscribed to channel:', channelName);
     isLive.value = true;
   });
   
-  channel.listen('ScoreUpdated', (data) => {
-    console.log('📥 Score update received:', data);
+  channel.listen('.ScoreUpdated', (data) => {
+    console.log('[WebSocket] Score update received:', data);
     handleScoreUpdate(data);
   });
   

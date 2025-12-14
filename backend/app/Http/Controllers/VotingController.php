@@ -964,8 +964,11 @@ class VotingController extends Controller
                 ? $votingState->getDisplaySettingsWithDefaults()
                 : VotingState::getDefaultDisplaySettings();
             
+            $registeredScreens = $votingState?->registered_screens ?? [];
+            
             return response()->json([
                 'display_settings' => $settings,
+                'registered_screens' => $registeredScreens,
             ]);
         } catch (\Exception $e) {
             Log::error('Error getting display settings: ' . $e->getMessage());
@@ -1511,6 +1514,79 @@ class VotingController extends Controller
         } catch (\Exception $e) {
             Log::error('Error swapping screens: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to swap screens'], 500);
+        }
+    }
+
+    /**
+     * Broadcast to judge screens to show their assigned number
+     * Admin can trigger all screens or specific judges to display their number
+     * 
+     * @OA\Post(
+     *     path="/api/voting/show-judge-numbers",
+     *     tags={"Judge Management"},
+     *     summary="Show judge numbers on screens",
+     *     description="Broadcasts to judge screens to display their assigned number. Can target all judges or specific ones.",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"event_id"},
+     *             @OA\Property(property="event_id", type="integer", example=1, description="Event ID"),
+     *             @OA\Property(property="judge_ids", type="array", @OA\Items(type="integer"), example={1, 2, 3}, description="Specific judge IDs to show (empty for all)"),
+     *             @OA\Property(property="duration", type="integer", example=5000, description="Duration in milliseconds to show the number (default 5000)")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Broadcast sent successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Show judge numbers broadcast sent"),
+     *             @OA\Property(property="target", type="string", example="all")
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Missing required parameters")
+     * )
+     */
+    public function showJudgeNumbers(Request $request)
+    {
+        try {
+            $eventId = $request->input('event_id');
+            $judgeIds = $request->input('judge_ids', []); // Empty array means all judges
+            $duration = $request->input('duration', 5000); // Default 5 seconds
+            
+            if (!$eventId) {
+                return response()->json(['error' => 'event_id is required'], 400);
+            }
+            
+            $eventId = (int) $eventId;
+            $duration = (int) $duration;
+            
+            // Determine target
+            $target = empty($judgeIds) ? 'all' : 'specific';
+            
+            // Broadcast to all judge screens
+            broadcast(new VotingStateChanged($eventId, [
+                'judge_ids' => $judgeIds,
+                'duration' => $duration,
+                'target' => $target,
+            ], 'show_judge_numbers'));
+            
+            Log::info("Show judge numbers broadcast for event {$eventId}", [
+                'target' => $target,
+                'judge_ids' => $judgeIds,
+                'duration' => $duration
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Show judge numbers broadcast sent',
+                'target' => $target,
+                'judge_ids' => $judgeIds,
+                'duration' => $duration
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error broadcasting show judge numbers: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to broadcast'], 500);
         }
     }
 
