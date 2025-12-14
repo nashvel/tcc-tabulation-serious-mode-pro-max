@@ -396,15 +396,26 @@ const loadScores = async () => {
   if (!props.eventId) return;
   
   try {
-    const response = await fetch(`/api/points?event_id=${props.eventId}`);
+    // Build URL with optional round_id filter
+    let url = `/api/points?event_id=${props.eventId}`;
+    if (activeRound.value?.id) {
+      url += `&round_id=${activeRound.value.id}`;
+    }
+    
+    const response = await fetch(url);
     const pointsData = await response.json();
+    
+    // Get criteria for the active round only
+    const activeRoundCriteria = activeRound.value?.id 
+      ? (props.criteria || []).filter(c => c.round_id === activeRound.value.id)
+      : props.criteria || [];
     
     const newScores = {};
     props.judges?.forEach(judge => {
       newScores[judge.id] = {};
       props.candidates?.forEach(candidate => {
         newScores[judge.id][candidate.id] = {};
-        props.criteria?.forEach(criterion => {
+        activeRoundCriteria.forEach(criterion => {
           newScores[judge.id][candidate.id][criterion.id] = null;
         });
       });
@@ -434,17 +445,17 @@ const loadVotingState = async () => {
   }
 };
 
-// Setup WebSocket connection
-const setupWebSocket = () => {
-  if (!props.eventId || !window.Echo) return;
+// Setup WebSocket connection for scores
+const setupScoresWebSocket = () => {
+  if (!props.eventId || !window.Echo) return null;
   
   const channelName = `scores.${props.eventId}`;
-  console.log('[WebSocket] JudgesScoringTab: Connecting to channel:', channelName);
+  console.log('[WebSocket] JudgesScoringTab: Connecting to scores channel:', channelName);
   
   const channel = window.Echo.channel(channelName);
   
   channel.subscribed(() => {
-    console.log('[WebSocket] JudgesScoringTab: Subscribed to channel:', channelName);
+    console.log('[WebSocket] JudgesScoringTab: Subscribed to scores channel:', channelName);
     isLive.value = true;
   });
   
@@ -456,22 +467,50 @@ const setupWebSocket = () => {
   return channelName;
 };
 
-let currentChannel = null;
+// Setup WebSocket connection for voting state changes (round changes)
+const setupVotingWebSocket = () => {
+  if (!props.eventId || !window.Echo) return null;
+  
+  const channelName = `voting.${props.eventId}`;
+  console.log('[WebSocket] JudgesScoringTab: Connecting to voting channel:', channelName);
+  
+  const channel = window.Echo.channel(channelName);
+  
+  channel.listen('.VotingStateChanged', (data) => {
+    console.log('[WebSocket] Voting state changed:', data);
+    // Update active round when it changes
+    if (data.action === 'round_activated' || data.action === 'round_changed') {
+      if (data.voting_state?.active_round) {
+        activeRound.value = data.voting_state.active_round;
+      }
+    }
+  });
+  
+  return channelName;
+};
+
+let scoresChannel = null;
+let votingChannel = null;
 
 onMounted(async () => {
   await loadVotingState();
   await loadScores();
   loading.value = false;
   
-  // Setup WebSocket after data is loaded
-  currentChannel = setupWebSocket();
+  // Setup WebSocket channels after data is loaded
+  scoresChannel = setupScoresWebSocket();
+  votingChannel = setupVotingWebSocket();
 });
 
 onUnmounted(() => {
-  // Cleanup WebSocket
-  if (currentChannel && window.Echo) {
-    window.Echo.leave(currentChannel);
-    console.log('🔌 Left channel:', currentChannel);
+  // Cleanup WebSocket channels
+  if (scoresChannel && window.Echo) {
+    window.Echo.leave(scoresChannel);
+    console.log('[WebSocket] Left scores channel:', scoresChannel);
+  }
+  if (votingChannel && window.Echo) {
+    window.Echo.leave(votingChannel);
+    console.log('[WebSocket] Left voting channel:', votingChannel);
   }
   if (updateTimeout) {
     clearTimeout(updateTimeout);
@@ -480,12 +519,28 @@ onUnmounted(() => {
 });
 
 // Re-setup WebSocket if eventId changes
-watch(() => props.eventId, (newEventId, oldEventId) => {
+watch(() => props.eventId, async (newEventId, oldEventId) => {
   if (newEventId !== oldEventId) {
-    if (currentChannel && window.Echo) {
-      window.Echo.leave(currentChannel);
+    // Leave old channels
+    if (scoresChannel && window.Echo) {
+      window.Echo.leave(scoresChannel);
     }
-    currentChannel = setupWebSocket();
+    if (votingChannel && window.Echo) {
+      window.Echo.leave(votingChannel);
+    }
+    // Reload data and setup new channels
+    await loadVotingState();
+    await loadScores();
+    scoresChannel = setupScoresWebSocket();
+    votingChannel = setupVotingWebSocket();
+  }
+});
+
+// Reload scores when active round changes
+watch(activeRound, async (newRound, oldRound) => {
+  if (newRound?.id !== oldRound?.id) {
+    console.log('[JudgesScoringTab] Active round changed, reloading scores...');
+    await loadScores();
   }
 });
 

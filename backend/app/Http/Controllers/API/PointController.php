@@ -31,6 +31,11 @@ class PointController extends Controller
             });
         }
 
+        // Filter by round_id if provided
+        if ($request->has('round_id')) {
+            $query->where('round_id', $request->input('round_id'));
+        }
+
         // Filter by judge_id if provided
         if ($request->has('judge_id')) {
             $query->where('judge_id', $request->input('judge_id'));
