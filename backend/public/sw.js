@@ -35,7 +35,9 @@ self.addEventListener('fetch', (event) => {
       fetch(event.request)
         .catch(() => {
           // If offline, serve the offline page
-          return caches.match('/offline.html');
+          return caches.match('/offline.html').then((response) => {
+            return response || new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+          });
         })
     );
     return;
@@ -44,6 +46,10 @@ self.addEventListener('fetch', (event) => {
   // For other requests, try network first, then cache
   event.respondWith(
     fetch(event.request)
-      .catch(() => caches.match(event.request))
+      .catch(() => {
+        return caches.match(event.request).then((response) => {
+          return response || new Response('Not found', { status: 404, statusText: 'Not Found' });
+        });
+      })
   );
 });

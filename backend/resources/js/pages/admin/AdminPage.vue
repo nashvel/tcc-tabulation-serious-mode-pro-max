@@ -277,7 +277,7 @@ const activateEventForJudging = async (eventId) => {
     });
     
     if (response.ok) {
-      console.log(`✅ Event ${eventId} set as active for judging`);
+      console.log(`Event ${eventId} set as active for judging`);
     } else {
       console.error('Failed to set event as active for judging');
     }
