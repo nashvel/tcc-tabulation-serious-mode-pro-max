@@ -15,6 +15,7 @@ class VotingState extends Model
         'event_id',
         'is_active',
         'is_locked',
+        'show_judge_numbers',
         'active_session_id',
         'active_round_id',
         'active_criteria',
@@ -26,6 +27,7 @@ class VotingState extends Model
     protected $casts = [
         'is_active' => 'boolean',
         'is_locked' => 'boolean',
+        'show_judge_numbers' => 'boolean',
         'active_criteria' => 'array',
         'occupied_judges' => 'array',
         'display_settings' => 'array',

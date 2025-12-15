@@ -71,14 +71,14 @@
               class="py-2 px-2 text-center border-r border-gray-200"
             >
               <input
-                type="number"
+                type="text"
+                inputmode="decimal"
                 :value="scores[`${candidate.id}-${crit.id}`] || ''"
                 @input="handleInput(candidate.id, crit.id, $event.target.value, crit.points, $event)"
+                @keydown="restrictInput($event)"
+                @paste="handlePaste($event)"
                 @focus="activeInput = `${candidate.id}-${crit.id}`"
                 @blur="activeInput = null"
-                :max="crit.points"
-                min="0"
-                step="0.5"
                 :placeholder="`0-${crit.points}`"
                 class="w-full text-center py-3 px-2 text-lg font-bold border-2 rounded-lg transition-all"
                 :class="[
@@ -141,6 +141,44 @@ const props = defineProps({
 const emit = defineEmits(['toggle-hidden', 'score-change', 'flush-scores']);
 
 const activeInput = ref(null);
+
+// Restrict input to only digits and one dot
+const restrictInput = (event) => {
+  const key = event.key;
+  const currentValue = event.target.value;
+  
+  // Allow: backspace, delete, tab, escape, enter, arrow keys
+  if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(key)) {
+    return;
+  }
+  
+  // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+  if ((event.ctrlKey || event.metaKey) && ['a', 'c', 'v', 'x'].includes(key.toLowerCase())) {
+    return;
+  }
+  
+  // Allow dot only if there isn't one already
+  if (key === '.') {
+    if (currentValue.includes('.')) {
+      event.preventDefault();
+    }
+    return;
+  }
+  
+  // Only allow digits 0-9
+  if (!/^[0-9]$/.test(key)) {
+    event.preventDefault();
+  }
+};
+
+// Handle paste - only allow valid numbers
+const handlePaste = (event) => {
+  const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+  // Only allow if pasted text is a valid number (digits and at most one dot)
+  if (!/^\d*\.?\d*$/.test(pastedText)) {
+    event.preventDefault();
+  }
+};
 
 const handleInput = (candidateId, criteriaId, value, maxPoints, event) => {
   // If empty, just emit

@@ -85,7 +85,7 @@
           <button
             v-if="registeredScreens.length >= 2"
             @click="openSwapModal"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <ArrowLeftRight :size="14" />
             Swap
@@ -103,8 +103,8 @@
       </div>
 
       <!-- Empty State -->
-      <div v-if="registeredScreens.length === 0" class="text-center py-12">
-        <Monitor class="w-12 h-12 text-gray-300 mx-auto mb-3" />
+      <div v-if="registeredScreens.length === 0" class="text-center py-4">
+        <Monitor class="w-8 h-8 text-gray-300 mx-auto mb-2" />
         <p class="text-gray-500 text-sm">No screens registered yet</p>
         <p class="text-gray-400 text-xs mt-1">Screens will appear here when judges connect</p>
       </div>
@@ -252,9 +252,9 @@
           <button 
             @click="performSwap"
             :disabled="!swapScreen1 || !swapScreen2 || swappingScreens"
-            class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <div v-if="swappingScreens" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <div v-if="swappingScreens" class="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
             <ArrowLeftRight v-else :size="16" />
             Swap
           </button>

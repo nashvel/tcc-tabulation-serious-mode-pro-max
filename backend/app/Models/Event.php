@@ -22,6 +22,8 @@ class Event extends Model
         'end_date',
         'theme_id',
         'template_id',
+        'header_image',
+        'lock_screen_image',
     ];
 
     protected $with = ['days'];

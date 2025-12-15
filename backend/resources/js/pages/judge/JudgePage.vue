@@ -169,10 +169,22 @@
   <!-- Scoring Interface -->
   <div v-else class="min-h-screen bg-gray-50 relative font-sans antialiased">
     <!-- Lock Screen Overlay -->
-    <div v-if="isLocked" class="fixed inset-0 bg-gray-900 z-[9999] flex flex-col items-center justify-center text-white">
-      <Lock class="w-20 h-20 text-amber-500 mb-6" />
-      <h1 class="text-3xl font-bold mb-2">Screen Locked</h1>
-      <p class="text-gray-400">Waiting for admin to unlock...</p>
+    <div v-if="isLocked" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center">
+      <!-- Custom Lock Screen Image -->
+      <template v-if="activeEvent?.lock_screen_image && !lockScreenImageError">
+        <img 
+          :src="activeEvent.lock_screen_image" 
+          alt="Lock Screen"
+          class="max-w-full max-h-full object-contain"
+          @error="lockScreenImageError = true"
+        />
+      </template>
+      <!-- Default Lock Screen -->
+      <template v-else>
+        <Lock class="w-20 h-20 text-gray-400 mb-6" />
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Screen Locked</h1>
+        <p class="text-gray-500">Waiting for admin to unlock...</p>
+      </template>
     </div>
 
     <!-- Waiting for Admin Screen -->
@@ -180,6 +192,16 @@
 
     <!-- Scoring Interface -->
     <div v-if="!isLocked && showScoringInterface" class="bg-white">
+      <!-- Custom Header Image -->
+      <div v-if="activeEvent?.header_image && !headerImageError" class="w-full bg-gray-50 border-b border-gray-200">
+        <img 
+          :src="activeEvent.header_image" 
+          alt="Event Header"
+          class="w-full h-auto max-h-32 object-contain mx-auto"
+          @error="headerImageError = true"
+        />
+      </div>
+
       <!-- Round Header with Progress Counter -->
       <div class="flex items-center justify-between py-3 px-4 bg-white border-b border-gray-200">
         <!-- Empty left side for balance -->
@@ -297,6 +319,10 @@ const selectedRound = ref('');
 const scoresHidden = ref(false);
 const scores = ref({});
 const eventTheme = ref(null);
+
+// Image error states
+const headerImageError = ref(false);
+const lockScreenImageError = ref(false);
 
 // Screen registration state
 const notAllowed = ref(false);
@@ -671,6 +697,9 @@ const fetchActiveEvent = async () => {
       console.log('[JudgePage] Active event data:', data);
       if (data && data.id) {
         activeEvent.value = data;
+        // Reset image error states when event changes
+        headerImageError.value = false;
+        lockScreenImageError.value = false;
         return data.id;
       }
     } else {
@@ -817,17 +846,16 @@ const handleVotingStateChange = async (data) => {
     selectedRound.value = '';
     showScoringInterface.value = false;
   }
-  // Handle show judge numbers broadcast from admin
+  // Handle show judge numbers broadcast from admin (toggle on)
   else if (data.action === 'show_judge_numbers') {
     const targetJudgeIds = data.voting_state?.judge_ids || [];
-    const duration = data.voting_state?.duration || 5000;
     const target = data.voting_state?.target || 'all';
     
     // Check if this judge should show their number
     const currentJudgeId = parseInt(judgeId.value);
     const shouldShow = target === 'all' || targetJudgeIds.includes(currentJudgeId);
     
-    console.log('📢 Show judge numbers event:', { target, targetJudgeIds, currentJudgeId, shouldShow, duration });
+    console.log('[JudgeNumbers] Show event:', { target, targetJudgeIds, currentJudgeId, shouldShow });
     
     if (shouldShow && currentJudgeId) {
       // Ensure assignedChairNumber is set from judges list if not already
@@ -841,14 +869,15 @@ const handleVotingStateChange = async (data) => {
         }
       }
       
-      console.log('📢 Showing judge number:', assignedChairNumber.value, 'for', duration, 'ms');
-      // Show the assigned number screen
+      console.log('[JudgeNumbers] Showing judge number:', assignedChairNumber.value);
+      // Show the assigned number screen (stays until hide_judge_numbers)
       showAssignedNumber.value = true;
-      // Hide after duration
-      setTimeout(() => {
-        showAssignedNumber.value = false;
-      }, duration);
     }
+  }
+  // Handle hide judge numbers broadcast from admin (toggle off)
+  else if (data.action === 'hide_judge_numbers') {
+    console.log('[JudgeNumbers] Hide event received');
+    showAssignedNumber.value = false;
   }
 };
 

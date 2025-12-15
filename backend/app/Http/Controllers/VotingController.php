@@ -101,6 +101,7 @@ class VotingController extends Controller
             $response = [
                 'event_id' => $votingState->event_id,
                 'is_locked' => $votingState->is_locked ?? false,
+                'show_judge_numbers' => $votingState->show_judge_numbers ?? false,
                 'active_session' => $votingState->activeSession,
                 'active_round' => null,
                 'active_round_id' => $votingState->active_round_id,
@@ -1552,40 +1553,81 @@ class VotingController extends Controller
         try {
             $eventId = $request->input('event_id');
             $judgeIds = $request->input('judge_ids', []); // Empty array means all judges
-            $duration = $request->input('duration', 5000); // Default 5 seconds
             
             if (!$eventId) {
                 return response()->json(['error' => 'event_id is required'], 400);
             }
             
             $eventId = (int) $eventId;
-            $duration = (int) $duration;
             
             // Determine target
             $target = empty($judgeIds) ? 'all' : 'specific';
             
+            // Update voting state to track show_judge_numbers
+            $votingState = VotingState::firstOrCreate(
+                ['event_id' => $eventId],
+                ['show_judge_numbers' => false]
+            );
+            $votingState->show_judge_numbers = true;
+            $votingState->save();
+            
             // Broadcast to all judge screens
             broadcast(new VotingStateChanged($eventId, [
                 'judge_ids' => $judgeIds,
-                'duration' => $duration,
                 'target' => $target,
             ], 'show_judge_numbers'));
             
             Log::info("Show judge numbers broadcast for event {$eventId}", [
                 'target' => $target,
-                'judge_ids' => $judgeIds,
-                'duration' => $duration
+                'judge_ids' => $judgeIds
             ]);
             
             return response()->json([
                 'success' => true,
                 'message' => 'Show judge numbers broadcast sent',
                 'target' => $target,
-                'judge_ids' => $judgeIds,
-                'duration' => $duration
+                'show_judge_numbers' => true
             ]);
         } catch (\Exception $e) {
             Log::error('Error broadcasting show judge numbers: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to broadcast'], 500);
+        }
+    }
+
+    /**
+     * Hide judge numbers on all screens
+     */
+    public function hideJudgeNumbers(Request $request)
+    {
+        try {
+            $eventId = $request->input('event_id');
+            
+            if (!$eventId) {
+                return response()->json(['error' => 'event_id is required'], 400);
+            }
+            
+            $eventId = (int) $eventId;
+            
+            // Update voting state
+            $votingState = VotingState::firstOrCreate(
+                ['event_id' => $eventId],
+                ['show_judge_numbers' => true]
+            );
+            $votingState->show_judge_numbers = false;
+            $votingState->save();
+            
+            // Broadcast to all judge screens
+            broadcast(new VotingStateChanged($eventId, [], 'hide_judge_numbers'));
+            
+            Log::info("Hide judge numbers broadcast for event {$eventId}");
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Hide judge numbers broadcast sent',
+                'show_judge_numbers' => false
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error broadcasting hide judge numbers: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to broadcast'], 500);
         }
     }

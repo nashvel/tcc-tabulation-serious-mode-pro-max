@@ -27,6 +27,7 @@ class RoundController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'event_id' => 'required|integer|exists:events,id',
             'spot' => 'required|integer',
             'name' => 'required|string|max:120'
         ]);

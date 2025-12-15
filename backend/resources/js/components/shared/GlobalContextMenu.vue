@@ -21,6 +21,20 @@
         {{ isTogglingLock ? 'Toggling...' : isLocked ? 'Unlock Judges' : 'Lock Judges' }}
       </button>
 
+      <!-- Show/Hide Judge Numbers -->
+      <button
+        @click="handleShowJudgeNumbers"
+        :disabled="isShowingNumbers"
+        :class="[
+          'w-full px-4 py-2 text-left text-sm flex items-center gap-3 border-b border-gray-200 transition-colors',
+          isShowingNumbers ? 'opacity-50 cursor-not-allowed text-gray-500' : 'text-gray-700 hover:bg-gray-100'
+        ]"
+      >
+        <span v-if="isShowingNumbers" class="animate-spin">⟳</span>
+        <component v-else :is="judgeNumbersVisible ? 'HashOff' : 'Hash'" class="w-4 h-4" />
+        {{ isShowingNumbers ? 'Toggling...' : judgeNumbersVisible ? 'Hide Judge Numbers' : 'Show Judge Numbers' }}
+      </button>
+
       <!-- Switch Category with Submenu -->
       <div
         v-if="eventSequence.length > 0"
@@ -89,7 +103,7 @@
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue';
-import { Lock, LockOpen, SkipForward, ChevronRight, Copy } from 'lucide-vue-next';
+import { Lock, LockOpen, SkipForward, ChevronRight, Copy, Hash, EyeOff as HashOff } from 'lucide-vue-next';
 import { showSuccess, showError } from '../../utils/alerts';
 
 const props = defineProps({
@@ -107,6 +121,8 @@ const emit = defineEmits(['close', 'lock-change', 'category-change']);
 const menuRef = ref(null);
 const isLocked = ref(false);
 const isTogglingLock = ref(false);
+const isShowingNumbers = ref(false);
+const judgeNumbersVisible = ref(false); // Track if judge numbers are currently shown
 const isSwitchingCategory = ref(false);
 const selectedCategoryIndex = ref(0);
 const categorySubmenu = ref({ visible: false, position: 'right' });
@@ -119,21 +135,22 @@ watch(() => props.activeRound, (newRound) => {
   }
 }, { immediate: true });
 
-// Load lock state
-const loadLockState = async () => {
+// Load lock state and judge numbers state
+const loadState = async () => {
   if (!props.eventId) return;
   try {
     const response = await fetch(`/api/voting/state?event_id=${props.eventId}`);
     if (response.ok) {
       const data = await response.json();
       isLocked.value = data.is_locked ?? false;
+      judgeNumbersVisible.value = data.show_judge_numbers ?? false;
     }
   } catch (error) {
-    console.error('Error loading lock state:', error);
+    console.error('Error loading state:', error);
   }
 };
 
-watch(() => props.eventId, loadLockState, { immediate: true });
+watch(() => props.eventId, loadState, { immediate: true });
 
 // Lock/Unlock handler
 const handleLockToggle = async () => {
@@ -163,6 +180,37 @@ const handleLockToggle = async () => {
     showError('Failed to toggle lock');
   } finally {
     isTogglingLock.value = false;
+    emit('close');
+  }
+};
+
+// Show/Hide Judge Numbers handler (toggle)
+const handleShowJudgeNumbers = async () => {
+  if (!props.eventId) {
+    showError('Event not loaded yet');
+    emit('close');
+    return;
+  }
+  
+  isShowingNumbers.value = true;
+  try {
+    const endpoint = judgeNumbersVisible.value ? 'hide-judge-numbers' : 'show-judge-numbers';
+    const response = await fetch(`/api/voting/${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_id: props.eventId })
+    });
+
+    if (response.ok) {
+      judgeNumbersVisible.value = !judgeNumbersVisible.value;
+      showSuccess(judgeNumbersVisible.value ? 'Showing judge numbers' : 'Hiding judge numbers');
+    } else {
+      showError('Failed to toggle judge numbers');
+    }
+  } catch (error) {
+    showError('Failed to toggle judge numbers');
+  } finally {
+    isShowingNumbers.value = false;
     emit('close');
   }
 };

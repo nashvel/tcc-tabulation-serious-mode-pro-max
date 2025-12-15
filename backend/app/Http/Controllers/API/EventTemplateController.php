@@ -40,6 +40,8 @@ class EventTemplateController extends Controller
             'event_type' => 'required|string|max:50',
             'default_judges' => 'integer|min:1|max:20',
             'default_theme_id' => 'nullable|exists:event_themes,id',
+            'header_image' => 'nullable|string|max:255',
+            'lock_screen_image' => 'nullable|string|max:255',
         ]);
 
         $validated['slug'] = \Str::slug($validated['name']);
@@ -64,6 +66,8 @@ class EventTemplateController extends Controller
             'event_type' => 'string|max:50',
             'default_judges' => 'integer|min:1|max:20',
             'default_theme_id' => 'nullable|exists:event_themes,id',
+            'header_image' => 'nullable|string|max:255',
+            'lock_screen_image' => 'nullable|string|max:255',
             'is_active' => 'boolean',
         ]);
 
@@ -99,9 +103,11 @@ class EventTemplateController extends Controller
             'event_date' => 'required|date',
             'description' => 'nullable|string',
             'theme_id' => 'nullable|exists:event_themes,id',
+            'header_image' => 'nullable|string|max:255',
+            'lock_screen_image' => 'nullable|string|max:255',
         ]);
 
-        // Create the event
+        // Create the event - inherit visual settings from template if not explicitly provided
         $event = Event::create([
             'title' => $validated['title'],
             'event_date' => $validated['event_date'],
@@ -112,6 +118,8 @@ class EventTemplateController extends Controller
             'status' => 'active',
             'theme_id' => $validated['theme_id'] ?? $template->default_theme_id,
             'template_id' => $template->id,
+            'header_image' => $validated['header_image'] ?? $template->header_image,
+            'lock_screen_image' => $validated['lock_screen_image'] ?? $template->lock_screen_image,
         ]);
 
         // Create participants from template

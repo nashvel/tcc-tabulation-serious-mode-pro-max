@@ -382,10 +382,10 @@ try {
     ]);
 
     $criteria2 = [
-        ['name' => 'Attire and Carriage, Personality', 'points' => 35],
+        ['name' => 'Attire and Carriage, Personality', 'points' => 30],
         ['name' => 'Poise and Bearing', 'points' => 20],
         ['name' => 'Mastery', 'points' => 20],
-        ['name' => 'Beauty of Face', 'points' => 25],
+        ['name' => 'Beauty of Face', 'points' => 30],
     ];
 
     foreach ($criteria2 as $crit) {
@@ -436,8 +436,8 @@ try {
     $criteria4 = [
         ['name' => 'Poise and Bearing', 'points' => 30],
         ['name' => 'Design and Fitting', 'points' => 25],
-        ['name' => 'Stage Deportment', 'points' => 15],
-        ['name' => 'Facial Appearance', 'points' => 20],
+        ['name' => 'Stage Deportment', 'points' => 20],
+        ['name' => 'Facial Appearance', 'points' => 25],
     ];
 
     foreach ($criteria4 as $crit) {

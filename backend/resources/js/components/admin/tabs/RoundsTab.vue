@@ -1,10 +1,14 @@
 <template>
-  <div>
+  <div class="p-4">
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-lg font-semibold text-gray-900">Rounds</h2>
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-semibold text-gray-900">Rounds</h2>
+        <HelpButton @click="startTour" />
+      </div>
       <button
-        @click="showAddModal = true"
-        class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+        id="add-round-btn"
+        @click="addRound"
+        class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
       >
         <Plus :size="16" />
         Add Round
@@ -12,14 +16,14 @@
     </div>
 
     <!-- Rounds Table -->
-    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div id="rounds-table" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
       <table class="w-full">
         <thead class="bg-gray-50 border-b border-gray-200">
           <tr>
             <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Order</th>
             <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Name</th>
-            <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
-            <th class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase">Actions</th>
+            <th id="status-column" class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+            <th id="actions-column" class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
@@ -61,18 +65,35 @@
             </td>
           </tr>
           <tr v-if="!rounds?.length">
-            <td colspan="4" class="py-8 text-center text-gray-500">No rounds yet</td>
+            <td colspan="4" class="py-4 text-center text-gray-500 text-sm">No rounds yet</td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <!-- Tour Tooltip -->
+    <TourTooltip
+      :isActive="tour.isActive.value"
+      :currentStep="tour.currentStep.value"
+      :totalSteps="tourSteps.length"
+      :step="tourSteps[tour.currentStep.value] || {}"
+      :tooltipStyle="tour.tooltipStyle"
+      :arrowStyle="tour.arrowStyle"
+      :placement="tour.placement.value"
+      @next="tour.nextStep"
+      @prev="tour.prevStep"
+      @skip="tour.endTour(false)"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import { Plus, Pencil, Trash2, Play } from 'lucide-vue-next';
-import { showError, showSuccess, showConfirm } from '../../../utils/alerts';
+import { showError, showSuccess, showConfirm, showFormModal } from '../../../utils/alerts';
+import { useTour } from '../../../composables/useTour';
+import TourTooltip from '../../shared/TourTooltip.vue';
+import HelpButton from '../../shared/HelpButton.vue';
 
 const props = defineProps({
   eventId: [String, Number],
@@ -83,6 +104,40 @@ const emit = defineEmits(['refresh']);
 
 const showAddModal = ref(false);
 const activeRoundId = ref(null);
+
+// Tour steps for Rounds tab
+const tourSteps = [
+  {
+    target: '#add-round-btn',
+    title: 'Add Round',
+    content: 'Click here to create a new round. Rounds represent different stages of your event (e.g., Sports Attire, Talent, Q&A).',
+    placement: 'bottom'
+  },
+  {
+    target: '#rounds-table',
+    title: 'Rounds List',
+    content: 'All your rounds are displayed here with their order, name, and current status.',
+    placement: 'bottom'
+  },
+  {
+    target: '#status-column',
+    title: 'Active Status',
+    content: 'Shows which round is currently active for judging. Only one round can be active at a time.',
+    placement: 'bottom'
+  },
+  {
+    target: '#actions-column',
+    title: 'Round Actions',
+    content: 'Use these buttons to activate a round for judging (play icon), edit its details, or delete it.',
+    placement: 'left'
+  }
+];
+
+const tour = useTour('rounds-tab', tourSteps);
+
+const startTour = () => {
+  tour.startTour();
+};
 
 const loadVotingState = async () => {
   if (!props.eventId) return;
@@ -116,19 +171,80 @@ const activateRound = async (round) => {
   }
 };
 
-const editRound = (round) => {
-  console.log('Edit round:', round);
+const addRound = async () => {
+  const result = await showFormModal('Add Round', {
+    name: { label: 'Round Name', type: 'text', placeholder: 'e.g. Sports Attire' },
+    spot: { label: 'Order', type: 'number', value: (props.rounds?.length || 0) + 1 }
+  }, { confirmText: 'Add Round' });
+  
+  if (!result) return;
+  if (!result.name?.trim()) {
+    showError('Round name is required');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/rounds', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_id: props.eventId,
+        name: result.name.trim(),
+        spot: parseInt(result.spot) || 1
+      })
+    });
+    
+    if (!response.ok) throw new Error('Failed to add round');
+    
+    emit('refresh');
+    showSuccess('Round added successfully');
+  } catch (error) {
+    showError('Failed to add round');
+  }
+};
+
+const editRound = async (round) => {
+  const result = await showFormModal('Edit Round', {
+    name: { label: 'Round Name', type: 'text', value: round.name },
+    spot: { label: 'Order', type: 'number', value: round.spot || round.order || 1 }
+  }, { confirmText: 'Save Changes' });
+  
+  if (!result) return;
+  if (!result.name?.trim()) {
+    showError('Round name is required');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/rounds/${round.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: result.name.trim(),
+        spot: parseInt(result.spot) || 1
+      })
+    });
+    
+    if (!response.ok) throw new Error('Failed to update round');
+    
+    emit('refresh');
+    showSuccess('Round updated successfully');
+  } catch (error) {
+    showError('Failed to update round');
+  }
 };
 
 const deleteRound = async (id) => {
-  const confirmed = await showConfirm('Delete Round', 'Are you sure you want to delete this round?', {
+  const confirmed = await showConfirm('Delete Round', 'Are you sure you want to delete this round? This will also delete all criteria and scores for this round.', {
     confirmText: 'Delete',
     confirmColor: '#dc2626'
   });
   if (!confirmed) return;
   
   try {
-    await fetch(`/api/rounds/${id}`, { method: 'DELETE' });
+    const response = await fetch(`/api/rounds/${id}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Failed to delete round');
+    
     emit('refresh');
     showSuccess('Round deleted successfully');
   } catch (error) {

@@ -1,14 +1,6 @@
 <template>
   <div>
-    <!-- Loading State -->
-    <div v-if="loading" class="flex items-center justify-center py-20">
-      <div class="text-center">
-        <div class="w-8 h-8 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-        <p class="text-sm text-gray-600">Loading best in results...</p>
-      </div>
-    </div>
-
-    <template v-else>
+    <template v-if="!loading">
       <!-- Category Tabs -->
       <div class="px-4 py-3 border-b-2 border-gray-200 bg-gray-50 overflow-x-auto">
         <div class="flex gap-1 min-w-max">
@@ -32,10 +24,9 @@
       </div>
 
       <!-- Empty State -->
-      <div v-if="!currentResult || !currentResult.allResults.length" class="p-8 text-center text-gray-500">
-        <Trophy class="w-12 h-12 mx-auto mb-4 text-gray-400" />
-        <p class="mt-4 text-lg">No scores available for this category</p>
-        <p class="text-sm text-gray-400 mt-2">Scores will appear once judges submit their evaluations</p>
+      <div v-if="!currentResult || !currentResult.allResults.length" class="p-4 text-center text-gray-500">
+        <Trophy class="w-8 h-8 mx-auto mb-2 text-gray-400" />
+        <p class="text-sm">No scores available for this category</p>
       </div>
 
       <!-- Winner Display with Rankings List -->

@@ -115,6 +115,12 @@ class EventController extends Controller
         $validated = $request->validate([
             'title' => 'sometimes|string|max:255',
             'year' => 'sometimes|integer',
+            'event_date' => 'sometimes|nullable|date',
+            'description' => 'sometimes|nullable|string',
+            'event_type' => 'sometimes|nullable|string',
+            'number_of_judges' => 'sometimes|nullable|integer|min:1|max:20',
+            'header_image' => 'sometimes|nullable|string|max:255',
+            'lock_screen_image' => 'sometimes|nullable|string|max:255',
             'days' => 'sometimes|array',
             'days.*.day_number' => 'required_with:days|integer',
             'days.*.title' => 'required_with:days|string|max:255',
@@ -161,6 +167,8 @@ class EventController extends Controller
             'number_of_judges' => 'nullable|integer|min:1|max:15',
             'event_days' => 'nullable|array',
             'important_people' => 'nullable|array',
+            'header_image' => 'nullable|string|max:255',
+            'lock_screen_image' => 'nullable|string|max:255',
         ]);
 
         // Create or update event
@@ -173,6 +181,8 @@ class EventController extends Controller
                 'event_type' => $validated['event_type'] ?? 'pageant',
                 'number_of_judges' => $validated['number_of_judges'] ?? null,
                 'year' => date('Y'),
+                'header_image' => $validated['header_image'] ?? $event->header_image,
+                'lock_screen_image' => $validated['lock_screen_image'] ?? $event->lock_screen_image,
             ]);
         } else {
             $event = Event::create([
@@ -184,6 +194,8 @@ class EventController extends Controller
                 'number_of_judges' => $validated['number_of_judges'] ?? null,
                 'year' => date('Y'),
                 'status' => 'active',
+                'header_image' => $validated['header_image'] ?? null,
+                'lock_screen_image' => $validated['lock_screen_image'] ?? null,
             ]);
         }
 

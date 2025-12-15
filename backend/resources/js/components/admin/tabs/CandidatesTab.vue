@@ -1,10 +1,14 @@
 <template>
-  <div>
+  <div class="p-4">
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-lg font-semibold text-gray-900">Candidates</h2>
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-semibold text-gray-900">Candidates</h2>
+        <HelpButton @click="startTour" />
+      </div>
       <button
+        id="add-candidate-btn"
         @click="openAddModal"
-        class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+        class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
       >
         <Plus :size="16" />
         Add Candidate
@@ -12,15 +16,15 @@
     </div>
 
     <!-- Candidates Table -->
-    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div id="candidates-table" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
       <table class="w-full">
         <thead class="bg-gray-50 border-b border-gray-200">
           <tr>
             <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">#</th>
             <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Name</th>
-            <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Type</th>
+            <th id="type-column" class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Type</th>
             <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Team/Dept</th>
-            <th class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase">Actions</th>
+            <th id="candidate-actions" class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
@@ -53,7 +57,7 @@
             </td>
           </tr>
           <tr v-if="!candidates?.length">
-            <td colspan="5" class="py-8 text-center text-gray-500">No candidates yet</td>
+            <td colspan="5" class="py-4 text-center text-gray-500 text-sm">No candidates yet</td>
           </tr>
         </tbody>
       </table>
@@ -120,7 +124,7 @@
             </button>
             <button 
               type="submit"
-              class="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+              class="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
             >
               {{ editingCandidate ? 'Update' : 'Add Candidate' }}
             </button>
@@ -128,6 +132,20 @@
         </form>
       </div>
     </div>
+
+    <!-- Tour Tooltip -->
+    <TourTooltip
+      :isActive="tour.isActive.value"
+      :currentStep="tour.currentStep.value"
+      :totalSteps="tourSteps.length"
+      :step="tourSteps[tour.currentStep.value] || {}"
+      :tooltipStyle="tour.tooltipStyle"
+      :arrowStyle="tour.arrowStyle"
+      :placement="tour.placement.value"
+      @next="tour.nextStep"
+      @prev="tour.prevStep"
+      @skip="tour.endTour(false)"
+    />
   </div>
 </template>
 
@@ -135,6 +153,9 @@
 import { ref } from 'vue';
 import { Plus, Pencil, Trash2 } from 'lucide-vue-next';
 import { showError, showSuccess, showConfirm } from '../../../utils/alerts';
+import { useTour } from '../../../composables/useTour';
+import TourTooltip from '../../shared/TourTooltip.vue';
+import HelpButton from '../../shared/HelpButton.vue';
 
 const props = defineProps({
   eventId: [String, Number],
@@ -143,26 +164,60 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 
+// Tour steps for Candidates tab
+const tourSteps = [
+  {
+    target: '#add-candidate-btn',
+    title: 'Add Candidate',
+    content: 'Click here to add a new candidate/participant to your event.',
+    placement: 'bottom'
+  },
+  {
+    target: '#candidates-table',
+    title: 'Candidates List',
+    content: 'All your candidates are displayed here with their number, name, type, and team/department.',
+    placement: 'bottom'
+  },
+  {
+    target: '#type-column',
+    title: 'Candidate Type',
+    content: 'Shows the type of candidate: Female, Male, Solo, or Group. This determines how they are grouped in results.',
+    placement: 'bottom'
+  },
+  {
+    target: '#candidate-actions',
+    title: 'Edit & Delete',
+    content: 'Use these buttons to edit candidate details or remove them from the event.',
+    placement: 'left'
+  }
+];
+
+const tour = useTour('candidates-tab', tourSteps);
+
+const startTour = () => {
+  tour.startTour();
+};
+
 const showAddModal = ref(false);
 const editingCandidate = ref(null);
 const formData = ref({ number: '', name: '', gender: 'Female', department: '' });
 
-// Type badge styling based on participant type
+// Type badge styling - white background for all
 const getTypeBadgeClass = (type) => {
-  const baseClass = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
+  const baseClass = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border';
   switch (type?.toLowerCase()) {
     case 'female':
-      return `${baseClass} bg-pink-100 text-pink-700`;
+      return `${baseClass} bg-white border-pink-300 text-pink-600`;
     case 'male':
-      return `${baseClass} bg-blue-100 text-blue-700`;
+      return `${baseClass} bg-white border-blue-300 text-blue-600`;
     case 'solo':
     case 'individual':
-      return `${baseClass} bg-indigo-100 text-indigo-700`;
+      return `${baseClass} bg-white border-indigo-300 text-indigo-600`;
     case 'group':
     case 'team':
-      return `${baseClass} bg-purple-100 text-purple-700`;
+      return `${baseClass} bg-white border-purple-300 text-purple-600`;
     default:
-      return `${baseClass} bg-gray-100 text-gray-700`;
+      return `${baseClass} bg-white border-gray-300 text-gray-600`;
   }
 };
 

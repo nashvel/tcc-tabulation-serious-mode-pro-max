@@ -16,6 +16,8 @@ class EventTemplate extends Model
         'event_type',
         'default_judges',
         'default_theme_id',
+        'header_image',
+        'lock_screen_image',
         'is_system',
         'is_active',
     ];

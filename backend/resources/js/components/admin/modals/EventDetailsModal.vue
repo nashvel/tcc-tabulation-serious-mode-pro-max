@@ -84,6 +84,30 @@
               <label class="block text-sm font-medium text-gray-700">Description</label>
               <textarea v-model="formData.description" rows="4" class="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none" placeholder="Enter event description..."></textarea>
             </div>
+
+            <!-- Visual Settings Section -->
+            <div class="pt-4 border-t border-gray-200">
+              <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Visual Settings</div>
+              
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <ImageSelector
+                    v-model="formData.header_image"
+                    label="Header Image"
+                    placeholder="Select header image"
+                  />
+                  <p class="text-xs text-gray-400 mt-1">Displayed above the scoring interface</p>
+                </div>
+                <div>
+                  <ImageSelector
+                    v-model="formData.lock_screen_image"
+                    label="Lock Screen Image"
+                    placeholder="Select lock screen"
+                  />
+                  <p class="text-xs text-gray-400 mt-1">Shown when voting is locked (supports GIFs)</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -106,6 +130,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { showSuccess, showError } from '../../../utils/alerts';
+import ImageSelector from '../../shared/ImageSelector.vue';
 
 const props = defineProps({
   isOpen: Boolean,
@@ -116,7 +141,7 @@ const emit = defineEmits(['close']);
 
 const event = ref(null);
 const loading = ref(true);
-const formData = ref({ title: '', event_date: '', description: '', event_type: 'pageant', number_of_judges: '' });
+const formData = ref({ title: '', event_date: '', description: '', event_type: 'pageant', number_of_judges: '', header_image: '', lock_screen_image: '' });
 
 const loadEventDetails = async () => {
   if (!props.eventId) return;
@@ -147,7 +172,9 @@ const loadEventDetails = async () => {
         event_date: formattedDate,
         description: data.description || '',
         event_type: data.event_type ?? 'pageant',
-        number_of_judges: judgesCount || data.number_of_judges || ''
+        number_of_judges: judgesCount || data.number_of_judges || '',
+        header_image: data.header_image || '',
+        lock_screen_image: data.lock_screen_image || ''
       };
     } else {
       showError('Failed to load event details');
@@ -171,7 +198,9 @@ const handleSave = async () => {
         event_date: formData.value.event_date,
         description: formData.value.description,
         event_type: formData.value.event_type,
-        number_of_judges: parseInt(formData.value.number_of_judges)
+        number_of_judges: parseInt(formData.value.number_of_judges),
+        header_image: formData.value.header_image,
+        lock_screen_image: formData.value.lock_screen_image
       })
     });
 

@@ -1,8 +1,8 @@
 <template>
   <div class="font-sans antialiased min-h-screen bg-white pb-20">
     <!-- Empty State -->
-    <div v-if="!judges.length && !loading" class="text-center py-20">
-      <Users class="w-16 h-16 text-gray-300 mx-auto mb-4" />
+    <div v-if="!judges.length && !loading" class="text-center py-4">
+      <Users class="w-8 h-8 text-gray-300 mx-auto mb-2" />
       <p class="text-gray-500">No judges configured yet</p>
     </div>
 
@@ -293,7 +293,7 @@ const props = defineProps({
 });
 
 const loading = ref(true);
-const scoresHidden = ref(false);
+const scoresHidden = ref(true);
 const scores = ref({});
 const activeRound = ref(null);
 const isLive = ref(false);

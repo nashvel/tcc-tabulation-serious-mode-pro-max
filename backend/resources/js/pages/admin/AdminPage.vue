@@ -4,8 +4,9 @@
 
   <!-- Main Admin Interface -->
   <div v-else class="min-h-screen bg-white relative" data-global-context-menu="true">
-    <!-- Admin Sidebar -->
+    <!-- Admin Sidebar (hidden in focus mode) -->
     <AdminSidebar
+      v-if="!focusMode"
       :isOpen="isSidebarOpen"
       :continuingEvent="continuingEvent"
       @close="isSidebarOpen = false"
@@ -14,8 +15,9 @@
 
     <div class="flex-1 flex flex-col h-screen overflow-hidden relative z-0">
       <div class="flex-1 overflow-y-auto bg-gray-50">
-        <!-- Fixed Header -->
+        <!-- Fixed Header (hidden in focus mode) -->
         <FixedHeader
+          v-if="!focusMode"
           :activeCategory="activeCategory"
           :continuingEvent="continuingEvent"
           :judges="judges"
@@ -24,27 +26,83 @@
 
         <!-- Main Content -->
         <div class="pb-10">
-          <!-- Tab Navigation -->
-          <div class="bg-white border-b border-gray-200">
-            <nav class="flex gap-4 px-4">
+          <!-- Tab Navigation (hidden in focus mode) -->
+          <div v-if="!focusMode" class="bg-white border-b border-gray-200" data-has-context-menu="true">
+            <nav class="flex gap-1 px-4 py-1">
               <button
                 v-for="tab in tabs"
                 :key="tab.id"
-                @click="activeTab = tab.id"
+                @click="switchTab(tab.id)"
+                @contextmenu.prevent.stop="openTabContextMenu($event, tab)"
                 :class="[
-                  'py-3 px-1 text-sm font-medium border-b-2 transition-colors',
+                  'py-2 px-3 text-sm font-medium rounded-md transition-colors',
                   activeTab === tab.id
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? (tabAccentColor === 'white' ? 'text-gray-700' : 'text-white')
+                    : 'text-gray-600 hover:bg-gray-100'
                 ]"
+                :style="activeTab === tab.id ? { backgroundColor: tabColors[tabAccentColor] } : {}"
               >
                 {{ tab.label }}
               </button>
             </nav>
           </div>
+          
+          <!-- Focus Mode Header (minimal, shows tab name and exit button) -->
+          <div v-if="focusMode" class="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between">
+            <span class="text-sm font-medium text-gray-700">{{ tabs.find(t => t.id === activeTab)?.label }}</span>
+            <a 
+              :href="`/admin?event_id=${continuingEvent?.id}`"
+              class="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+            >
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Exit Focus
+            </a>
+          </div>
+
+          <!-- Tab Context Menu -->
+          <div
+            v-if="tabContextMenu.visible"
+            class="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 min-w-[180px]"
+            :style="{ left: tabContextMenu.x + 'px', top: tabContextMenu.y + 'px' }"
+          >
+            <button
+              @click="openTabInNewWindow"
+              class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              Open in New Tab
+            </button>
+            <div class="border-t border-gray-100 my-1"></div>
+            <div class="px-4 py-2">
+              <span class="text-xs text-gray-500 uppercase font-medium">Accent Color</span>
+              <div class="flex gap-2 mt-2">
+                <button
+                  v-for="color in accentColors"
+                  :key="color.name"
+                  @click="setTabAccentColor(color.name)"
+                  class="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110"
+                  :class="[
+                    tabAccentColor === color.name ? 'border-gray-800 scale-110' : '',
+                    color.isWhite ? 'border-gray-300 bg-white' : 'border-transparent'
+                  ]"
+                  :style="color.isWhite ? {} : { backgroundColor: color.value }"
+                  :title="color.name"
+                ></button>
+              </div>
+            </div>
+          </div>
 
           <!-- Tab Content - Full Width -->
-          <div class="bg-white">
+          <div class="bg-white relative">
+              <!-- Tab Loading Overlay -->
+              <div v-if="tabLoading" class="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
+                <div class="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+              </div>
+
               <!-- Judges Tab -->
               <div v-if="activeTab === 'judges'">
                 <JudgesScoringTab
@@ -103,6 +161,20 @@
                 />
               </div>
 
+              <!-- Templates Tab -->
+              <div v-else-if="activeTab === 'templates'">
+                <TemplatesTab
+                  :eventId="continuingEvent?.id"
+                />
+              </div>
+
+              <!-- Themes Tab -->
+              <div v-else-if="activeTab === 'themes'">
+                <ThemesTab
+                  :eventId="continuingEvent?.id"
+                />
+              </div>
+
               <!-- Activity Logs Tab -->
               <div v-else-if="activeTab === 'logs'">
                 <ActivityLogsTab
@@ -118,8 +190,8 @@
               </div>
           </div>
 
-          <!-- PodiumLedger Footer -->
-          <PodiumLedgerFooter />
+          <!-- PodiumLedger Footer (hidden in focus mode) -->
+          <PodiumLedgerFooter v-if="!focusMode" />
         </div>
       </div>
     </div>
@@ -168,6 +240,8 @@ import ResultsTab from '../../components/admin/tabs/ResultsTab.vue';
 import BestInTab from '../../components/admin/tabs/BestInTab.vue';
 import ActivityLogsTab from '../../components/admin/tabs/ActivityLogsTab.vue';
 import SettingsTab from '../../components/admin/tabs/SettingsTab.vue';
+import TemplatesTab from '../../components/admin/tabs/TemplatesTab.vue';
+import ThemesTab from '../../components/admin/tabs/ThemesTab.vue';
 import ConfigureJudgesModal from '../../components/admin/modals/ConfigureJudgesModal.vue';
 import EventDetailsModal from '../../components/admin/modals/EventDetailsModal.vue';
 import { useGlobalContextMenu } from '../../composables/useGlobalContextMenu';
@@ -180,12 +254,85 @@ const { contextMenu: globalContextMenu, closeContextMenu: closeGlobalContextMenu
 
 // State
 const loading = ref(true);
+const tabLoading = ref(false);
 const isSidebarOpen = ref(false);
 const activeTab = ref('judges');
 const continuingEvent = ref(null);
 const activeCategory = ref(null);
 const isJudgesModalOpen = ref(false);
 const isEventDetailsModalOpen = ref(false);
+const focusMode = ref(false); // Hide header/tabs when opened in new tab
+
+// Tab Context Menu State
+const tabContextMenu = ref({ visible: false, x: 0, y: 0, tab: null });
+const tabAccentColor = ref('indigo');
+
+// Color palette options
+const accentColors = [
+  { name: 'white', value: '#f3f4f6', isWhite: true }, // gray-100 for bg
+  { name: 'indigo', value: '#4f46e5' },
+  { name: 'blue', value: '#2563eb' },
+  { name: 'emerald', value: '#059669' },
+  { name: 'amber', value: '#d97706' },
+  { name: 'rose', value: '#e11d48' },
+  { name: 'purple', value: '#7c3aed' },
+  { name: 'gray', value: '#4b5563' }
+];
+
+// Color values for inline styles
+const tabColors = {
+  white: '#f3f4f6', // gray-100 - light bg with dark text
+  indigo: '#4f46e5',
+  blue: '#2563eb',
+  emerald: '#059669',
+  amber: '#d97706',
+  rose: '#e11d48',
+  purple: '#7c3aed',
+  gray: '#4b5563'
+};
+
+// Switch tab with loading indicator
+const switchTab = async (tabId) => {
+  if (activeTab.value === tabId) return;
+  tabLoading.value = true;
+  activeTab.value = tabId;
+  // Small delay for visual feedback
+  await new Promise(resolve => setTimeout(resolve, 150));
+  tabLoading.value = false;
+};
+
+// Tab Context Menu Methods
+const openTabContextMenu = (event, tab) => {
+  // Close global context menu if open
+  closeGlobalContextMenu();
+  window.dispatchEvent(new CustomEvent('closeAllContextMenus'));
+  
+  tabContextMenu.value = {
+    visible: true,
+    x: event.clientX,
+    y: event.clientY,
+    tab: tab
+  };
+};
+
+const closeTabContextMenu = () => {
+  tabContextMenu.value.visible = false;
+};
+
+const openTabInNewWindow = () => {
+  const tab = tabContextMenu.value.tab;
+  if (tab && continuingEvent.value?.id) {
+    const url = `/admin?event_id=${continuingEvent.value.id}&activeTab=${tab.id}&focus=true`;
+    window.open(url, '_blank');
+  }
+  closeTabContextMenu();
+};
+
+const setTabAccentColor = (color) => {
+  tabAccentColor.value = color;
+  localStorage.setItem('tabAccentColor', color);
+  closeTabContextMenu();
+};
 
 // Handle category change from context menu
 const handleCategoryChange = (category) => {
@@ -206,6 +353,8 @@ const tabs = [
   { id: 'categories', label: 'Criteria' },
   { id: 'results', label: 'Results' },
   { id: 'bestin', label: 'Best In' },
+  { id: 'templates', label: 'Templates' },
+  { id: 'themes', label: 'Themes' },
   { id: 'logs', label: 'Activity Logs' },
   { id: 'settings', label: 'Settings' }
 ];
@@ -311,10 +460,15 @@ onMounted(async () => {
     return;
   }
 
-  // Check URL params for activeTab
+  // Check URL params for activeTab and focus mode
   const tabParam = route.query.activeTab;
   if (tabParam) {
     activeTab.value = tabParam;
+  }
+  
+  // Enable focus mode if URL has focus=true (hides header/tabs)
+  if (route.query.focus === 'true') {
+    focusMode.value = true;
   }
 
   await loadData();
@@ -333,8 +487,16 @@ const handleKeyPress = (event) => {
       isSidebarOpen.value = !isSidebarOpen.value;
     }
   }
-  if (event.key === 'Escape' && isSidebarOpen.value) {
-    isSidebarOpen.value = false;
+  if (event.key === 'Escape') {
+    if (isSidebarOpen.value) isSidebarOpen.value = false;
+    if (tabContextMenu.value.visible) closeTabContextMenu();
+  }
+};
+
+// Close tab context menu on click outside
+const handleClickOutside = (event) => {
+  if (tabContextMenu.value.visible) {
+    closeTabContextMenu();
   }
 };
 
@@ -342,11 +504,19 @@ const handleKeyPress = (event) => {
 // We need to add it there, so let's use onMounted here for keyboard only
 onMounted(() => {
   window.addEventListener('keydown', handleKeyPress);
+  window.addEventListener('click', handleClickOutside);
+  
+  // Load saved accent color
+  const savedColor = localStorage.getItem('tabAccentColor');
+  if (savedColor && tabColors[savedColor]) {
+    tabAccentColor.value = savedColor;
+  }
 });
 
 // Cleanup
 onUnmounted(() => {
   cleanupGlobalContextMenu();
   window.removeEventListener('keydown', handleKeyPress);
+  window.removeEventListener('click', handleClickOutside);
 });
 </script>

@@ -11,6 +11,7 @@ use App\Http\Controllers\API\EventTemplateController;
 use App\Http\Controllers\API\EventThemeController;
 use App\Http\Controllers\API\ActivityLogController;
 use App\Http\Controllers\API\ReportController;
+use App\Http\Controllers\API\AssetsController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\VotingController;
@@ -60,6 +61,7 @@ Route::post('voting/unlock', [VotingController::class, 'unlock']);
 Route::get('voting/display-settings', [VotingController::class, 'getDisplaySettings']);
 Route::post('voting/display-settings', [VotingController::class, 'updateDisplaySettings']);
 Route::post('voting/show-judge-numbers', [VotingController::class, 'showJudgeNumbers']);
+Route::post('voting/hide-judge-numbers', [VotingController::class, 'hideJudgeNumbers']);
 
 // Screen Registration Routes (for auto-assigning judge screens)
 Route::post('voting/register-screen', [VotingController::class, 'registerScreen']);
@@ -87,6 +89,10 @@ Route::post('event-templates/{id}/create-event', [EventTemplateController::class
 Route::get('event-themes', [EventThemeController::class, 'index']);
 Route::get('event-themes/{id}', [EventThemeController::class, 'show']);
 
+// Assets (public read - for image selection, upload for drag-drop)
+Route::get('assets/images', [AssetsController::class, 'listImages']);
+Route::post('assets/upload', [AssetsController::class, 'upload']);
+
 // Activity Logs (for admin to monitor judge activity)
 Route::get('activity-logs', [ActivityLogController::class, 'index']);
 Route::post('activity-logs', [ActivityLogController::class, 'store']);
@@ -101,6 +107,16 @@ Route::post('clear-event-scores', [VotingController::class, 'clearEventScores'])
 Route::post('events/save-draft', [EventController::class, 'saveDraft']); // Allow draft saving without auth
 Route::post('events/create-full', [EventController::class, 'createFull']); // Allow full event creation without auth
 Route::post('events/{id}/update-step', [EventController::class, 'updateStep']); // Allow step updates without auth
+
+// Rounds Management (public for admin panel without auth)
+Route::post('rounds', [RoundController::class, 'store']);
+Route::put('rounds/{round}', [RoundController::class, 'update']);
+Route::delete('rounds/{round}', [RoundController::class, 'destroy']);
+
+// Criteria Management (public for admin panel without auth)
+Route::post('criteria', [CriteriaController::class, 'store']);
+Route::put('criteria/{criteria}', [CriteriaController::class, 'update']);
+Route::delete('criteria/{criteria}', [CriteriaController::class, 'destroy']);
 
 // Protected Admin Routes
 Route::middleware('auth:sanctum')->group(function () {
