@@ -192,8 +192,21 @@
 
     <!-- Scoring Interface -->
     <div v-if="!isLocked && showScoringInterface" class="bg-white">
-      <!-- Custom Header Image -->
-      <div v-if="activeEvent?.header_image && !headerImageError" class="w-full bg-gray-50 border-b border-gray-200">
+      <!-- Multiple Header Logos -->
+      <div v-if="headerLogos.length > 0" class="w-full bg-gray-50 border-b border-gray-200 py-3">
+        <div class="flex items-center justify-center gap-4 px-4">
+          <img 
+            v-for="(logo, idx) in headerLogos" 
+            :key="idx"
+            :src="logo.path" 
+            alt="Event Logo"
+            class="h-20 max-h-20 w-auto object-contain"
+            @error="handleLogoError(idx)"
+          />
+        </div>
+      </div>
+      <!-- Fallback: Single Header Image (legacy support) -->
+      <div v-else-if="activeEvent?.header_image && !headerImageError" class="w-full bg-gray-50 border-b border-gray-200">
         <img 
           :src="activeEvent.header_image" 
           alt="Event Header"
@@ -323,6 +336,7 @@ const eventTheme = ref(null);
 // Image error states
 const headerImageError = ref(false);
 const lockScreenImageError = ref(false);
+const logoErrors = ref(new Set());
 
 // Screen registration state
 const notAllowed = ref(false);
@@ -398,6 +412,21 @@ const selectedJudgeNumber = computed(() => {
   const judge = judges.value.find(j => j.id === parseInt(judgeId.value));
   return String(judge?.chair_number || judgeId.value).padStart(2, '0');
 });
+
+// Header logos - sorted by order, filtered for errors
+const headerLogos = computed(() => {
+  if (!activeEvent.value?.header_logos || !Array.isArray(activeEvent.value.header_logos)) {
+    return [];
+  }
+  return activeEvent.value.header_logos
+    .filter((logo, idx) => !logoErrors.value.has(idx))
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+});
+
+// Handle logo load error
+const handleLogoError = (idx) => {
+  logoErrors.value.add(idx);
+};
 
 const femaleCandidates = computed(() => 
   candidates.value.filter(c => (c.category === 'Female' || c.gender === 'Female') && c.gender?.toLowerCase() !== 'solo' && c.gender?.toLowerCase() !== 'group')
@@ -524,6 +553,15 @@ const loadData = async (eid) => {
       fetch(`/api/occupied-judges?event_id=${eid}`).then(r => r.json()).catch(() => ({ occupied_judge_ids: [] })),
       fetch(`/api/events/${eid}`).then(r => r.json()).catch(() => null)
     ]);
+    
+    // Update activeEvent with full event data (includes header_logos)
+    if (eventRes) {
+      activeEvent.value = eventRes;
+      // Reset image error states
+      headerImageError.value = false;
+      lockScreenImageError.value = false;
+      logoErrors.value = new Set();
+    }
     
     // Load theme if event has one
     if (eventRes?.theme_id) {

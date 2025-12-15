@@ -85,6 +85,9 @@ Route::post('clear-occupied-judges', [VotingController::class, 'clearOccupiedJud
 // Event Templates & Themes (public read, protected write)
 Route::get('event-templates', [EventTemplateController::class, 'index']);
 Route::get('event-templates/{id}', [EventTemplateController::class, 'show']);
+Route::post('event-templates', [EventTemplateController::class, 'store']);
+Route::put('event-templates/{id}', [EventTemplateController::class, 'update']);
+Route::delete('event-templates/{id}', [EventTemplateController::class, 'destroy']);
 Route::post('event-templates/{id}/create-event', [EventTemplateController::class, 'createFromTemplate']);
 Route::get('event-themes', [EventThemeController::class, 'index']);
 Route::get('event-themes/{id}', [EventThemeController::class, 'show']);
@@ -107,6 +110,7 @@ Route::post('clear-event-scores', [VotingController::class, 'clearEventScores'])
 Route::post('events/save-draft', [EventController::class, 'saveDraft']); // Allow draft saving without auth
 Route::post('events/create-full', [EventController::class, 'createFull']); // Allow full event creation without auth
 Route::post('events/{id}/update-step', [EventController::class, 'updateStep']); // Allow step updates without auth
+Route::put('events/{event}', [EventController::class, 'update']); // Allow event updates without auth
 
 // Rounds Management (public for admin panel without auth)
 Route::post('rounds', [RoundController::class, 'store']);
@@ -118,39 +122,20 @@ Route::post('criteria', [CriteriaController::class, 'store']);
 Route::put('criteria/{criteria}', [CriteriaController::class, 'update']);
 Route::delete('criteria/{criteria}', [CriteriaController::class, 'destroy']);
 
-// Protected Admin Routes
+// Candidates Management (public for admin panel without auth)
+Route::post('candidates', [CandidateController::class, 'store']);
+Route::put('candidates/{candidate}', [CandidateController::class, 'update']);
+Route::delete('candidates/{candidate}', [CandidateController::class, 'destroy']);
+
+// Protected Admin Routes (kept for reference, most moved to public)
 Route::middleware('auth:sanctum')->group(function () {
     // Events Management
     Route::post('events', [EventController::class, 'store']);
-    Route::put('events/{event}', [EventController::class, 'update']);
     Route::delete('events/{event}', [EventController::class, 'destroy']);
     Route::post('events/{id}/complete', [EventController::class, 'complete']);
     Route::post('events/{id}/archive', [EventController::class, 'archive']);
-    Route::post('events/{id}/activate', [EventController::class, 'activate']);
-
-    // Templates (global, reusable event templates)
-    Route::get('templates', [TemplateController::class, 'index']);
-    Route::get('templates/{id}', [TemplateController::class, 'show']);
-    Route::post('templates/{id}/apply', [TemplateController::class, 'applyToEvent']);
-
-    // Candidate Templates (global, reusable candidate lists)
-    Route::get('candidate-templates', [CandidateTemplateController::class, 'index']);
-    Route::get('candidate-templates/{id}', [CandidateTemplateController::class, 'show']);
     
-    // Protected CRUD operations (POST, PUT, DELETE only - GET is public)
-    Route::post('candidates', [CandidateController::class, 'store']);
-    Route::put('candidates/{candidate}', [CandidateController::class, 'update']);
-    Route::delete('candidates/{candidate}', [CandidateController::class, 'destroy']);
-    
-    Route::post('rounds', [RoundController::class, 'store']);
-    Route::put('rounds/{round}', [RoundController::class, 'update']);
-    Route::delete('rounds/{round}', [RoundController::class, 'destroy']);
-    
-    Route::post('criteria', [CriteriaController::class, 'store']);
-    Route::put('criteria/{criteria}', [CriteriaController::class, 'update']);
-    Route::delete('criteria/{criteria}', [CriteriaController::class, 'destroy']);
-    
-    // Points: POST is public (judges), PUT/DELETE are protected (admin)
+    // Points: PUT/DELETE are protected (admin)
     Route::put('points/{point}', [PointController::class, 'update']);
     Route::delete('points/{point}', [PointController::class, 'destroy']);
 });

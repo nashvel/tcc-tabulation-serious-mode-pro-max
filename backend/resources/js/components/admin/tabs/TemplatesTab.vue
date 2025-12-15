@@ -285,23 +285,100 @@ const buildImageGrid = (selected = [], isMultiple = true) => {
 };
 
 const showHeaderModal = (template) => {
-  let selectedImages = template?.header_image ? [template.header_image] : [];
+  // Load existing logos or convert from single header_image
+  let selectedLogos = [];
+  if (template?.header_logos && Array.isArray(template.header_logos)) {
+    selectedLogos = [...template.header_logos].sort((a, b) => a.order - b.order);
+  } else if (template?.header_image) {
+    selectedLogos = [{ path: template.header_image, order: 0 }];
+  }
   
-  const refreshGrid = () => {
-    document.getElementById('image-grid').innerHTML = buildImageGrid(selectedImages, true);
-    document.getElementById('selected-count').textContent = `${selectedImages.length} image(s) selected`;
+  const buildSelectedLogosPreview = () => {
+    if (selectedLogos.length === 0) {
+      return '<div class="text-center py-4 bg-gray-50 rounded-lg text-sm text-gray-400">No logos selected. Select from library below.</div>';
+    }
+    let html = '<div id="logos-preview" class="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg min-h-[80px]">';
+    selectedLogos.forEach((logo, idx) => {
+      html += `
+        <div class="logo-item relative group" data-index="${idx}" draggable="true">
+          <img src="${logo.path}" class="w-16 h-16 object-contain rounded-lg border-2 border-gray-200 bg-white cursor-move" />
+          <button type="button" class="remove-logo absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity" data-index="${idx}">&times;</button>
+          <span class="absolute bottom-0 left-0 right-0 text-center text-[9px] text-gray-500 bg-white/80">${idx + 1}</span>
+        </div>
+      `;
+    });
+    html += '</div>';
+    html += '<p class="text-[10px] text-gray-400 mt-1">Drag to reorder • Click × to remove</p>';
+    return html;
+  };
+  
+  const refreshAll = () => {
+    document.getElementById('selected-logos').innerHTML = buildSelectedLogosPreview();
+    document.getElementById('image-grid').innerHTML = buildImageGrid(selectedLogos.map(l => l.path), true);
+    document.getElementById('selected-count').textContent = `${selectedLogos.length} logo(s) selected`;
     attachListeners();
+    attachDragListeners();
   };
   
   const attachListeners = () => {
     document.querySelectorAll('.img-btn').forEach(btn => {
       btn.onclick = () => {
         const path = btn.dataset.path;
-        const idx = selectedImages.indexOf(path);
-        if (idx === -1) selectedImages.push(path);
-        else selectedImages.splice(idx, 1);
-        refreshGrid();
+        const idx = selectedLogos.findIndex(l => l.path === path);
+        if (idx === -1) {
+          selectedLogos.push({ path, order: selectedLogos.length });
+        } else {
+          selectedLogos.splice(idx, 1);
+          // Reorder remaining
+          selectedLogos.forEach((l, i) => l.order = i);
+        }
+        refreshAll();
       };
+    });
+    document.querySelectorAll('.remove-logo').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.index);
+        selectedLogos.splice(idx, 1);
+        selectedLogos.forEach((l, i) => l.order = i);
+        refreshAll();
+      };
+    });
+  };
+  
+  const attachDragListeners = () => {
+    const container = document.getElementById('logos-preview');
+    if (!container) return;
+    
+    let draggedIdx = null;
+    
+    container.querySelectorAll('.logo-item').forEach(item => {
+      item.addEventListener('dragstart', (e) => {
+        draggedIdx = parseInt(item.dataset.index);
+        item.classList.add('opacity-50');
+      });
+      item.addEventListener('dragend', () => {
+        item.classList.remove('opacity-50');
+        draggedIdx = null;
+      });
+      item.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        item.classList.add('border-indigo-500');
+      });
+      item.addEventListener('dragleave', () => {
+        item.classList.remove('border-indigo-500');
+      });
+      item.addEventListener('drop', (e) => {
+        e.preventDefault();
+        item.classList.remove('border-indigo-500');
+        const dropIdx = parseInt(item.dataset.index);
+        if (draggedIdx !== null && draggedIdx !== dropIdx) {
+          const [moved] = selectedLogos.splice(draggedIdx, 1);
+          selectedLogos.splice(dropIdx, 0, moved);
+          selectedLogos.forEach((l, i) => l.order = i);
+          refreshAll();
+        }
+      });
     });
   };
   
@@ -318,13 +395,17 @@ const showHeaderModal = (template) => {
           <textarea id="swal-desc" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-gray-400 focus:border-gray-400" placeholder="Optional">${template?.description || ''}</textarea>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Upload New Image</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Selected Logos (drag to arrange)</label>
+          <div id="selected-logos">${buildSelectedLogosPreview()}</div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Upload New Logo</label>
           ${buildDropZone()}
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Or Select from Library <span class="text-gray-400 font-normal">(click to select)</span></label>
-          <div id="image-grid">${buildImageGrid(selectedImages, true)}</div>
-          <p id="selected-count" class="text-xs text-gray-500 mt-2">${selectedImages.length} image(s) selected</p>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Or Select from Library <span class="text-gray-400 font-normal">(click to add)</span></label>
+          <div id="image-grid">${buildImageGrid(selectedLogos.map(l => l.path), true)}</div>
+          <p id="selected-count" class="text-xs text-gray-500 mt-2">${selectedLogos.length} logo(s) selected</p>
         </div>
       </div>
     `,
@@ -337,15 +418,26 @@ const showHeaderModal = (template) => {
     customClass: { popup: 'rounded-xl', confirmButton: 'rounded-lg', cancelButton: 'rounded-lg' },
     didOpen: () => {
       attachListeners();
+      attachDragListeners();
       setupDropZone((uploadedPath) => {
-        if (!selectedImages.includes(uploadedPath)) selectedImages.push(uploadedPath);
-        refreshGrid();
+        if (!selectedLogos.find(l => l.path === uploadedPath)) {
+          selectedLogos.push({ path: uploadedPath, order: selectedLogos.length });
+        }
+        refreshAll();
       });
     },
     preConfirm: () => {
       const name = document.getElementById('swal-name').value;
       if (!name) { Swal.showValidationMessage('Name is required'); return false; }
-      return { name, description: document.getElementById('swal-desc').value, header_image: selectedImages[0] || '', lock_screen_image: '', event_type: 'general', default_judges: 5 };
+      return { 
+        name, 
+        description: document.getElementById('swal-desc').value, 
+        header_image: selectedLogos[0]?.path || '', 
+        header_logos: selectedLogos,
+        lock_screen_image: '', 
+        event_type: 'header', 
+        default_judges: 5 
+      };
     }
   }).then(async (result) => {
     if (result.isConfirmed) await saveTemplate(template?.id, result.value);
