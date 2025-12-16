@@ -128,7 +128,7 @@ class EventController extends Controller
 
     public function show($id)
     {
-        $event = Event::with(['days.results', 'results', 'overallWinners'])->findOrFail($id);
+        $event = Event::with(['days.results', 'results', 'overallWinners', 'importantPeople'])->findOrFail($id);
         return response()->json($event);
     }
 

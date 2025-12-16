@@ -286,14 +286,14 @@ const availableImages = ref([]);
 const templates = ref([]);
 let draggedIdx = null;
 
-// Computed: Header templates (event_type = 'header' or has header_logos)
+// Computed: Header templates (has header_logos or header_image)
 const headerTemplates = computed(() => 
-  templates.value.filter(t => t.event_type === 'header' || (t.header_logos && t.header_logos.length > 0))
+  templates.value.filter(t => (t.header_logos && t.header_logos.length > 0) || t.header_image)
 );
 
 // Computed: Lock screen templates (has lock_screen_image)
 const lockScreenTemplates = computed(() => 
-  templates.value.filter(t => t.lock_screen_image && !t.header_logos?.length)
+  templates.value.filter(t => t.lock_screen_image)
 );
 
 // Load available images
