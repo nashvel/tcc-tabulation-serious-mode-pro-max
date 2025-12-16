@@ -1,4 +1,15 @@
 <template>
+  <!-- Network Info Overlay (shows on top of everything when triggered by admin) -->
+  <div v-if="showNetworkInfo" class="fixed inset-0 bg-gray-900 z-[9999] flex flex-col items-center justify-center">
+    <div class="text-center">
+      <p class="text-gray-400 text-2xl mb-4 uppercase tracking-widest">Your IP Address</p>
+      <div class="text-[6rem] sm:text-[8rem] font-mono font-bold text-white leading-none tracking-wider">
+        {{ networkInfoIp }}
+      </div>
+      <p class="text-gray-500 text-lg mt-6">This device's network address</p>
+    </div>
+  </div>
+
   <!-- Preloader -->
   <Preloader v-if="loading" />
 
@@ -345,6 +356,8 @@ const deviceId = ref('');
 const showAssignedNumber = ref(false);
 const assignedChairNumber = ref(null);
 const judgeLoginMode = ref('auto'); // 'auto' | 'manual'
+const showNetworkInfo = ref(false);
+const networkInfoIp = ref('');
 
 // Display settings (controlled by admin)
 const displaySettings = ref({
@@ -1003,6 +1016,20 @@ const handleVotingStateChange = async (data) => {
   else if (data.action === 'hide_judge_numbers') {
     console.log('[JudgeNumbers] Hide event received');
     showAssignedNumber.value = false;
+  }
+  // Handle show network info broadcast from admin
+  else if (data.action === 'show_network_info') {
+    // Get this device's IP from the screen_ips map using our device_id
+    const screenIps = data.voting_state?.screen_ips || {};
+    const myIp = screenIps[deviceId.value] || 'Unknown';
+    console.log('[NetworkInfo] Show event received, my device:', deviceId.value, 'my IP:', myIp);
+    networkInfoIp.value = myIp;
+    showNetworkInfo.value = true;
+  }
+  // Handle hide network info broadcast from admin
+  else if (data.action === 'hide_network_info') {
+    console.log('[NetworkInfo] Hide event received');
+    showNetworkInfo.value = false;
   }
   // Handle refresh screens broadcast from admin
   else if (data.action === 'refresh_screens') {

@@ -13,8 +13,8 @@ class DevRunnerPanel extends StatefulWidget {
 class DevRunnerPanelState extends State<DevRunnerPanel> {
   String? backendPath;
   String? frontendPath;
-  String backendCommand = 'php artisan serve';
-  String reverbCommand = 'php artisan reverb:start';
+  String backendCommand = 'php artisan serve --port=8000';
+  String reverbCommand = 'php artisan reverb:start --port=8080';
   String frontendCommand = 'npm run dev';
   
   Process? backendProcess;
@@ -714,13 +714,13 @@ class DevRunnerPanelState extends State<DevRunnerPanel> {
   void _startBackend() async {
     if (backendPath != null && Platform.isWindows) {
       setState(() => backendLoading = true);
-      // Add --host 0.0.0.0 if LAN mode is enabled
+      // Add --host=0.0.0.0 if LAN mode is enabled (like start-all.bat)
       String cmd = backendCommand;
       if (lanMode && !cmd.contains('--host')) {
         cmd = '$cmd --host=0.0.0.0';
       }
       backendProcess = await Process.start('cmd.exe', ['/c', cmd], workingDirectory: backendPath, runInShell: true);
-      await Future.delayed(const Duration(milliseconds: 800));
+      await Future.delayed(const Duration(milliseconds: 1000));
       if (mounted) setState(() { backendRunning = true; backendLoading = false; activePorts['Backend'] = [8000]; });
       backendProcess?.exitCode.then((_) { if (mounted) setState(() { backendRunning = false; activePorts['Backend'] = []; }); });
     }
@@ -749,13 +749,13 @@ class DevRunnerPanelState extends State<DevRunnerPanel> {
   void _startReverb() async {
     if (backendPath != null && Platform.isWindows) {
       setState(() => reverbLoading = true);
-      // Add --host 0.0.0.0 if LAN mode is enabled
+      // Add --host=0.0.0.0 if LAN mode is enabled (like start-all.bat)
       String cmd = reverbCommand;
       if (lanMode && !cmd.contains('--host')) {
         cmd = '$cmd --host=0.0.0.0';
       }
       reverbProcess = await Process.start('cmd.exe', ['/c', cmd], workingDirectory: backendPath, runInShell: true);
-      await Future.delayed(const Duration(milliseconds: 800));
+      await Future.delayed(const Duration(milliseconds: 1000));
       if (mounted) setState(() { reverbRunning = true; reverbLoading = false; activePorts['Reverb'] = [8080]; });
       reverbProcess?.exitCode.then((_) { if (mounted) setState(() { reverbRunning = false; activePorts['Reverb'] = []; }); });
     }
@@ -775,13 +775,13 @@ class DevRunnerPanelState extends State<DevRunnerPanel> {
       setState(() => frontendLoading = true);
       try { await Process.run('powershell', ['-Command', r'Get-NetTCPConnection -LocalPort 5173,5174,5175,5176 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }']); } catch (_) {}
       await Future.delayed(const Duration(milliseconds: 500));
-      // Add --host 0.0.0.0 if LAN mode is enabled (for Vite)
+      // Add --host 0.0.0.0 if LAN mode is enabled (like start-all.bat)
       String cmd = frontendCommand;
       if (lanMode && !cmd.contains('--host')) {
-        cmd = '$cmd -- --host';
+        cmd = '$cmd -- --host 0.0.0.0';
       }
       frontendProcess = await Process.start('cmd.exe', ['/c', cmd], workingDirectory: frontendPath, runInShell: true);
-      await Future.delayed(const Duration(milliseconds: 1200));
+      await Future.delayed(const Duration(milliseconds: 1500));
       // Check which port vite actually used
       List<int> usedPorts = [];
       for (int port in [5173, 5174, 5175, 5176]) {

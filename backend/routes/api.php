@@ -62,6 +62,8 @@ Route::get('voting/display-settings', [VotingController::class, 'getDisplaySetti
 Route::post('voting/display-settings', [VotingController::class, 'updateDisplaySettings']);
 Route::post('voting/show-judge-numbers', [VotingController::class, 'showJudgeNumbers']);
 Route::post('voting/hide-judge-numbers', [VotingController::class, 'hideJudgeNumbers']);
+Route::post('voting/show-network-info', [VotingController::class, 'showNetworkInfo']);
+Route::post('voting/hide-network-info', [VotingController::class, 'hideNetworkInfo']);
 Route::post('voting/refresh-screens', [VotingController::class, 'refreshJudgeScreens']);
 
 // Screen Registration Routes (for auto-assigning judge screens)
@@ -108,6 +110,51 @@ Route::delete('activity-logs/clear', [ActivityLogController::class, 'clear']);
 
 // Reports (for printing and auditing)
 Route::get('reports/judge-scores', [ReportController::class, 'getJudgeScores']);
+
+// Network Info (for LAN access)
+Route::get('network/local-ip', function () {
+    $ip = null;
+    
+    // Method 1: Check environment variable (most reliable if set)
+    $envIp = env('VITE_DEV_SERVER_HOST');
+    if ($envIp && $envIp !== 'localhost' && $envIp !== '127.0.0.1') {
+        return response()->json(['ip' => $envIp]);
+    }
+    
+    // Method 2: Try SERVER_ADDR from request
+    $serverAddr = request()->server('SERVER_ADDR');
+    if ($serverAddr && $serverAddr !== '127.0.0.1' && $serverAddr !== '::1') {
+        return response()->json(['ip' => $serverAddr]);
+    }
+    
+    // Method 3: Try to get from hostname
+    $hostname = gethostname();
+    $ip = gethostbyname($hostname);
+    if ($ip && $ip !== $hostname && $ip !== '127.0.0.1') {
+        return response()->json(['ip' => $ip]);
+    }
+    
+    // Method 4: Windows - try ipconfig
+    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+        $output = shell_exec('ipconfig');
+        if ($output && preg_match('/IPv4 Address[.\s]*:\s*(\d+\.\d+\.\d+\.\d+)/i', $output, $matches)) {
+            if ($matches[1] !== '127.0.0.1') {
+                return response()->json(['ip' => $matches[1]]);
+            }
+        }
+    } else {
+        // Method 5: Linux/Mac - try hostname -I
+        $output = shell_exec('hostname -I 2>/dev/null');
+        if ($output) {
+            $ips = explode(' ', trim($output));
+            if (!empty($ips[0]) && $ips[0] !== '127.0.0.1') {
+                return response()->json(['ip' => $ips[0]]);
+            }
+        }
+    }
+    
+    return response()->json(['ip' => $ip]);
+});
 
 // Event Management Routes (no auth needed - admin use these)
 Route::post('clear-event-scores', [VotingController::class, 'clearEventScores']);

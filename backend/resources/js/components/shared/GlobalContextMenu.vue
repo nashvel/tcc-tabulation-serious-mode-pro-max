@@ -49,6 +49,20 @@
         {{ isRefreshing ? 'Refreshing...' : 'Refresh All Screens' }}
       </button>
 
+      <!-- Show/Hide IP on Screens -->
+      <button
+        @click="handleShowIpOnScreens"
+        :disabled="isShowingIp"
+        :class="[
+          'w-full px-4 py-2 text-left text-sm flex items-center gap-3 border-b border-gray-200 transition-colors',
+          isShowingIp ? 'opacity-50 cursor-not-allowed text-gray-500' : 'text-gray-700 hover:bg-gray-100'
+        ]"
+      >
+        <span v-if="isShowingIp" class="animate-spin">⟳</span>
+        <Wifi v-else class="w-4 h-4" />
+        {{ isShowingIp ? 'Broadcasting...' : ipOnScreensVisible ? 'Hide IP on Screens' : 'Show IP on Screens' }}
+      </button>
+
       <!-- Switch Category with Submenu -->
       <div
         v-if="eventSequence.length > 0"
@@ -102,6 +116,15 @@
         </div>
       </div>
 
+      <!-- Network Info -->
+      <button
+        @click="handleNetworkInfo"
+        class="w-full px-4 py-2 text-left text-sm flex items-center gap-3 text-gray-700 hover:bg-gray-100 border-b border-gray-200"
+      >
+        <Wifi class="w-4 h-4" />
+        Network Info
+      </button>
+
       <!-- Copy -->
       <button
         v-if="copyText"
@@ -112,12 +135,100 @@
         Copy
       </button>
     </div>
+
+    <!-- Network Info Modal -->
+    <div
+      v-if="networkModalVisible"
+      class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50"
+      @click.self="networkModalVisible = false"
+    >
+      <div class="bg-white rounded-xl shadow-2xl w-[400px] max-h-[80vh] overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Wifi class="w-5 h-5" />
+            Network Info
+          </h3>
+          <button @click="networkModalVisible = false" class="text-gray-400 hover:text-gray-600">
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+        <div class="p-5 space-y-4">
+          <!-- Local IP -->
+          <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Your IP Address</p>
+            <div class="flex items-center justify-between">
+              <span class="text-xl font-mono font-semibold text-gray-900">{{ localIp || 'Loading...' }}</span>
+              <button 
+                v-if="localIp"
+                @click="copyIp"
+                class="px-3 py-1.5 text-xs bg-gray-200 hover:bg-gray-300 rounded-md transition-colors"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+
+          <!-- Access URLs -->
+          <div v-if="localIp" class="space-y-2">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Access URLs (for other devices)</p>
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between bg-gray-50 rounded px-3 py-2">
+                <span class="text-sm text-gray-600">Admin:</span>
+                <code class="text-sm font-mono text-blue-600">http://{{ localIp }}:8000/admin</code>
+              </div>
+              <div class="flex items-center justify-between bg-gray-50 rounded px-3 py-2">
+                <span class="text-sm text-gray-600">Judge:</span>
+                <code class="text-sm font-mono text-blue-600">http://{{ localIp }}:8000/judge</code>
+              </div>
+              <div class="flex items-center justify-between bg-gray-50 rounded px-3 py-2">
+                <span class="text-sm text-gray-600">Setup:</span>
+                <code class="text-sm font-mono text-blue-600">http://{{ localIp }}:8000/setup</code>
+              </div>
+            </div>
+          </div>
+
+          <!-- Connected Screens -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Connected Screens</p>
+              <button 
+                @click="loadRegisteredScreens"
+                :disabled="loadingScreens"
+                class="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+              >
+                <RefreshCw :class="['w-3 h-3', loadingScreens ? 'animate-spin' : '']" />
+                Refresh
+              </button>
+            </div>
+            <div v-if="loadingScreens" class="text-center py-4 text-gray-500 text-sm">
+              Loading...
+            </div>
+            <div v-else-if="registeredScreens.length === 0" class="text-center py-4 text-gray-400 text-sm">
+              No screens connected
+            </div>
+            <div v-else class="space-y-1.5 max-h-[200px] overflow-y-auto">
+              <div 
+                v-for="screen in registeredScreens" 
+                :key="screen.id"
+                class="flex items-center justify-between bg-gray-50 rounded px-3 py-2"
+              >
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                  <span class="text-sm font-medium text-gray-700">{{ screen.name || `Judge ${screen.judge_id}` }}</span>
+                </div>
+                <span class="text-xs text-gray-400 font-mono">{{ screen.ip || 'N/A' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </Teleport>
 </template>
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue';
-import { Lock, LockOpen, SkipForward, ChevronRight, Copy, Hash, EyeOff as HashOff, RefreshCw } from 'lucide-vue-next';
+import { Lock, LockOpen, SkipForward, ChevronRight, Copy, Hash, EyeOff as HashOff, RefreshCw, Wifi, X } from 'lucide-vue-next';
 import { showSuccess, showError } from '../../utils/alerts';
 
 const props = defineProps({
@@ -141,6 +252,14 @@ const isRefreshing = ref(false);
 const isSwitchingCategory = ref(false);
 const selectedCategoryIndex = ref(0);
 const categorySubmenu = ref({ visible: false, position: 'right' });
+
+// Network info state
+const networkModalVisible = ref(false);
+const localIp = ref(null);
+const registeredScreens = ref([]);
+const loadingScreens = ref(false);
+const isShowingIp = ref(false);
+const ipOnScreensVisible = ref(false);
 
 // Sync selectedCategoryIndex with activeRound
 watch(() => props.activeRound, (newRound) => {
@@ -303,6 +422,84 @@ const handleCategoryHover = (e) => {
     visible: true,
     position: spaceOnRight < submenuWidth ? 'left' : 'right'
   };
+};
+
+// Network Info handler (modal)
+const handleNetworkInfo = async () => {
+  emit('close');
+  networkModalVisible.value = true;
+  await getLocalIp();
+  await loadRegisteredScreens();
+};
+
+// Show/Hide IP on all judge screens (broadcast via WebSocket)
+const handleShowIpOnScreens = async () => {
+  if (!props.eventId) {
+    showError('Event not loaded yet');
+    emit('close');
+    return;
+  }
+  
+  isShowingIp.value = true;
+  try {
+    const endpoint = ipOnScreensVisible.value ? 'hide-network-info' : 'show-network-info';
+    const response = await fetch(`/api/voting/${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_id: props.eventId })
+    });
+
+    if (response.ok) {
+      ipOnScreensVisible.value = !ipOnScreensVisible.value;
+      showSuccess(ipOnScreensVisible.value ? 'Showing IP on all screens' : 'Hiding IP from screens');
+    } else {
+      showError('Failed to broadcast');
+    }
+  } catch (error) {
+    showError('Failed to broadcast');
+  } finally {
+    isShowingIp.value = false;
+    emit('close');
+  }
+};
+
+// Get local IP from server
+const getLocalIp = async () => {
+  try {
+    const response = await fetch('/api/network/local-ip');
+    if (response.ok) {
+      const data = await response.json();
+      localIp.value = data.ip;
+    }
+  } catch (error) {
+    // Fallback: try to get from window location if on same network
+    localIp.value = window.location.hostname !== 'localhost' ? window.location.hostname : null;
+  }
+};
+
+// Load registered screens
+const loadRegisteredScreens = async () => {
+  if (!props.eventId) return;
+  loadingScreens.value = true;
+  try {
+    const response = await fetch(`/api/voting/state?event_id=${props.eventId}`);
+    if (response.ok) {
+      const data = await response.json();
+      registeredScreens.value = data.registered_screens || [];
+    }
+  } catch (error) {
+    console.error('Error loading screens:', error);
+  } finally {
+    loadingScreens.value = false;
+  }
+};
+
+// Copy IP to clipboard
+const copyIp = () => {
+  if (localIp.value) {
+    navigator.clipboard.writeText(localIp.value);
+    showSuccess('IP copied!');
+  }
 };
 
 // Copy handler

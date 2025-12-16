@@ -1672,4 +1672,129 @@ class VotingController extends Controller
         }
     }
 
+    /**
+     * Show network info (IP address) on all judge screens
+     */
+    public function showNetworkInfo(Request $request)
+    {
+        try {
+            $eventId = $request->input('event_id');
+            
+            if (!$eventId) {
+                return response()->json(['error' => 'event_id is required'], 400);
+            }
+            
+            $eventId = (int) $eventId;
+            
+            // Get registered screens with their IPs
+            $votingState = VotingState::where('event_id', $eventId)->first();
+            $registeredScreens = $votingState?->registered_screens ?? [];
+            
+            // Build a map of device_id => ip_address
+            $screenIps = [];
+            foreach ($registeredScreens as $screen) {
+                if (!empty($screen['device_id']) && !empty($screen['ip_address'])) {
+                    $screenIps[$screen['device_id']] = $screen['ip_address'];
+                }
+            }
+            
+            // Broadcast to all judge screens with their IP map
+            broadcast(new VotingStateChanged($eventId, [
+                'screen_ips' => $screenIps,
+            ], 'show_network_info'));
+            
+            Log::info("Show network info broadcast for event {$eventId}", ['screens' => count($screenIps)]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Network info broadcast sent',
+                'screens' => count($screenIps)
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error broadcasting network info: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to broadcast'], 500);
+        }
+    }
+    
+    /**
+     * Get the server's local IP address (for LAN access)
+     */
+    private function getServerLocalIp()
+    {
+        $ip = null;
+        
+        // Method 1: Check environment variable (most reliable if set)
+        $envIp = env('VITE_DEV_SERVER_HOST');
+        if ($envIp && $envIp !== 'localhost' && $envIp !== '127.0.0.1') {
+            return $envIp;
+        }
+        
+        // Method 2: Try SERVER_ADDR from request
+        $serverAddr = request()->server('SERVER_ADDR');
+        if ($serverAddr && $serverAddr !== '127.0.0.1' && $serverAddr !== '::1') {
+            return $serverAddr;
+        }
+        
+        // Method 3: Try to get from hostname
+        $hostname = gethostname();
+        $ip = gethostbyname($hostname);
+        if ($ip && $ip !== $hostname && $ip !== '127.0.0.1') {
+            return $ip;
+        }
+        
+        // Method 4: Windows - try ipconfig
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            $output = shell_exec('ipconfig');
+            if ($output) {
+                // Look for IPv4 Address in the output
+                if (preg_match('/IPv4 Address[.\s]*:\s*(\d+\.\d+\.\d+\.\d+)/i', $output, $matches)) {
+                    $ip = $matches[1];
+                    if ($ip !== '127.0.0.1') {
+                        return $ip;
+                    }
+                }
+            }
+        } else {
+            // Method 5: Linux/Mac - try hostname -I
+            $output = shell_exec('hostname -I 2>/dev/null');
+            if ($output) {
+                $ips = explode(' ', trim($output));
+                if (!empty($ips[0]) && $ips[0] !== '127.0.0.1') {
+                    return $ips[0];
+                }
+            }
+        }
+        
+        return $ip ?: 'Unable to detect';
+    }
+
+    /**
+     * Hide network info on all judge screens
+     */
+    public function hideNetworkInfo(Request $request)
+    {
+        try {
+            $eventId = $request->input('event_id');
+            
+            if (!$eventId) {
+                return response()->json(['error' => 'event_id is required'], 400);
+            }
+            
+            $eventId = (int) $eventId;
+            
+            // Broadcast to all judge screens
+            broadcast(new VotingStateChanged($eventId, [], 'hide_network_info'));
+            
+            Log::info("Hide network info broadcast for event {$eventId}");
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Hide network info broadcast sent'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error broadcasting hide network info: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to broadcast'], 500);
+        }
+    }
+
 }
