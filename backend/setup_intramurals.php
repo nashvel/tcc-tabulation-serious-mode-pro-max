@@ -510,14 +510,12 @@ try {
 
     echo " Event Sequence: 5 rounds ordered\n";
 
-    // Create Judges
+    // Create Judges (matching number_of_judges = 4)
     $judgesData = [
         ['name' => 'Judge 1', 'chair_number' => 1],
         ['name' => 'Judge 2', 'chair_number' => 2],
         ['name' => 'Judge 3', 'chair_number' => 3],
         ['name' => 'Judge 4', 'chair_number' => 4],
-        ['name' => 'Judge 5', 'chair_number' => 5],
-        ['name' => 'Judge 6', 'chair_number' => 6],
     ];
 
     foreach ($judgesData as $judgeData) {
@@ -529,7 +527,7 @@ try {
         ]);
     }
 
-    echo " Created 5 judges\n";
+    echo " Created 4 judges\n";
 
     DB::commit();
 
@@ -545,7 +543,7 @@ try {
     echo "   - Number of Judges: {$event->number_of_judges}\n";
     echo "   - Event Days: 1 (MR AND MISS - Duo Pageant)\n";
     echo "   - Candidates: 16 (8 pairs)\n";
-    echo "   - Judges: 5\n";
+    echo "   - Judges: 4\n";
     echo "   - Rounds: 5\n";
     echo "   - Total Criteria: 20\n";
     echo "   - Important People: 1\n";

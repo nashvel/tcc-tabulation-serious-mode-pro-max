@@ -32,16 +32,31 @@
         class="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
       >
         <div class="h-24 bg-gray-100 relative">
+          <!-- Multiple logos display -->
+          <div v-if="getTemplateLogos(template).length > 0" class="w-full h-full flex items-center justify-center gap-2 p-2 bg-gradient-to-br from-gray-50 to-gray-100">
+            <img
+              v-for="(logo, idx) in getTemplateLogos(template).slice(0, 4)"
+              :key="idx"
+              :src="logo.path || logo"
+              :alt="`Logo ${idx + 1}`"
+              :class="['object-contain rounded border border-gray-200 bg-white', getTemplateLogos(template).length === 1 ? 'h-20 max-w-full' : 'h-16 w-16']"
+              @error="$event.target.style.display = 'none'"
+            />
+            <span v-if="getTemplateLogos(template).length > 4" class="text-xs text-gray-500 font-medium">+{{ getTemplateLogos(template).length - 4 }}</span>
+          </div>
+          <!-- Single lock screen image -->
           <img
-            v-if="template.header_image || template.lock_screen_image"
-            :src="template.header_image || template.lock_screen_image"
+            v-else-if="template.lock_screen_image"
+            :src="template.lock_screen_image"
             :alt="template.name"
             class="w-full h-full object-cover"
             @error="$event.target.style.display = 'none'"
           />
+          <!-- Empty state -->
           <div v-else class="w-full h-full flex items-center justify-center">
             <FileText class="w-8 h-8 text-gray-300" />
           </div>
+          <!-- Badges -->
           <span v-if="template.is_system" class="absolute top-2 right-2 px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
             System
           </span>
@@ -51,10 +66,10 @@
           <span v-else-if="template.event_type === 'category'" class="absolute top-2 left-2 px-2 py-0.5 bg-gray-800 text-white text-xs font-medium rounded-full">
             Category
           </span>
-          <span v-else-if="template.lock_screen_image && !template.header_image" class="absolute top-2 left-2 px-2 py-0.5 bg-gray-800 text-white text-xs font-medium rounded-full">
+          <span v-else-if="template.lock_screen_image && !template.header_image && !hasLogos(template)" class="absolute top-2 left-2 px-2 py-0.5 bg-gray-800 text-white text-xs font-medium rounded-full">
             Lock Screen
           </span>
-          <span v-else-if="template.header_image" class="absolute top-2 left-2 px-2 py-0.5 bg-gray-800 text-white text-xs font-medium rounded-full">
+          <span v-else-if="hasLogos(template)" class="absolute top-2 left-2 px-2 py-0.5 bg-gray-800 text-white text-xs font-medium rounded-full">
             Header
           </span>
         </div>
@@ -138,6 +153,22 @@ const loading = ref(true);
 const buttonLoading = ref(false);
 const templates = ref([]);
 let availableImages = [];
+
+// Helper to get all logos from a template (handles both header_logos array and single header_image)
+const getTemplateLogos = (template) => {
+  if (template.header_logos && Array.isArray(template.header_logos) && template.header_logos.length > 0) {
+    return template.header_logos.sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+  if (template.header_image) {
+    return [{ path: template.header_image, order: 0 }];
+  }
+  return [];
+};
+
+// Helper to check if template has logos
+const hasLogos = (template) => {
+  return getTemplateLogos(template).length > 0;
+};
 
 const loadTemplates = async () => {
   loading.value = true;

@@ -20,22 +20,31 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   DateTime? _selectedDate;
-  int _numberOfJudges = 7;
+  int _numberOfJudges = 5;
   String _eventType = 'pageant';
 
-  List<Map<String, dynamic>> _participants = [
-    {'number': '', 'name': '', 'gender': 'Female', 'department': ''}
-  ];
+  // Participants list (matches Vue structure)
+  List<Map<String, dynamic>> _participants = [];
 
-  // Update all participants' gender when event type changes
+  // Rounds list with criteria (matches Vue structure)
+  List<Map<String, dynamic>> _rounds = [];
+
+  bool _isLoading = false;
+  int? _eventId;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
   void _onEventTypeChanged(String? newType) {
     if (newType == null) return;
     setState(() {
       _eventType = newType;
-      // Update existing participants to use the new default gender
       final newGender = _getDefaultGenderForType(newType);
       for (var p in _participants) {
-        // Only update if current gender doesn't match new event type
         final currentGender = p['gender'] ?? 'Female';
         if (!_isValidGenderForType(currentGender, newType)) {
           p['gender'] = newGender;
@@ -64,22 +73,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       case 'pageant':
         return gender == 'Female' || gender == 'Male';
       default:
-        return true; // Allow all for generic types
+        return true;
     }
-  }
-  List<Map<String, String>> _categories = [{'name': '', 'description': ''}];
-  List<Map<String, dynamic>> _criteria = [
-    {'name': '', 'max_score': 100, 'percentage': 0, 'description': ''}
-  ];
-
-  bool _isLoading = false;
-  int? _eventId;
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
   }
 
   void _selectDate() async {
@@ -107,7 +102,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   Future<void> _createEvent() async {
     if (_titleController.text.isEmpty) {
-      _showError('Please enter event name');
+      _showError('Please enter event title');
       return;
     }
     if (_selectedDate == null) {
@@ -118,12 +113,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       _showError('Please add at least one participant');
       return;
     }
-    if (!_categories.any((c) => c['name']?.toString().isNotEmpty ?? false)) {
-      _showError('Please add at least one category');
-      return;
-    }
-    if (!_criteria.any((c) => c['name']?.toString().isNotEmpty ?? false)) {
-      _showError('Please add at least one scoring criterion');
+    if (!_rounds.any((r) => r['name']?.toString().isNotEmpty ?? false)) {
+      _showError('Please add at least one round');
       return;
     }
 
@@ -133,27 +124,44 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       final dateStr =
           '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
 
+      // Build payload matching Vue structure
+      final payload = {
+        'event_id': _eventId,
+        'title': _titleController.text,
+        'event_date': dateStr,
+        'description': _descriptionController.text,
+        'event_type': _eventType,
+        'number_of_judges': _numberOfJudges,
+        // Participants (matches Vue: number, name, gender)
+        'participants': _participants
+            .where((p) => p['name']?.toString().isNotEmpty ?? false)
+            .map((p) => {
+                  'number': int.tryParse(p['number']?.toString() ?? '') ?? 0,
+                  'name': p['name'],
+                  'gender': p['gender'],
+                })
+            .toList(),
+        // Rounds with criteria (matches Vue structure)
+        'rounds': _rounds
+            .where((r) => r['name']?.toString().isNotEmpty ?? false)
+            .map((r) => {
+                  'name': r['name'],
+                  'criteria': ((r['criteria'] as List<dynamic>?) ?? [])
+                      .where((c) => c['name']?.toString().isNotEmpty ?? false)
+                      .map((c) => {
+                            'name': c['name'],
+                            'points': c['points'] ?? 0,
+                          })
+                      .toList(),
+                })
+            .toList(),
+      };
+
       final response = await http
           .post(
             Uri.parse('http://localhost:8000/api/events/save-draft'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'event_id': _eventId,
-              'title': _titleController.text,
-              'event_date': dateStr,
-              'description': _descriptionController.text,
-              'event_type': _eventType,
-              'number_of_judges': _numberOfJudges,
-              'candidates': _participants
-                  .where((p) => p['name']?.toString().isNotEmpty ?? false)
-                  .toList(),
-              'categories': _categories
-                  .where((c) => c['name']?.toString().isNotEmpty ?? false)
-                  .toList(),
-              'criteria': _criteria
-                  .where((c) => c['name']?.toString().isNotEmpty ?? false)
-                  .toList(),
-            }),
+            body: jsonEncode(payload),
           )
           .timeout(const Duration(seconds: 10));
 
@@ -201,6 +209,56 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
   }
 
+  // Add participant
+  void _addParticipant() {
+    setState(() {
+      final nextNumber = _participants.length + 1;
+      _participants.add({
+        'number': nextNumber.toString(),
+        'name': '',
+        'gender': _getDefaultGender(),
+      });
+    });
+  }
+
+  // Add round
+  void _addRound() {
+    setState(() {
+      _rounds.add({
+        'name': '',
+        'criteria': <Map<String, dynamic>>[],
+      });
+    });
+  }
+
+  // Remove round
+  void _removeRound(int index) {
+    setState(() {
+      _rounds.removeAt(index);
+    });
+  }
+
+  // Add criteria to a round
+  void _addCriteria(int roundIndex) {
+    setState(() {
+      final criteria = (_rounds[roundIndex]['criteria'] as List<dynamic>?) ?? [];
+      criteria.add({'name': '', 'points': 0});
+      _rounds[roundIndex]['criteria'] = criteria;
+    });
+  }
+
+  // Remove criteria from a round
+  void _removeCriteria(int roundIndex, int criteriaIndex) {
+    setState(() {
+      final criteria = (_rounds[roundIndex]['criteria'] as List<dynamic>?) ?? [];
+      if (criteriaIndex < criteria.length) {
+        criteria.removeAt(criteriaIndex);
+        _rounds[roundIndex]['criteria'] = criteria;
+      }
+    });
+  }
+
+  // Template functions
   void _applyParticipantTemplate() {
     setState(() {
       switch (_eventType) {
@@ -216,44 +274,36 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     });
   }
 
-  void _applyCategoryTemplate() {
+  void _applyRoundTemplate() {
     setState(() {
+      // Apply rounds with criteria based on event type
       switch (_eventType) {
         case 'pageant':
-          _categories = TemplateLibrary.pageantCategories.map((t) => t.toMap()).toList();
+          _rounds = [
+            {'name': 'Casual Wear', 'criteria': [{'name': 'Poise', 'points': 30}, {'name': 'Projection', 'points': 30}, {'name': 'Attire', 'points': 40}]},
+            {'name': 'Formal Wear', 'criteria': [{'name': 'Elegance', 'points': 40}, {'name': 'Stage Presence', 'points': 30}, {'name': 'Attire', 'points': 30}]},
+            {'name': 'Q&A', 'criteria': [{'name': 'Content', 'points': 50}, {'name': 'Delivery', 'points': 30}, {'name': 'Confidence', 'points': 20}]},
+          ];
           break;
         case 'talent_show':
-          _categories = TemplateLibrary.talentShowCategories.map((t) => t.toMap()).toList();
+          _rounds = [
+            {'name': 'Performance', 'criteria': [{'name': 'Talent', 'points': 40}, {'name': 'Stage Presence', 'points': 30}, {'name': 'Creativity', 'points': 30}]},
+          ];
           break;
         case 'solo_contest':
-          _categories = TemplateLibrary.soloContestCategories.map((t) => t.toMap()).toList();
+          _rounds = [
+            {'name': 'Solo Performance', 'criteria': [{'name': 'Skill', 'points': 40}, {'name': 'Presentation', 'points': 30}, {'name': 'Creativity', 'points': 30}]},
+          ];
           break;
         case 'group_contest':
-          _categories = TemplateLibrary.groupContestCategories.map((t) => t.toMap()).toList();
+          _rounds = [
+            {'name': 'Group Performance', 'criteria': [{'name': 'Coordination', 'points': 30}, {'name': 'Creativity', 'points': 35}, {'name': 'Impact', 'points': 35}]},
+          ];
           break;
         default:
-          _categories = TemplateLibrary.pageantCategories.map((t) => t.toMap()).toList();
-      }
-    });
-  }
-
-  void _applyCriteriaTemplate() {
-    setState(() {
-      switch (_eventType) {
-        case 'pageant':
-          _criteria = TemplateLibrary.pageantCriteria.map((t) => t.toMap()).toList();
-          break;
-        case 'talent_show':
-          _criteria = TemplateLibrary.talentCriteria.map((t) => t.toMap()).toList();
-          break;
-        case 'solo_contest':
-          _criteria = TemplateLibrary.soloContestCriteria.map((t) => t.toMap()).toList();
-          break;
-        case 'group_contest':
-          _criteria = TemplateLibrary.groupContestCriteria.map((t) => t.toMap()).toList();
-          break;
-        default:
-          _criteria = TemplateLibrary.standardCriteria.map((t) => t.toMap()).toList();
+          _rounds = [
+            {'name': 'Round 1', 'criteria': [{'name': 'Criteria 1', 'points': 50}, {'name': 'Criteria 2', 'points': 50}]},
+          ];
       }
     });
   }
@@ -266,7 +316,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.text,
         elevation: 0,
-        title: Text('New Event', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
+        title: Text('Create New Event', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, size: 18),
           onPressed: () => Navigator.of(context).pop(),
@@ -284,8 +334,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             // Quick templates
             _buildTemplateRow(),
             const SizedBox(height: AppSpacing.lg),
-            // Step 1
-            _buildSection('Basic Info', Step1BasicInfo(
+            // Step 1: Basic Info
+            _buildSection('1. Basic Info', Step1BasicInfo(
               titleController: _titleController,
               descriptionController: _descriptionController,
               selectedDate: _selectedDate,
@@ -293,29 +343,36 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               eventType: _eventType,
               onEventTypeChanged: _onEventTypeChanged,
               numberOfJudges: _numberOfJudges,
-              onNumberOfJudgesChanged: (v) => setState(() => _numberOfJudges = int.tryParse(v) ?? 7),
+              onNumberOfJudgesChanged: (v) => setState(() => _numberOfJudges = int.tryParse(v) ?? 5),
             )),
             const SizedBox(height: AppSpacing.lg),
-            // Step 2
-            _buildSection('Participants', Step2Participants(
+            // Step 2: Participants
+            _buildSection('2. Participants', Step2Participants(
               participants: _participants,
               eventType: _eventType,
-              onAddParticipant: (_) => setState(() => _participants.add({'number': '', 'name': '', 'gender': _getDefaultGender(), 'department': ''})),
+              onAddParticipant: (_) => _addParticipant(),
               onParticipantChanged: (i, f, v) => setState(() => _participants[i][f] = v),
             )),
             const SizedBox(height: AppSpacing.lg),
-            // Step 3
-            _buildSection('Categories', Step3Categories(
-              categories: _categories,
-              onAddCategory: (_) => setState(() => _categories.add({'name': '', 'description': ''})),
-              onCategoryChanged: (i, f, v) => setState(() => _categories[i][f] = v),
+            // Step 3: Rounds
+            _buildSection('3. Rounds', Step3Rounds(
+              rounds: _rounds,
+              onAddRound: (_) => _addRound(),
+              onRoundChanged: (i, f, v) => setState(() => _rounds[i][f] = v),
+              onRemoveRound: _removeRound,
             )),
             const SizedBox(height: AppSpacing.lg),
-            // Step 4
-            _buildSection('Scoring Criteria', Step4Criteria(
-              criteria: _criteria,
-              onAddCriterion: (_) => setState(() => _criteria.add({'name': '', 'max_score': 100, 'percentage': 0, 'description': ''})),
-              onCriterionChanged: (i, f, v) => setState(() => _criteria[i][f] = v),
+            // Step 4: Criteria
+            _buildSection('4. Scoring Criteria', Step4Criteria(
+              rounds: _rounds,
+              onAddCriteria: _addCriteria,
+              onCriteriaChanged: (ri, ci, f, v) => setState(() {
+                final criteria = (_rounds[ri]['criteria'] as List<dynamic>?) ?? [];
+                if (ci < criteria.length) {
+                  criteria[ci][f] = v;
+                }
+              }),
+              onRemoveCriteria: _removeCriteria,
             )),
             const SizedBox(height: AppSpacing.xl),
             // Buttons
@@ -344,7 +401,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       child: Center(
                         child: _isLoading
                             ? const PodiumLoader(size: 14)
-                            : Text('Create', style: AppTextStyles.button.copyWith(color: Colors.white)),
+                            : Text('Create Event', style: AppTextStyles.button.copyWith(color: Colors.white)),
                       ),
                     ),
                   ),
@@ -362,11 +419,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       children: [
         Text('Templates:', style: AppTextStyles.small),
         const SizedBox(width: AppSpacing.sm),
-        _templateBtn('Candidates', _applyParticipantTemplate),
+        _templateBtn('Participants', _applyParticipantTemplate),
         const SizedBox(width: AppSpacing.sm),
-        _templateBtn('Categories', _applyCategoryTemplate),
-        const SizedBox(width: AppSpacing.sm),
-        _templateBtn('Criteria', _applyCriteriaTemplate),
+        _templateBtn('Rounds + Criteria', _applyRoundTemplate),
       ],
     );
   }

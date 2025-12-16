@@ -71,12 +71,6 @@
           :isActive="activeItem === 'judges-modal'"
           @click="handleNavigation('judges-modal', 'judges-modal')"
         />
-        <NavItem
-          icon="shield"
-          label="Manage Admin Users"
-          :isActive="activeItem === 'admin-users'"
-          @click="handleNavigation(null, 'admin-users')"
-        />
       </div>
 
       <!-- Reports -->
@@ -89,12 +83,6 @@
           @click="handleNavigation('results', 'results')"
         />
         <NavItem
-          icon="download"
-          label="Export All Scores"
-          :isActive="activeItem === 'export'"
-          @click="handleNavigation(null, 'export')"
-        />
-        <NavItem
           icon="emoji_events"
           label="Review Certificates"
           :isActive="activeItem === 'certificates'"
@@ -102,22 +90,6 @@
         />
       </div>
 
-      <!-- System Settings -->
-      <div class="flex flex-col gap-1">
-        <h4 class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">System Settings</h4>
-        <NavItem
-          icon="settings"
-          label="General Settings"
-          :isActive="activeItem === 'settings'"
-          @click="handleNavigation('settings-modal', 'settings')"
-        />
-        <NavItem
-          icon="palette"
-          label="Theme Preferences"
-          :isActive="activeItem === 'theme'"
-          @click="handleNavigation('theme-modal', 'theme')"
-        />
-      </div>
     </nav>
   </aside>
 </template>
