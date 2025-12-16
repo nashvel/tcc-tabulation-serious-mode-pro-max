@@ -1361,6 +1361,22 @@ class VotingController extends Controller
             $votingState->registered_screens = $screens;
             $votingState->save();
             
+            // Clear the judge's scores when kicked
+            $judgeId = $removedScreen['judge_id'] ?? null;
+            $scoresCleared = 0;
+            if ($judgeId) {
+                // Get candidate IDs for this event
+                $candidateIds = \App\Models\Candidate::where('event_id', $eventId)->pluck('id');
+                
+                if ($candidateIds->isNotEmpty()) {
+                    $scoresCleared = \App\Models\Point::whereIn('candidate_id', $candidateIds)
+                        ->where('judge_id', $judgeId)
+                        ->delete();
+                    
+                    Log::info("Cleared {$scoresCleared} scores for judge {$judgeId} in event {$eventId}");
+                }
+            }
+            
             // Broadcast to kick that specific screen and update all screens using dedicated event
             broadcast(new ScreenRegistrationChanged($eventId, $screens, 'unregistered', $removedScreen));
             
@@ -1368,12 +1384,14 @@ class VotingController extends Controller
                 'screen_number' => $removedScreen['screen_number'],
                 'device_id' => $removedScreen['device_id'] ?? null,
                 'judge_id' => $removedScreen['judge_id'] ?? null,
+                'scores_cleared' => $scoresCleared,
             ]);
             
             return response()->json([
                 'success' => true,
-                'message' => "Screen {$removedScreen['screen_number']} removed",
-                'removed_screen' => $removedScreen
+                'message' => "Screen {$removedScreen['screen_number']} removed" . ($scoresCleared > 0 ? " and {$scoresCleared} scores cleared" : ""),
+                'removed_screen' => $removedScreen,
+                'scores_cleared' => $scoresCleared
             ]);
         } catch (\Exception $e) {
             Log::error('Error removing screen: ' . $e->getMessage());

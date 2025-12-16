@@ -13,6 +13,12 @@
             <option value="">Select Round</option>
             <option v-for="round in rounds" :key="round.id" :value="round.id">{{ round.name }}</option>
           </select>
+          <select id="top-filter" v-model="topFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+            <option value="all">All Results</option>
+            <option value="3">Top 3</option>
+            <option value="5">Top 5</option>
+            <option value="10">Top 10</option>
+          </select>
           <button 
             id="print-btn"
             @click="generatePrint" 
@@ -301,6 +307,7 @@ const props = defineProps({
 });
 
 const selectedRound = ref('');
+const topFilter = ref('all');
 const allScores = ref([]);
 const printArea = ref(null);
 const excludedWinners = ref(new Set());
@@ -381,7 +388,7 @@ const sortedResults = computed(() => {
   
   const roundScores = allScores.value.filter(s => s.round_id == selectedRound.value);
   
-  return props.candidates.map(candidate => {
+  let results = props.candidates.map(candidate => {
     const candidateScores = roundScores.filter(s => s.candidate_id == candidate.id);
     
     const judgeScores = {};
@@ -404,6 +411,14 @@ const sortedResults = computed(() => {
       judgeScores
     };
   }).filter(c => c.average > 0).sort((a, b) => b.average - a.average);
+  
+  // Apply top filter
+  if (topFilter.value !== 'all') {
+    const limit = parseInt(topFilter.value);
+    results = results.slice(0, limit);
+  }
+  
+  return results;
 });
 
 // Get all winners (including ties)
