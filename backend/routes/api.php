@@ -82,9 +82,13 @@ Route::get('occupied-judges', [VotingController::class, 'getOccupiedJudges']);
 Route::post('occupy-judge', [VotingController::class, 'occupyJudge']);
 Route::post('clear-occupied-judges', [VotingController::class, 'clearOccupiedJudges']);
 
-// Event Templates & Themes (public read only)
+// Event Templates & Themes (public - CRUD operations)
 Route::get('event-templates', [EventTemplateController::class, 'index']);
 Route::get('event-templates/{id}', [EventTemplateController::class, 'show']);
+Route::post('event-templates', [EventTemplateController::class, 'store']);
+Route::put('event-templates/{id}', [EventTemplateController::class, 'update']);
+Route::delete('event-templates/{id}', [EventTemplateController::class, 'destroy']);
+Route::post('event-templates/{id}/create-event', [EventTemplateController::class, 'createFromTemplate']);
 Route::get('event-themes', [EventThemeController::class, 'index']);
 Route::get('event-themes/{id}', [EventThemeController::class, 'show']);
 
@@ -103,9 +107,10 @@ Route::get('reports/judge-scores', [ReportController::class, 'getJudgeScores']);
 
 // Event Management Routes (no auth needed - admin use these)
 Route::post('clear-event-scores', [VotingController::class, 'clearEventScores']);
-Route::post('events/save-draft', [EventController::class, 'saveDraft']); // Allow draft saving without auth
-Route::post('events/create-full', [EventController::class, 'createFull']); // Allow full event creation without auth
-Route::post('events/{id}/update-step', [EventController::class, 'updateStep']); // Allow step updates without auth
+Route::post('events/save-draft', [EventController::class, 'saveDraft']);
+Route::post('events/create-full', [EventController::class, 'createFull']);
+Route::post('events/{id}/update-step', [EventController::class, 'updateStep']);
+Route::put('events/{event}', [EventController::class, 'update']);
 
 // Rounds Management (public for admin panel without auth)
 Route::post('rounds', [RoundController::class, 'store']);
@@ -120,7 +125,6 @@ Route::delete('criteria/{criteria}', [CriteriaController::class, 'destroy']);
 // Admin Routes (frontend checks isAdmin in localStorage)
 // Events Management
 Route::post('events', [EventController::class, 'store']);
-Route::put('events/{event}', [EventController::class, 'update']);
 Route::delete('events/{event}', [EventController::class, 'destroy']);
 Route::post('events/{id}/complete', [EventController::class, 'complete']);
 Route::post('events/{id}/archive', [EventController::class, 'archive']);
@@ -142,7 +146,3 @@ Route::post('templates/{id}/apply', [TemplateController::class, 'applyToEvent'])
 // Candidate Templates (global, reusable candidate lists)
 Route::get('candidate-templates', [CandidateTemplateController::class, 'index']);
 Route::get('candidate-templates/{id}', [CandidateTemplateController::class, 'show']);
-
-// Event Templates - create from template
-Route::post('event-templates/{id}/create-event', [EventTemplateController::class, 'createFromTemplate']);
-

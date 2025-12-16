@@ -17,6 +17,7 @@ class EventTemplate extends Model
         'default_judges',
         'default_theme_id',
         'header_image',
+        'header_logos',
         'lock_screen_image',
         'is_system',
         'is_active',
@@ -25,6 +26,7 @@ class EventTemplate extends Model
     protected $casts = [
         'is_system' => 'boolean',
         'is_active' => 'boolean',
+        'header_logos' => 'array',
     ];
 
     public function defaultTheme()

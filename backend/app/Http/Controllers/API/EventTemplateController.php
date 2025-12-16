@@ -41,6 +41,9 @@ class EventTemplateController extends Controller
             'default_judges' => 'integer|min:1|max:20',
             'default_theme_id' => 'nullable|exists:event_themes,id',
             'header_image' => 'nullable|string|max:255',
+            'header_logos' => 'nullable|array',
+            'header_logos.*.path' => 'required_with:header_logos|string',
+            'header_logos.*.order' => 'required_with:header_logos|integer',
             'lock_screen_image' => 'nullable|string|max:255',
         ]);
 
@@ -67,6 +70,9 @@ class EventTemplateController extends Controller
             'default_judges' => 'integer|min:1|max:20',
             'default_theme_id' => 'nullable|exists:event_themes,id',
             'header_image' => 'nullable|string|max:255',
+            'header_logos' => 'nullable|array',
+            'header_logos.*.path' => 'required_with:header_logos|string',
+            'header_logos.*.order' => 'required_with:header_logos|integer',
             'lock_screen_image' => 'nullable|string|max:255',
             'is_active' => 'boolean',
         ]);

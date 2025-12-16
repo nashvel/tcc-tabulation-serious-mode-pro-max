@@ -144,6 +144,7 @@ class EventController extends Controller
             'event_type' => 'sometimes|nullable|string',
             'number_of_judges' => 'sometimes|nullable|integer|min:1|max:20',
             'header_image' => 'sometimes|nullable|string|max:255',
+            'header_logos' => 'sometimes|nullable|array',
             'lock_screen_image' => 'sometimes|nullable|string|max:255',
             'days' => 'sometimes|array',
             'days.*.day_number' => 'required_with:days|integer',
@@ -192,6 +193,7 @@ class EventController extends Controller
             'event_days' => 'nullable|array',
             'important_people' => 'nullable|array',
             'header_image' => 'nullable|string|max:255',
+            'header_logos' => 'nullable|array',
             'lock_screen_image' => 'nullable|string|max:255',
         ]);
 

@@ -89,22 +89,159 @@
             <div class="pt-4 border-t border-gray-200">
               <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Visual Settings</div>
               
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <ImageSelector
-                    v-model="formData.header_image"
-                    label="Header Image"
-                    placeholder="Select header image"
-                  />
-                  <p class="text-xs text-gray-400 mt-1">Displayed above the scoring interface</p>
+              <!-- Header Logos (Multiple) -->
+              <div class="mb-4">
+                <div class="flex items-center justify-between mb-2">
+                  <label class="block text-sm font-medium text-gray-700">Header Logos</label>
+                  <button 
+                    v-if="headerTemplates.length > 0"
+                    @click="showHeaderTemplateSelector = true" 
+                    class="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Use Template
+                  </button>
                 </div>
-                <div>
-                  <ImageSelector
-                    v-model="formData.lock_screen_image"
-                    label="Lock Screen Image"
-                    placeholder="Select lock screen"
-                  />
-                  <p class="text-xs text-gray-400 mt-1">Shown when voting is locked (supports GIFs)</p>
+                <p class="text-xs text-gray-400 mb-2">Select multiple logos to display in the judge header. Drag to reorder.</p>
+                
+                <!-- Selected Logos Preview -->
+                <div v-if="formData.header_logos && formData.header_logos.length > 0" class="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg mb-2">
+                  <div 
+                    v-for="(logo, idx) in formData.header_logos" 
+                    :key="idx"
+                    class="relative group"
+                    draggable="true"
+                    @dragstart="dragStart(idx)"
+                    @dragover.prevent="dragOver(idx)"
+                    @drop="drop(idx)"
+                  >
+                    <img :src="logo.path" class="w-14 h-14 object-contain rounded-lg border-2 border-gray-200 bg-white cursor-move" />
+                    <button 
+                      @click="removeLogo(idx)" 
+                      class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    >&times;</button>
+                    <span class="absolute bottom-0 left-0 right-0 text-center text-[9px] text-gray-500 bg-white/80 rounded-b">{{ idx + 1 }}</span>
+                  </div>
+                </div>
+                <div v-else class="p-4 bg-gray-50 rounded-lg text-center text-sm text-gray-400 mb-2">
+                  No logos selected
+                </div>
+                
+                <!-- Add Logo Button -->
+                <button @click="showLogoSelector = true" class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                  + Add Logo
+                </button>
+              </div>
+              
+              <!-- Lock Screen -->
+              <div class="mb-4">
+                <div class="flex items-center justify-between mb-2">
+                  <label class="block text-sm font-medium text-gray-700">Lock Screen Image</label>
+                  <button 
+                    v-if="lockScreenTemplates.length > 0"
+                    @click="showLockScreenTemplateSelector = true" 
+                    class="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Use Template
+                  </button>
+                </div>
+                <div v-if="formData.lock_screen_image" class="mb-2">
+                  <div class="relative inline-block group">
+                    <img :src="formData.lock_screen_image" class="h-20 w-auto object-contain rounded-lg border border-gray-200" />
+                    <button 
+                      @click="formData.lock_screen_image = ''" 
+                      class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    >&times;</button>
+                  </div>
+                </div>
+                <ImageSelector
+                  v-model="formData.lock_screen_image"
+                  label=""
+                  placeholder="Select lock screen"
+                />
+                <p class="text-xs text-gray-400 mt-1">Shown when voting is locked (supports GIFs)</p>
+              </div>
+            </div>
+            
+            <!-- Header Template Selector Modal -->
+            <div v-if="showHeaderTemplateSelector" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/30" @click.self="showHeaderTemplateSelector = false">
+              <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-5">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="font-semibold text-gray-900">Select Header Template</h3>
+                  <button @click="showHeaderTemplateSelector = false" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+                </div>
+                <div v-if="headerTemplates.length === 0" class="text-center py-8 text-gray-400">
+                  No header templates available. Create one in Templates tab.
+                </div>
+                <div v-else class="space-y-2 max-h-64 overflow-y-auto">
+                  <button 
+                    v-for="template in headerTemplates" 
+                    :key="template.id"
+                    @click="applyHeaderTemplate(template)"
+                    class="w-full p-3 rounded-lg border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors text-left flex items-center gap-3"
+                  >
+                    <div class="flex -space-x-2">
+                      <img 
+                        v-for="(logo, idx) in (template.header_logos || []).slice(0, 3)" 
+                        :key="idx"
+                        :src="logo.path" 
+                        class="w-10 h-10 object-contain rounded border border-white bg-gray-100"
+                      />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="font-medium text-gray-900 truncate">{{ template.name }}</p>
+                      <p class="text-xs text-gray-500">{{ (template.header_logos || []).length }} logo(s)</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Lock Screen Template Selector Modal -->
+            <div v-if="showLockScreenTemplateSelector" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/30" @click.self="showLockScreenTemplateSelector = false">
+              <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-5">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="font-semibold text-gray-900">Select Lock Screen Template</h3>
+                  <button @click="showLockScreenTemplateSelector = false" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+                </div>
+                <div v-if="lockScreenTemplates.length === 0" class="text-center py-8 text-gray-400">
+                  No lock screen templates available. Create one in Templates tab.
+                </div>
+                <div v-else class="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
+                  <button 
+                    v-for="template in lockScreenTemplates" 
+                    :key="template.id"
+                    @click="applyLockScreenTemplate(template)"
+                    class="p-2 rounded-lg border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors text-center"
+                  >
+                    <img 
+                      :src="template.lock_screen_image" 
+                      class="w-full h-20 object-contain rounded mb-2 bg-gray-100"
+                    />
+                    <p class="text-xs font-medium text-gray-900 truncate">{{ template.name }}</p>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Logo Selector Modal -->
+            <div v-if="showLogoSelector" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/30" @click.self="showLogoSelector = false">
+              <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-5">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="font-semibold text-gray-900">Select Logo</h3>
+                  <button @click="showLogoSelector = false" class="text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
+                <div v-if="availableImages.length === 0" class="text-center py-8 text-gray-400">
+                  No images available. Upload images in Templates tab.
+                </div>
+                <div v-else class="grid grid-cols-4 gap-2 max-h-64 overflow-y-auto">
+                  <button 
+                    v-for="img in availableImages" 
+                    :key="img.path"
+                    @click="addLogo(img.path)"
+                    class="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-500 transition-colors"
+                  >
+                    <img :src="img.path" class="w-full h-full object-cover" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -128,7 +265,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import { showSuccess, showError } from '../../../utils/alerts';
 import ImageSelector from '../../shared/ImageSelector.vue';
 
@@ -141,7 +278,96 @@ const emit = defineEmits(['close']);
 
 const event = ref(null);
 const loading = ref(true);
-const formData = ref({ title: '', event_date: '', description: '', event_type: 'pageant', number_of_judges: '', header_image: '', lock_screen_image: '' });
+const formData = ref({ title: '', event_date: '', description: '', event_type: 'pageant', number_of_judges: '', header_image: '', header_logos: [], lock_screen_image: '' });
+const showLogoSelector = ref(false);
+const showHeaderTemplateSelector = ref(false);
+const showLockScreenTemplateSelector = ref(false);
+const availableImages = ref([]);
+const templates = ref([]);
+let draggedIdx = null;
+
+// Computed: Header templates (event_type = 'header' or has header_logos)
+const headerTemplates = computed(() => 
+  templates.value.filter(t => t.event_type === 'header' || (t.header_logos && t.header_logos.length > 0))
+);
+
+// Computed: Lock screen templates (has lock_screen_image)
+const lockScreenTemplates = computed(() => 
+  templates.value.filter(t => t.lock_screen_image && !t.header_logos?.length)
+);
+
+// Load available images
+const loadImages = async () => {
+  try {
+    const response = await fetch('/api/assets/images');
+    if (response.ok) {
+      const data = await response.json();
+      availableImages.value = data.images || [];
+    }
+  } catch (error) {
+    console.error('Failed to load images');
+  }
+};
+
+// Load templates
+const loadTemplates = async () => {
+  try {
+    const response = await fetch('/api/event-templates');
+    if (response.ok) {
+      templates.value = await response.json();
+    }
+  } catch (error) {
+    console.error('Failed to load templates');
+  }
+};
+
+// Apply header template
+const applyHeaderTemplate = (template) => {
+  if (template.header_logos && template.header_logos.length > 0) {
+    formData.value.header_logos = [...template.header_logos];
+  } else if (template.header_image) {
+    formData.value.header_logos = [{ path: template.header_image, order: 0 }];
+  }
+  showHeaderTemplateSelector.value = false;
+};
+
+// Apply lock screen template
+const applyLockScreenTemplate = (template) => {
+  formData.value.lock_screen_image = template.lock_screen_image;
+  showLockScreenTemplateSelector.value = false;
+};
+
+// Add logo
+const addLogo = (path) => {
+  if (!formData.value.header_logos) formData.value.header_logos = [];
+  if (!formData.value.header_logos.find(l => l.path === path)) {
+    formData.value.header_logos.push({ path, order: formData.value.header_logos.length });
+  }
+  showLogoSelector.value = false;
+};
+
+// Remove logo
+const removeLogo = (idx) => {
+  formData.value.header_logos.splice(idx, 1);
+  formData.value.header_logos.forEach((l, i) => l.order = i);
+};
+
+// Drag and drop
+const dragStart = (idx) => { draggedIdx = idx; };
+const dragOver = (idx) => {};
+const drop = (idx) => {
+  if (draggedIdx !== null && draggedIdx !== idx) {
+    const [moved] = formData.value.header_logos.splice(draggedIdx, 1);
+    formData.value.header_logos.splice(idx, 0, moved);
+    formData.value.header_logos.forEach((l, i) => l.order = i);
+  }
+  draggedIdx = null;
+};
+
+onMounted(() => { 
+  loadImages(); 
+  loadTemplates();
+});
 
 const loadEventDetails = async () => {
   if (!props.eventId) return;
@@ -174,6 +400,7 @@ const loadEventDetails = async () => {
         event_type: data.event_type ?? 'pageant',
         number_of_judges: judgesCount || data.number_of_judges || '',
         header_image: data.header_image || '',
+        header_logos: data.header_logos || [],
         lock_screen_image: data.lock_screen_image || ''
       };
     } else {
@@ -189,7 +416,7 @@ const loadEventDetails = async () => {
 
 const handleSave = async () => {
   try {
-    const actualEventId = event.value.unique_id || event.value.id;
+    const actualEventId = event.value.id; // Use numeric ID, not unique_id
     const response = await fetch(`/api/events/${actualEventId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -199,7 +426,8 @@ const handleSave = async () => {
         description: formData.value.description,
         event_type: formData.value.event_type,
         number_of_judges: parseInt(formData.value.number_of_judges),
-        header_image: formData.value.header_image,
+        header_image: formData.value.header_logos?.[0]?.path || formData.value.header_image,
+        header_logos: formData.value.header_logos,
         lock_screen_image: formData.value.lock_screen_image
       })
     });

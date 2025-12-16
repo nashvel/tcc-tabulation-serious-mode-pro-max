@@ -23,6 +23,7 @@ class Event extends Model
         'theme_id',
         'template_id',
         'header_image',
+        'header_logos',
         'lock_screen_image',
     ];
 
@@ -32,6 +33,7 @@ class Event extends Model
         'event_date' => 'date',
         'start_date' => 'date',
         'end_date' => 'date',
+        'header_logos' => 'array',
     ];
 
     public function days()
