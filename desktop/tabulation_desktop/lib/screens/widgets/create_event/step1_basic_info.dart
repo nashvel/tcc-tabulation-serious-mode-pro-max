@@ -33,7 +33,7 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
 
   // Predefined event types
   static const Map<String, String> _eventTypes = {
-    'pageant': 'Pageant (Male/Female)',
+    'pageant': 'Pageant',
     'solo_contest': 'Solo Contest',
     'group_contest': 'Group/Team Contest',
     'talent_show': 'Talent Show',

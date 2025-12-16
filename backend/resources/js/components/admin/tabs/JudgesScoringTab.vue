@@ -7,7 +7,7 @@
     </div>
 
     <!-- Main Content -->
-    <template v-else-if="judges.length && (femaleCandidates.length || maleCandidates.length || groupCandidates.length || soloCandidates.length)">
+    <template v-else-if="judges.length && (femaleCandidates.length || maleCandidates.length || groupCandidates.length || soloCandidates.length || customCandidates.length)">
       <!-- Round Header -->
       <div id="judges-round-header" class="bg-white border-b border-gray-200 px-6 py-3">
         <div class="flex items-center justify-between">
@@ -312,6 +312,80 @@
             </table>
           </div>
         </div>
+
+        <!-- Custom Category Candidates (LGBTQ+, Trans, Non-Binary, etc.) -->
+        <div v-for="(candidates, category) in customCandidatesByCategory" :key="category">
+          <div class="flex items-center justify-between px-6 py-3 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-200">
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-purple-600">{{ category }} Candidates</h3>
+            <button
+              v-if="!femaleCandidates.length && !maleCandidates.length && !groupCandidates.length && !soloCandidates.length && Object.keys(customCandidatesByCategory).indexOf(category) === 0"
+              @click="scoresHidden = !scoresHidden"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-all"
+            >
+              <EyeOff v-if="scoresHidden" :size="14" />
+              <Eye v-else :size="14" />
+              {{ scoresHidden ? 'Show' : 'Hide' }}
+            </button>
+          </div>
+          
+          <div class="bg-white overflow-x-auto">
+            <table class="w-full border-collapse table-fixed">
+              <colgroup>
+                <col style="width: 30%">
+                <col v-for="judge in judges" :key="'col-c-'+category+'-'+judge.id" :style="{ width: (60 / judges.length) + '%' }">
+                <col style="width: 10%">
+              </colgroup>
+              <thead>
+                <tr class="bg-gray-50 border-b border-gray-300">
+                  <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Candidate</th>
+                  <th v-for="judge in judges" :key="judge.id" class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
+                    <div class="flex items-center justify-center gap-1.5">
+                      <span>Judge {{ judge.chair_number || judge.id }}</span>
+                      <button
+                        @click="printJudgeScores(judge.id)"
+                        class="p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                        title="Print judge scores"
+                      >
+                        <Printer :size="14" />
+                      </button>
+                    </div>
+                  </th>
+                  <th class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="candidate in candidates" :key="candidate.id" class="border-b border-gray-100 hover:bg-gray-50/50">
+                  <td class="py-3 px-6 border-r border-gray-200">
+                    <span class="font-semibold text-gray-900 text-sm uppercase">
+                      {{ candidate.number }} - {{ candidate.name }}
+                    </span>
+                    <span v-if="candidate.department" class="block text-xs text-gray-500">{{ candidate.department }}</span>
+                  </td>
+                  <td 
+                    v-for="judge in judges" 
+                    :key="judge.id" 
+                    class="py-3 px-4 text-center border-r border-gray-200"
+                    :class="scoresHidden ? 'cursor-pointer hover:bg-gray-100' : ''"
+                    @click="peekScore('judge', judge.id, candidate.id)"
+                  >
+                    <span :class="['font-mono text-sm transition-all duration-200', !isScoreVisible('judge', judge.id, candidate.id) ? 'blur-md' : '']">
+                      {{ getJudgeTotal(judge.id, candidate.id) || '-' }}
+                    </span>
+                  </td>
+                  <td 
+                    class="py-3 px-4 text-center"
+                    :class="scoresHidden ? 'cursor-pointer hover:bg-gray-100' : ''"
+                    @click="peekScore('total', null, candidate.id)"
+                  >
+                    <span :class="['font-mono text-sm font-bold text-blue-600 transition-all duration-200', !isScoreVisible('total', null, candidate.id) ? 'blur-md' : '']">
+                      {{ getCandidateTotal(candidate.id) || '-' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </template>
   </div>
@@ -425,6 +499,29 @@ const soloCandidates = computed(() =>
     c.participant_type?.toLowerCase() === 'individual'
   )
 );
+
+// Custom category candidates (LGBTQ+, Trans, Non-Binary, etc.)
+const customCandidates = computed(() => {
+  const standardCategories = ['female', 'male', 'group', 'solo', 'individual'];
+  return (props.candidates || []).filter(c => {
+    const gender = c.gender?.toLowerCase() || '';
+    const participantType = c.participant_type?.toLowerCase() || '';
+    return !standardCategories.includes(gender) && !standardCategories.includes(participantType);
+  });
+});
+
+// Group custom candidates by their category
+const customCandidatesByCategory = computed(() => {
+  const grouped = {};
+  customCandidates.value.forEach(c => {
+    const category = c.gender || c.participant_type || 'Other';
+    if (!grouped[category]) {
+      grouped[category] = [];
+    }
+    grouped[category].push(c);
+  });
+  return grouped;
+});
 
 const getJudgeTotal = (judgeId, candidateId) => {
   if (!scores.value[judgeId]?.[candidateId]) return null;

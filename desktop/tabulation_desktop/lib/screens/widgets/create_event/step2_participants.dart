@@ -35,13 +35,14 @@ class Step2Participants extends StatelessWidget {
       case 'group_contest':
         return ['Group'];
       case 'pageant':
-        return ['Female', 'Male'];
+        // Pageant supports multiple gender categories including LGBTQ+
+        return ['Female', 'Male', 'LGBTQ+', 'Trans', 'Non-Binary', 'Custom'];
       case 'talent_show':
       case 'competition':
-        return ['Female', 'Male', 'Solo', 'Group'];
+        return ['Female', 'Male', 'LGBTQ+', 'Trans', 'Non-Binary', 'Solo', 'Group', 'Custom'];
       default:
         // For custom event types, allow all options
-        return ['Female', 'Male', 'Solo', 'Group', 'Custom'];
+        return ['Female', 'Male', 'LGBTQ+', 'Trans', 'Non-Binary', 'Solo', 'Group', 'Custom'];
     }
   }
 
@@ -71,7 +72,7 @@ class Step2Participants extends StatelessWidget {
         icon = Icons.groups;
         break;
       case 'pageant':
-        message = 'Pageant: Participants separated by gender (Male/Female)';
+        message = 'Pageant: Supports Male, Female, LGBTQ+, Trans, Non-Binary categories';
         icon = Icons.people;
         break;
       default:
@@ -120,7 +121,7 @@ class Step2Participants extends StatelessWidget {
             const SizedBox(width: AppSpacing.sm),
             Expanded(flex: 2, child: Text('Name *', style: AppTextStyles.small)),
             const SizedBox(width: AppSpacing.sm),
-            SizedBox(width: 80, child: Text(_typeLabel, style: AppTextStyles.small)),
+            SizedBox(width: 100, child: Text(_typeLabel, style: AppTextStyles.small)),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -145,7 +146,7 @@ class Step2Participants extends StatelessWidget {
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 SizedBox(
-                  width: 80,
+                  width: 100,
                   child: _typeDropdown(i, p['gender'] ?? _defaultType),
                 ),
               ],
@@ -168,16 +169,18 @@ class Step2Participants extends StatelessWidget {
     );
   }
 
-  Widget _field(ValueChanged<String> onChanged, String initial) {
+  Widget _field(ValueChanged<String> onChanged, String initial, {String? hint}) {
     return Container(
       decoration: BoxDecoration(border: AppBorders.all, borderRadius: AppBorders.radius),
-      child: TextField(
-        controller: TextEditingController(text: initial),
+      child: TextFormField(
+        initialValue: initial,
         onChanged: onChanged,
         style: AppTextStyles.body.copyWith(fontSize: 11),
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: AppColors.disabled, fontSize: 11),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
           isDense: true,
         ),
       ),

@@ -124,53 +124,100 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       final dateStr =
           '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
 
-      // Build payload matching Vue structure
-      final payload = {
-        'event_id': _eventId,
-        'title': _titleController.text,
-        'event_date': dateStr,
-        'description': _descriptionController.text,
-        'event_type': _eventType,
-        'number_of_judges': _numberOfJudges,
-        // Participants (matches Vue: number, name, gender)
-        'participants': _participants
-            .where((p) => p['name']?.toString().isNotEmpty ?? false)
-            .map((p) => {
-                  'number': int.tryParse(p['number']?.toString() ?? '') ?? 0,
-                  'name': p['name'],
-                  'gender': p['gender'],
-                })
-            .toList(),
-        // Rounds with criteria (matches Vue structure)
-        'rounds': _rounds
-            .where((r) => r['name']?.toString().isNotEmpty ?? false)
-            .map((r) => {
-                  'name': r['name'],
-                  'criteria': ((r['criteria'] as List<dynamic>?) ?? [])
-                      .where((c) => c['name']?.toString().isNotEmpty ?? false)
-                      .map((c) => {
-                            'name': c['name'],
-                            'points': c['points'] ?? 0,
-                          })
-                      .toList(),
-                })
-            .toList(),
-      };
+      // Step 1: Create the event (same as Vue)
+      final eventResponse = await http.post(
+        Uri.parse('http://localhost:8000/api/events'),
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: jsonEncode({
+          'title': _titleController.text,
+          'event_date': dateStr,
+          'event_type': _eventType,
+          'number_of_judges': _numberOfJudges,
+          'description': _descriptionController.text,
+          'year': _selectedDate!.year,
+          'status': 'active',
+        }),
+      ).timeout(const Duration(seconds: 10));
 
-      final response = await http
-          .post(
-            Uri.parse('http://localhost:8000/api/events/save-draft'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(payload),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        _showSuccess('Event created!');
-        if (mounted) Navigator.of(context).pop();
-      } else {
+      if (eventResponse.statusCode != 200 && eventResponse.statusCode != 201) {
         _showError('Failed to create event');
+        return;
       }
+
+      final eventData = jsonDecode(eventResponse.body);
+      final eventId = eventData['id'];
+
+      // Step 2: Create candidates (participants) - same as Vue
+      for (final p in _participants) {
+        if (p['name']?.toString().isNotEmpty ?? false) {
+          await http.post(
+            Uri.parse('http://localhost:8000/api/candidates'),
+            headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+            body: jsonEncode({
+              'event_id': eventId,
+              'number': int.tryParse(p['number']?.toString() ?? '') ?? 0,
+              'name': p['name'],
+              'gender': p['gender'],
+              'participant_type': (p['gender'] ?? 'female').toString().toLowerCase(),
+              'order': int.tryParse(p['number']?.toString() ?? '') ?? 0,
+            }),
+          );
+        }
+      }
+
+      // Step 3: Create rounds and criteria - same as Vue
+      int spot = 1;
+      for (final r in _rounds) {
+        if (r['name']?.toString().isNotEmpty ?? false) {
+          final roundResponse = await http.post(
+            Uri.parse('http://localhost:8000/api/rounds'),
+            headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+            body: jsonEncode({
+              'event_id': eventId,
+              'name': r['name'],
+              'spot': spot++,
+            }),
+          );
+
+          if (roundResponse.statusCode == 200 || roundResponse.statusCode == 201) {
+            final roundData = jsonDecode(roundResponse.body);
+            final roundId = roundData['id'];
+
+            // Create criteria for this round
+            final criteria = (r['criteria'] as List<dynamic>?) ?? [];
+            for (final c in criteria) {
+              if (c['name']?.toString().isNotEmpty ?? false) {
+                await http.post(
+                  Uri.parse('http://localhost:8000/api/criteria'),
+                  headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+                  body: jsonEncode({
+                    'round_id': roundId,
+                    'name': c['name'],
+                    'points': c['points'] ?? 0,
+                  }),
+                );
+              }
+            }
+          }
+        }
+      }
+
+      // Step 4: Create judges - same as Vue
+      for (int i = 1; i <= _numberOfJudges; i++) {
+        await http.post(
+          Uri.parse('http://localhost:8000/api/judges'),
+          headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+          body: jsonEncode({
+            'event_id': eventId,
+            'name': 'Judge $i',
+            'chair_number': i,
+            'status': 'active',
+          }),
+        );
+      }
+
+      _showSuccess('Event created!');
+      if (mounted) Navigator.of(context).pop();
     } catch (error) {
       _showError('Error: $error');
     } finally {

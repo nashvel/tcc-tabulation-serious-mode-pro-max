@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'widgets/dashboard_screen.dart';
-import 'widgets/events_screen.dart';
 import 'widgets/settings_screen.dart';
 import 'widgets/help_screen.dart';
 import 'widgets/setup_screen.dart';
@@ -20,7 +19,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<IconData> _menuIcons = [
     Icons.grid_view_outlined,
     Icons.build_outlined,
-    Icons.event_outlined,
     Icons.settings_outlined,
     Icons.help_outline,
   ];
@@ -28,7 +26,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<String> _menuLabels = [
     'Dashboard',
     'Setup',
-    'Events',
     'Settings',
     'Help',
   ];
@@ -141,9 +138,8 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (_selectedIndex) {
       case 0: return const DashboardScreen();
       case 1: return const SetupScreen();
-      case 2: return const EventsScreen();
-      case 3: return const SettingsScreen();
-      case 4: return const HelpScreen();
+      case 2: return const SettingsScreen();
+      case 3: return const HelpScreen();
       default: return const DashboardScreen();
     }
   }

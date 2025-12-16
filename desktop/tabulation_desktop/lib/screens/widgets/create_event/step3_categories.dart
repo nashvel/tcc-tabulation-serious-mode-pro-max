@@ -134,8 +134,8 @@ class Step3Rounds extends StatelessWidget {
   Widget _field(ValueChanged<String> onChanged, String initial, {String hint = ''}) {
     return Container(
       decoration: BoxDecoration(border: AppBorders.all, borderRadius: AppBorders.radius),
-      child: TextField(
-        controller: TextEditingController(text: initial),
+      child: TextFormField(
+        initialValue: initial,
         onChanged: onChanged,
         style: AppTextStyles.body.copyWith(fontSize: 11),
         decoration: InputDecoration(

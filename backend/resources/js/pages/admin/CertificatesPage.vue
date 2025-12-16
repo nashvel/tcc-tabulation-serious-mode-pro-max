@@ -65,6 +65,7 @@
                 <option v-if="hasMale" value="male">Male</option>
                 <option v-if="hasGroup" value="group">Group / Team</option>
                 <option v-if="hasSolo" value="solo">Solo / Individual</option>
+                <option v-for="category in customCategories" :key="category" :value="category">{{ category }}</option>
               </select>
               <p v-if="selectedCategory && topOneInCategory" class="text-xs text-green-600 mt-1">
                 Top 1: {{ topOneInCategory.name }} ({{ topOneInCategory.total.toFixed(2) }} pts)
@@ -504,6 +505,22 @@ const hasSolo = computed(() => {
   });
 });
 
+// Custom categories (LGBTQ+, Trans, Non-Binary, etc.)
+const customCategories = computed(() => {
+  const standardCategories = ['female', 'male', 'group', 'solo', 'individual', 'team'];
+  const categories = new Set();
+  candidates.value.forEach(c => {
+    const gender = c.gender?.toLowerCase() || '';
+    const pType = c.participant_type?.toLowerCase() || '';
+    if (gender && !standardCategories.includes(gender)) {
+      categories.add(c.gender); // Keep original case
+    } else if (pType && !standardCategories.includes(pType)) {
+      categories.add(c.participant_type);
+    }
+  });
+  return Array.from(categories);
+});
+
 // Category results (filtered by round)
 const femaleResults = computed(() => {
   const females = candidates.value.filter(c => c.gender?.toLowerCase() === 'female');
@@ -531,6 +548,19 @@ const soloResults = computed(() => {
   return solos.map(calculateResult).sort((a, b) => b.total - a.total);
 });
 
+// Custom category results
+const customResultsByCategory = computed(() => {
+  const results = {};
+  customCategories.value.forEach(category => {
+    const categoryLower = category.toLowerCase();
+    const categoryCandidates = candidates.value.filter(c => 
+      c.gender?.toLowerCase() === categoryLower || c.participant_type?.toLowerCase() === categoryLower
+    );
+    results[category] = categoryCandidates.map(calculateResult).sort((a, b) => b.total - a.total);
+  });
+  return results;
+});
+
 // Get top 1 in selected category
 const topOneInCategory = computed(() => {
   if (!selectedCategory.value) return null;
@@ -541,6 +571,12 @@ const topOneInCategory = computed(() => {
     case 'male': results = maleResults.value; break;
     case 'group': results = groupResults.value; break;
     case 'solo': results = soloResults.value; break;
+    default:
+      // Check custom categories
+      if (customResultsByCategory.value[selectedCategory.value]) {
+        results = customResultsByCategory.value[selectedCategory.value];
+      }
+      break;
   }
   
   return results.length > 0 ? results[0] : null;

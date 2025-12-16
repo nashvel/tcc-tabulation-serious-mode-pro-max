@@ -13,6 +13,7 @@ class DevRunnerPanel extends StatefulWidget {
 class DevRunnerPanelState extends State<DevRunnerPanel> {
   String? backendPath;
   String? frontendPath;
+  String? startAllBatPath;
   String backendCommand = 'php artisan serve --port=8000';
   String reverbCommand = 'php artisan reverb:start --port=8080';
   String frontendCommand = 'npm run dev';
@@ -199,6 +200,7 @@ class DevRunnerPanelState extends State<DevRunnerPanel> {
         setState(() {
           backendPath = json['backendPath'];
           frontendPath = json['frontendPath'];
+          startAllBatPath = json['startAllBatPath'];
         });
       }
     } catch (e) {
@@ -229,6 +231,7 @@ class DevRunnerPanelState extends State<DevRunnerPanel> {
       await configFile.writeAsString(jsonEncode({
         'backendPath': backendPath,
         'frontendPath': frontendPath,
+        'startAllBatPath': startAllBatPath,
       }));
     } catch (e) {
       debugPrint('Error saving paths: $e');
@@ -280,25 +283,76 @@ class DevRunnerPanelState extends State<DevRunnerPanel> {
   Widget _buildSwitchToCmdSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      child: GestureDetector(
-        onTap: _switchToCmd,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-          decoration: BoxDecoration(
-            border: AppBorders.all,
-            borderRadius: AppBorders.radius,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Start-all.bat path config
+          Row(
             children: [
-              const Icon(Icons.terminal, size: 14, color: AppColors.text),
+              Text('Start-All Script:', style: AppTextStyles.body.copyWith(fontSize: 12, fontWeight: FontWeight.w500)),
               const SizedBox(width: AppSpacing.sm),
-              Text('Switch to CMD', style: AppTextStyles.body.copyWith(fontSize: 12)),
+              Expanded(
+                child: Text(
+                  startAllBatPath ?? 'Not configured',
+                  style: AppTextStyles.mono.copyWith(fontSize: 11, color: startAllBatPath != null ? AppColors.text : AppColors.textMuted),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              GestureDetector(
+                onTap: _selectStartAllBat,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(border: AppBorders.all, borderRadius: AppBorders.radius),
+                  child: Text('Browse', style: AppTextStyles.body.copyWith(fontSize: 10)),
+                ),
+              ),
             ],
           ),
-        ),
+          const SizedBox(height: AppSpacing.md),
+          // Switch to CMD button
+          GestureDetector(
+            onTap: _switchToCmd,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+              decoration: BoxDecoration(
+                border: AppBorders.all,
+                borderRadius: AppBorders.radius,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.terminal, size: 14, color: AppColors.text),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text('Switch to CMD', style: AppTextStyles.body.copyWith(fontSize: 12)),
+                  if (startAllBatPath != null) ...[
+                    const SizedBox(width: AppSpacing.sm),
+                    Text('(runs start-all.bat)', style: AppTextStyles.body.copyWith(fontSize: 10, color: AppColors.textMuted)),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
+  }
+  
+  Future<void> _selectStartAllBat() async {
+    if (!Platform.isWindows) return;
+    
+    try {
+      // Use PowerShell to open file dialog for .bat files
+      final result = await Process.run('powershell', ['-Command',
+        r'Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Filter = "Batch files (*.bat)|*.bat|All files (*.*)|*.*"; $f.Title = "Select start-all.bat"; if ($f.ShowDialog() -eq "OK") { $f.FileName }']);
+      final selectedPath = result.stdout.toString().trim();
+      if (selectedPath.isNotEmpty && selectedPath.endsWith('.bat')) {
+        setState(() => startAllBatPath = selectedPath);
+        await _savePaths();
+      }
+    } catch (e) {
+      debugPrint('Error selecting bat file: $e');
+    }
   }
   
   Future<void> _switchToCmd() async {
@@ -311,12 +365,22 @@ class DevRunnerPanelState extends State<DevRunnerPanel> {
     
     await Future.delayed(const Duration(milliseconds: 300));
     
-    // Open CMD windows in the respective directories
+    // If start-all.bat path is configured, run it in external CMD
+    if (startAllBatPath != null && startAllBatPath!.isNotEmpty) {
+      final batFile = File(startAllBatPath!);
+      if (await batFile.exists()) {
+        // Use start command to open a new external CMD window and run the bat file
+        await Process.run('cmd.exe', ['/c', 'start', 'cmd.exe', '/k', startAllBatPath!]);
+        return;
+      }
+    }
+    
+    // Fallback: Open CMD windows in the respective directories
     if (backendPath != null) {
-      await Process.start('cmd.exe', ['/k', 'cd /d "$backendPath" && echo Backend directory - ready'], runInShell: true);
+      await Process.run('cmd.exe', ['/c', 'start', 'cmd.exe', '/k', 'cd /d "$backendPath" && echo Backend directory - ready']);
     }
     if (frontendPath != null && frontendPath != backendPath) {
-      await Process.start('cmd.exe', ['/k', 'cd /d "$frontendPath" && echo Frontend directory - ready'], runInShell: true);
+      await Process.run('cmd.exe', ['/c', 'start', 'cmd.exe', '/k', 'cd /d "$frontendPath" && echo Frontend directory - ready']);
     }
   }
   

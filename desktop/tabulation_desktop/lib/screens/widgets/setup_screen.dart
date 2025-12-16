@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_theme.dart';
@@ -17,10 +18,14 @@ class _SetupScreenState extends State<SetupScreen> {
   List<dynamic> events = [];
   bool isLoading = true;
   late Timer _refreshTimer;
+  String? _localIp;
+  bool _lanMode = false;
 
   @override
   void initState() {
     super.initState();
+    _loadConfig();
+    _getLocalIp();
     _loadEvents();
     _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) => _loadEvents());
   }
@@ -31,9 +36,42 @@ class _SetupScreenState extends State<SetupScreen> {
     super.dispose();
   }
 
+  Future<void> _loadConfig() async {
+    try {
+      final configFile = File('${Directory.current.path}/database.json');
+      if (await configFile.exists()) {
+        final content = await configFile.readAsString();
+        final json = jsonDecode(content);
+        if (mounted) setState(() => _lanMode = json['lanMode'] ?? false);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _getLocalIp() async {
+    try {
+      final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4, includeLoopback: false);
+      for (var interface in interfaces) {
+        for (var addr in interface.addresses) {
+          final ip = addr.address;
+          if (!ip.startsWith('127.') && !ip.startsWith('169.254.')) {
+            if (mounted) setState(() => _localIp = ip);
+            return;
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  String get _baseUrl {
+    if (_lanMode && _localIp != null) {
+      return 'http://$_localIp:8000';
+    }
+    return 'http://localhost:8000';
+  }
+
   Future<void> _loadEvents() async {
     try {
-      final response = await http.get(Uri.parse('http://localhost:8000/api/events')).timeout(const Duration(seconds: 3));
+      final response = await http.get(Uri.parse('$_baseUrl/api/events')).timeout(const Duration(seconds: 3));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data is List && mounted) setState(() { events = data; isLoading = false; });
@@ -46,7 +84,8 @@ class _SetupScreenState extends State<SetupScreen> {
   Future<void> _openEvent(dynamic event) async {
     final id = event['id'] ?? event['unique_id'];
     if (id != null) {
-      final url = Uri.parse('http://localhost:8000/admin/events/$id');
+      // Use new URL format: /admin?event_id=X
+      final url = Uri.parse('$_baseUrl/admin?event_id=$id');
       if (await canLaunchUrl(url)) await launchUrl(url);
     }
   }

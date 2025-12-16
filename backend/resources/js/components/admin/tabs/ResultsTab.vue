@@ -158,8 +158,39 @@
       </div>
     </div>
 
+    <!-- Custom Category Results (LGBTQ+, Trans, Non-Binary, etc.) -->
+    <div v-for="(results, category) in customResultsByCategory" :key="category" class="mb-4">
+      <div class="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-200">
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-purple-600">{{ category }}</h3>
+      </div>
+      <div class="bg-white border border-t-0 border-gray-200 overflow-x-auto">
+        <table class="w-full min-w-max">
+          <thead>
+            <tr class="bg-white border-b border-gray-200">
+              <th class="px-3 py-1.5 text-center text-xs font-medium text-gray-500 w-14">RANK</th>
+              <th class="px-3 py-1.5 text-left text-xs font-medium text-gray-500">CANDIDATE</th>
+              <th class="px-3 py-1.5 text-center text-xs font-medium text-gray-500 w-24">TOTAL</th>
+              <th class="px-3 py-1.5 text-center text-xs font-medium text-gray-500 w-24">AVG</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(result, index) in results" :key="result.candidate.id" class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-3 py-1.5 text-center">
+                <span :class="getRankClass(index)">{{ index + 1 }}</span>
+              </td>
+              <td class="px-3 py-1.5 text-sm text-gray-900">
+                {{ result.candidate.number }} - {{ result.candidate.name?.toUpperCase() }}
+              </td>
+              <td class="px-3 py-1.5 text-center text-sm font-semibold text-gray-900" :class="{ 'blur-sm select-none': !showScores }">{{ result.total.toFixed(2) }}</td>
+              <td class="px-3 py-1.5 text-center text-sm text-gray-500" :class="{ 'blur-sm select-none': !showScores }">{{ result.average.toFixed(2) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Empty State -->
-    <div v-if="!femaleResults.length && !maleResults.length && !groupResults.length && !soloResults.length" class="text-center py-4">
+    <div v-if="!femaleResults.length && !maleResults.length && !groupResults.length && !soloResults.length && !Object.keys(customResultsByCategory).length" class="text-center py-4">
       <Trophy class="w-6 h-6 text-gray-300 mx-auto mb-2" />
       <p class="text-gray-400 text-sm">No results available</p>
     </div>
@@ -304,6 +335,32 @@ const soloResults = computed(() => {
     c.participant_type?.toLowerCase() === 'individual'
   );
   return solos.map(calculateResult).sort((a, b) => b.total - a.total);
+});
+
+// Custom category results (LGBTQ+, Trans, Non-Binary, etc.)
+const customResultsByCategory = computed(() => {
+  const standardCategories = ['female', 'male', 'group', 'solo', 'individual'];
+  const customCandidates = (props.candidates || []).filter(c => {
+    const gender = c.gender?.toLowerCase() || '';
+    const participantType = c.participant_type?.toLowerCase() || '';
+    return !standardCategories.includes(gender) && !standardCategories.includes(participantType);
+  });
+  
+  const grouped = {};
+  customCandidates.forEach(c => {
+    const category = c.gender || c.participant_type || 'Other';
+    if (!grouped[category]) {
+      grouped[category] = [];
+    }
+    grouped[category].push(c);
+  });
+  
+  // Calculate results for each category
+  const results = {};
+  Object.keys(grouped).forEach(category => {
+    results[category] = grouped[category].map(calculateResult).sort((a, b) => b.total - a.total);
+  });
+  return results;
 });
 
 const getRankClass = (index) => {

@@ -305,7 +305,24 @@
           :displaySettings="displaySettings"
           @toggle-hidden="scoresHidden = !scoresHidden"
           @score-change="handleScoreChange"
-          :showHideButton="soloCandidates.length === 0"
+          :showHideButton="soloCandidates.length === 0 && Object.keys(customCandidatesByCategory).length === 0"
+        />
+
+        <!-- Custom Category Candidates (LGBTQ+, Trans, Non-Binary, etc.) -->
+        <ScoreTable
+          v-for="(categoryCandidates, category) in customCandidatesByCategory"
+          :key="category"
+          :title="category"
+          :candidates="categoryCandidates"
+          :criteria="filteredCriteria"
+          :scores="scores"
+          :scoresHidden="scoresHidden"
+          :displaySettings="displaySettings"
+          @toggle-hidden="scoresHidden = !scoresHidden"
+          @score-change="handleScoreChange"
+          :showHideButton="Object.keys(customCandidatesByCategory).indexOf(category) === Object.keys(customCandidatesByCategory).length - 1"
+          headerClass="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200"
+          titleClass="text-purple-600"
         />
       </div>
 
@@ -454,6 +471,27 @@ const soloCandidates = computed(() =>
 const groupCandidates = computed(() => 
   candidates.value.filter(c => c.category?.toLowerCase() === 'group' || c.gender?.toLowerCase() === 'group')
 );
+
+// Custom category candidates (LGBTQ+, Trans, Non-Binary, etc.)
+const customCandidatesByCategory = computed(() => {
+  const standardCategories = ['female', 'male', 'group', 'solo', 'individual'];
+  const customCandidates = candidates.value.filter(c => {
+    const gender = c.gender?.toLowerCase() || '';
+    const category = c.category?.toLowerCase() || '';
+    const participantType = c.participant_type?.toLowerCase() || '';
+    return !standardCategories.includes(gender) && !standardCategories.includes(category) && !standardCategories.includes(participantType);
+  });
+  
+  const grouped = {};
+  customCandidates.forEach(c => {
+    const cat = c.gender || c.category || c.participant_type || 'Other';
+    if (!grouped[cat]) {
+      grouped[cat] = [];
+    }
+    grouped[cat].push(c);
+  });
+  return grouped;
+});
 
 const filteredCriteria = computed(() => 
   selectedRound.value && rounds.value.length > 0
