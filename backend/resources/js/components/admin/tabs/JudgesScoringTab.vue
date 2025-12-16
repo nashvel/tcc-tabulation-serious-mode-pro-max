@@ -434,6 +434,7 @@ const getJudgeTotal = (judgeId, candidateId) => {
 };
 
 const getCandidateTotal = (candidateId) => {
+  // Sum all scores from all judges for this candidate
   let total = 0;
   props.judges?.forEach(judge => {
     if (scores.value[judge.id]?.[candidateId]) {
@@ -442,7 +443,12 @@ const getCandidateTotal = (candidateId) => {
       });
     }
   });
-  return total > 0 ? total.toFixed(2) : null;
+  
+  // Calculate average across ALL judges (including those who haven't scored = 0)
+  const judgeCount = props.judges?.length || 1;
+  const average = total / judgeCount;
+  
+  return average > 0 ? average.toFixed(2) : null;
 };
 
 // Flush all pending updates in a single state update

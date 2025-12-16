@@ -4,6 +4,10 @@
       <div class="flex items-center gap-2">
         <h2 class="text-lg font-semibold text-gray-900">Results</h2>
         <HelpButton @click="startTour" />
+        <span v-if="isLive" class="flex items-center gap-1 text-xs text-green-600">
+          <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+          Live
+        </span>
       </div>
       <div id="results-controls" class="flex gap-2">
         <select id="round-filter" v-model="selectedRound" class="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
@@ -180,7 +184,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Download, Trophy, Eye, EyeOff } from 'lucide-vue-next';
 import { showError, showSuccess } from '../../../utils/alerts';
 import { useTour } from '../../../composables/useTour';
@@ -191,14 +195,16 @@ const props = defineProps({
   eventId: [String, Number],
   candidates: Array,
   rounds: Array,
-  criteria: Array
+  criteria: Array,
+  judges: Array
 });
 
 const selectedRound = ref('');
 const scores = ref([]);
 const loading = ref(true);
 const showScores = ref(false);
-let refreshInterval = null;
+const isLive = ref(false);
+let scoresChannel = null;
 
 // Tour steps for Results tab
 const tourSteps = [
@@ -231,17 +237,47 @@ const startTour = () => {
 const calculateResult = (candidate) => {
   const candidateScores = scores.value.filter(s => s.candidate_id == candidate.id);
   let filteredScores = candidateScores;
+  const totalJudgeCount = props.judges?.length || 1;
   
   if (selectedRound.value) {
+    // Single round selected - filter by that round
     filteredScores = candidateScores.filter(s => s.round_id == selectedRound.value);
+    
+    const rawTotal = filteredScores.reduce((sum, s) => sum + (parseFloat(s.points) || 0), 0);
+    const average = rawTotal / totalJudgeCount;
+    
+    return { candidate, total: average, average, rawTotal };
+  } else {
+    // "All Rounds" selected
+    // Calculate average per round, then average those (excluding rounds with zero scores)
+    
+    // Group scores by round
+    const scoresByRound = {};
+    filteredScores.forEach(s => {
+      if (!scoresByRound[s.round_id]) {
+        scoresByRound[s.round_id] = [];
+      }
+      scoresByRound[s.round_id].push(s);
+    });
+    
+    // Calculate average for each round that has scores
+    const roundAverages = [];
+    Object.keys(scoresByRound).forEach(roundId => {
+      const roundScores = scoresByRound[roundId];
+      const roundTotal = roundScores.reduce((sum, s) => sum + (parseFloat(s.points) || 0), 0);
+      const roundAvg = roundTotal / totalJudgeCount;
+      if (roundAvg > 0) {
+        roundAverages.push(roundAvg);
+      }
+    });
+    
+    // Total = sum of all round averages / number of rounds with scores
+    const totalOfAverages = roundAverages.reduce((sum, avg) => sum + avg, 0);
+    const roundsWithScores = roundAverages.length || 1;
+    const finalAverage = totalOfAverages / roundsWithScores;
+    
+    return { candidate, total: finalAverage, average: finalAverage, rawTotal: totalOfAverages };
   }
-  
-  const rawTotal = filteredScores.reduce((sum, s) => sum + (parseFloat(s.points) || 0), 0);
-  const judgeIds = [...new Set(filteredScores.map(s => s.judge_id))];
-  const judgeCount = judgeIds.length || 1;
-  const average = rawTotal / judgeCount;
-  
-  return { candidate, total: average, average, rawTotal };
 };
 
 const femaleResults = computed(() => {
@@ -325,12 +361,120 @@ const exportResults = () => {
   showSuccess('Results exported');
 };
 
-onMounted(() => {
-  loadScores(true);
-  refreshInterval = setInterval(() => loadScores(false), 2000);
+// Handle WebSocket score updates
+const handleScoreUpdate = (data) => {
+  // Handle batch updates
+  if (data.is_batch && data.batch_scores) {
+    data.batch_scores.forEach(score => {
+      updateLocalScore(data.judge_id, score.candidate_id, score.criteria_id, score.points, data.round_id);
+    });
+    return;
+  }
+  
+  // Handle single score update
+  if (data.judge_id && data.candidate_id && data.criteria_id !== undefined) {
+    updateLocalScore(data.judge_id, data.candidate_id, data.criteria_id, data.points, data.round_id);
+  }
+};
+
+// Update local scores array
+const updateLocalScore = (judgeId, candidateId, criteriaId, points, roundId) => {
+  const existingIndex = scores.value.findIndex(
+    s => s.judge_id == judgeId && s.candidate_id == candidateId && s.criteria_id == criteriaId
+  );
+  
+  if (existingIndex >= 0) {
+    scores.value[existingIndex].points = points;
+  } else {
+    scores.value.push({
+      judge_id: judgeId,
+      candidate_id: candidateId,
+      criteria_id: criteriaId,
+      round_id: roundId,
+      points: points
+    });
+  }
+};
+
+// Setup WebSocket connection for scores
+const setupScoresWebSocket = () => {
+  if (!props.eventId) {
+    console.log('[WebSocket] ResultsTab: No eventId, skipping WebSocket setup');
+    return null;
+  }
+  
+  if (!window.Echo) {
+    console.log('[WebSocket] ResultsTab: Echo not available, retrying in 1s...');
+    setTimeout(() => {
+      scoresChannel = setupScoresWebSocket();
+    }, 1000);
+    return null;
+  }
+  
+  const channelName = `scores.${props.eventId}`;
+  console.log('[WebSocket] ResultsTab: Connecting to scores channel:', channelName);
+  
+  try {
+    const channel = window.Echo.channel(channelName);
+    
+    channel.subscribed(() => {
+      console.log('[WebSocket] ResultsTab: ✓ Subscribed to scores channel:', channelName);
+      isLive.value = true;
+    });
+    
+    channel.error((error) => {
+      console.error('[WebSocket] ResultsTab: Channel error:', error);
+      isLive.value = false;
+    });
+    
+    channel.listen('.ScoreUpdated', (data) => {
+      console.log('[WebSocket] ResultsTab: Score update received:', data);
+      handleScoreUpdate(data);
+    });
+    
+    return channelName;
+  } catch (error) {
+    console.error('[WebSocket] ResultsTab: Failed to setup channel:', error);
+    return null;
+  }
+};
+
+onMounted(async () => {
+  await loadScores(true);
+  // Small delay to ensure Echo is ready
+  setTimeout(() => {
+    scoresChannel = setupScoresWebSocket();
+  }, 500);
 });
 
 onUnmounted(() => {
-  if (refreshInterval) clearInterval(refreshInterval);
+  // Cleanup WebSocket channel
+  if (scoresChannel && window.Echo) {
+    try {
+      window.Echo.leave(scoresChannel);
+      console.log('[WebSocket] ResultsTab: Left scores channel:', scoresChannel);
+    } catch (e) {
+      console.error('[WebSocket] ResultsTab: Error leaving channel:', e);
+    }
+  }
+  isLive.value = false;
 });
+
+// Re-setup WebSocket if eventId changes
+watch(() => props.eventId, async (newEventId, oldEventId) => {
+  if (newEventId && newEventId !== oldEventId) {
+    // Leave old channel
+    if (scoresChannel && window.Echo) {
+      try {
+        window.Echo.leave(scoresChannel);
+      } catch (e) {
+        console.error('[WebSocket] ResultsTab: Error leaving old channel:', e);
+      }
+    }
+    isLive.value = false;
+    // Reload data and setup new channel
+    await loadScores(true);
+    scoresChannel = setupScoresWebSocket();
+  }
+}, { immediate: false });
 </script>

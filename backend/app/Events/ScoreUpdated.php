@@ -19,18 +19,20 @@ class ScoreUpdated implements ShouldBroadcastNow
     public $criteria_id;
     public $points;
     public $event_id;
+    public $round_id;
     public $batch_scores; // For batch updates
 
     /**
      * Create a new event instance.
      */
-    public function __construct($judge_id, $candidate_id, $criteria_id, $points, $event_id, $batch_scores = null)
+    public function __construct($judge_id, $candidate_id, $criteria_id, $points, $event_id, $batch_scores = null, $round_id = null)
     {
         $this->judge_id = $judge_id;
         $this->candidate_id = $candidate_id;
         $this->criteria_id = $criteria_id;
         $this->points = $points;
         $this->event_id = $event_id;
+        $this->round_id = $round_id;
         $this->batch_scores = $batch_scores;
     }
 
@@ -59,6 +61,7 @@ class ScoreUpdated implements ShouldBroadcastNow
             'criteria_id' => $this->criteria_id,
             'points' => $this->points,
             'event_id' => $this->event_id,
+            'round_id' => $this->round_id,
         ];
         
         // Include batch scores if this is a batch update

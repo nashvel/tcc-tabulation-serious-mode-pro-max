@@ -256,7 +256,7 @@
             </div>
           </div>
 
-          <!-- Quick Select from Results -->
+          <!-- Quick Select from Results (commented out for now)
           <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Select Winner</h3>
             <p class="text-sm text-gray-500 mb-4">Select a winner from results to auto-fill</p>
@@ -266,12 +266,13 @@
               @change="fillFromWinner"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
-              <option value="">-- Select a winner --</option>
+              <option value="">- - Select a winner - -</option>
               <option v-for="candidate in rankedCandidates" :key="candidate.id" :value="candidate.id">
                 #{{ candidate.rank }} - {{ candidate.name }} ({{ candidate.total.toFixed(2) }} pts)
               </option>
             </select>
           </div>
+          -->
         </div>
 
         <!-- Certificate Preview -->

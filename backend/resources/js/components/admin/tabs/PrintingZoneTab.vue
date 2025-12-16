@@ -4,7 +4,13 @@
     <div class="max-w-4xl mx-auto mb-6 no-print">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-semibold text-gray-800">Printing Zone</h2>
+          <div class="flex items-center gap-2">
+            <h2 class="text-lg font-semibold text-gray-800">Printing Zone</h2>
+            <span v-if="isLive" class="flex items-center gap-1 text-xs text-green-600">
+              <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              Live
+            </span>
+          </div>
           <p class="text-sm text-gray-500">Generate and print official result sheets</p>
         </div>
         <div class="flex gap-3">
@@ -244,11 +250,15 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { Printer, FileText, Download, X, Settings, ChevronDown } from 'lucide-vue-next';
 import { useTour } from '../../../composables/useTour';
 import TourTooltip from '../../shared/TourTooltip.vue';
 import HelpButton from '../../shared/HelpButton.vue';
+
+// WebSocket state
+const isLive = ref(false);
+let scoresChannel = null;
 
 // Tour steps for Printing Zone
 const tourSteps = [
@@ -399,9 +409,10 @@ const sortedResults = computed(() => {
       judgeScores[judge.id] = judgePoints;
     });
     
-    const scoredJudges = Object.values(judgeScores).filter(s => s > 0);
-    const total = scoredJudges.reduce((sum, s) => sum + s, 0);
-    const average = scoredJudges.length > 0 ? total / scoredJudges.length : 0;
+    // Sum all scores and divide by total judge count (including those who haven't scored = 0)
+    const total = Object.values(judgeScores).reduce((sum, s) => sum + s, 0);
+    const totalJudgeCount = props.judges?.length || 1;
+    const average = total / totalJudgeCount;
     
     return {
       id: candidate.id,
@@ -476,6 +487,63 @@ const fetchScores = async () => {
     console.error('Failed to fetch scores', e);
     allScores.value = [];
   }
+};
+
+// Handle WebSocket score updates
+const handleScoreUpdate = (data) => {
+  // Handle batch updates
+  if (data.is_batch && data.batch_scores) {
+    data.batch_scores.forEach(score => {
+      updateLocalScore(data.judge_id, score.candidate_id, score.criteria_id, score.points, data.round_id);
+    });
+    return;
+  }
+  
+  // Handle single score update
+  if (data.judge_id && data.candidate_id && data.criteria_id !== undefined) {
+    updateLocalScore(data.judge_id, data.candidate_id, data.criteria_id, data.points, data.round_id);
+  }
+};
+
+// Update local scores array
+const updateLocalScore = (judgeId, candidateId, criteriaId, points, roundId) => {
+  const existingIndex = allScores.value.findIndex(
+    s => s.judge_id == judgeId && s.candidate_id == candidateId && s.criteria_id == criteriaId
+  );
+  
+  if (existingIndex >= 0) {
+    allScores.value[existingIndex].points = points;
+  } else {
+    allScores.value.push({
+      judge_id: judgeId,
+      candidate_id: candidateId,
+      criteria_id: criteriaId,
+      round_id: roundId,
+      points: points
+    });
+  }
+};
+
+// Setup WebSocket connection for scores
+const setupScoresWebSocket = () => {
+  if (!props.eventId || !window.Echo) return null;
+  
+  const channelName = `scores.${props.eventId}`;
+  console.log('[WebSocket] PrintingZoneTab: Connecting to scores channel:', channelName);
+  
+  const channel = window.Echo.channel(channelName);
+  
+  channel.subscribed(() => {
+    console.log('[WebSocket] PrintingZoneTab: Subscribed to scores channel:', channelName);
+    isLive.value = true;
+  });
+  
+  channel.listen('.ScoreUpdated', (data) => {
+    console.log('[WebSocket] PrintingZoneTab: Score update received:', data);
+    handleScoreUpdate(data);
+  });
+  
+  return channelName;
 };
 
 const getPrintStyles = () => `
@@ -630,6 +698,29 @@ const exportPDF = () => {
 onMounted(() => {
   fetchScores();
   loadFooterSettings();
+  scoresChannel = setupScoresWebSocket();
+});
+
+onUnmounted(() => {
+  // Cleanup WebSocket channel
+  if (scoresChannel && window.Echo) {
+    window.Echo.leave(scoresChannel);
+    console.log('[WebSocket] PrintingZoneTab: Left scores channel:', scoresChannel);
+  }
+  isLive.value = false;
+});
+
+// Re-setup WebSocket if eventId changes
+watch(() => props.eventId, async (newEventId, oldEventId) => {
+  if (newEventId !== oldEventId) {
+    // Leave old channel
+    if (scoresChannel && window.Echo) {
+      window.Echo.leave(scoresChannel);
+    }
+    // Reload data and setup new channel
+    await fetchScores();
+    scoresChannel = setupScoresWebSocket();
+  }
 });
 </script>
 

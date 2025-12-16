@@ -48,7 +48,7 @@ try {
         'event_date' => '2025-03-15', // Set your actual event date
         'description' => 'TCC Intramurals 2025 - Mr and Miss Competition',
         'event_type' => 'pageant',
-        'number_of_judges' => 5,
+        'number_of_judges' => 4,
         'status' => 'active'
     ]);
 

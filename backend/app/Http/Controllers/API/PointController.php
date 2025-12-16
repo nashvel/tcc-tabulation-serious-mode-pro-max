@@ -202,14 +202,19 @@ class PointController extends Controller
                 'channel' => 'scores.' . $eventId
             ]);
             
+            // Get round_id from first score (all scores in batch are for same round)
+            $roundId = !empty($scores) ? (int)$scores[0]['round_id'] : null;
+            
+            // Broadcast to ALL clients including admin panel (removed toOthers())
             broadcast(new ScoreUpdated(
                 (int)$judgeId,
                 null,
                 null,
                 null,
                 (int)$eventId,
-                $scores
-            ))->toOthers(); // Don't send back to the judge who submitted
+                $scores,
+                $roundId
+            ));
             
             Log::info('ScoreUpdated broadcast dispatched successfully');
         } catch (\Exception $e) {

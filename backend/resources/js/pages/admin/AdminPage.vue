@@ -144,6 +144,7 @@
                   :candidates="candidates"
                   :rounds="rounds"
                   :criteria="criteria"
+                  :judges="judges"
                 />
               </div>
 

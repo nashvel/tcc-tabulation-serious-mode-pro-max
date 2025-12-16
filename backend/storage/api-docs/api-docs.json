@@ -1,17 +1,26 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "TCC Tabulation API",
-        "description": "API for TCC Tabulation System - Pageant Scoring Application",
+        "title": "TCC Tabulation System API",
+        "description": "REST API for TCC Tabulation System - Real-time Pageant/Event Scoring Application with WebSocket support via Laravel Reverb",
         "contact": {
+            "name": "TCC Tabulation Support",
             "email": "support@tcc-tabulation.com"
         },
-        "version": "1.0.0"
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        },
+        "version": "2.0.0"
     },
     "servers": [
         {
             "url": "http://localhost:8000",
             "description": "Local Development Server"
+        },
+        {
+            "url": "http://192.168.1.100:8000",
+            "description": "LAN Access Server (replace with your IP)"
         }
     ],
     "paths": {
@@ -158,12 +167,1185 @@
                     }
                 }
             }
+        },
+        "/event-sequence/reorder": {
+            "post": {
+                "tags": [
+                    "Event Sequence"
+                ],
+                "summary": "Reorder sequence",
+                "description": "Reorder rounds in the event sequence",
+                "operationId": "879eaf6abdf621b7e7f3578aac2dd635",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "event_id",
+                                    "sequence"
+                                ],
+                                "properties": {
+                                    "event_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "sequence": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "order": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Sequence reordered"
+                    }
+                }
+            }
+        },
+        "/api/voting/state": {
+            "get": {
+                "tags": [
+                    "Voting"
+                ],
+                "summary": "Get current voting state",
+                "description": "Returns the current voting state including active session, active round, and lock status",
+                "operationId": "5f5d2b0ade55ba747b94b911ebcfb881",
+                "parameters": [
+                    {
+                        "name": "event_id",
+                        "in": "query",
+                        "description": "Event ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "is_active": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "is_locked": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "active_session": {
+                                            "type": "object"
+                                        },
+                                        "active_round": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "spot": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/voting/start": {
+            "post": {
+                "tags": [
+                    "Voting"
+                ],
+                "summary": "Start voting session",
+                "description": "Starts a new voting session and marks event as active. If event is completed, it will be reactivated.",
+                "operationId": "5cb847d93a62caeb40ab223721b07a0f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "event_id"
+                                ],
+                                "properties": {
+                                    "event_id": {
+                                        "description": "Event ID to start",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "day_number": {
+                                        "description": "Day number",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "day_name": {
+                                        "description": "Day name",
+                                        "type": "string",
+                                        "example": "Day 1"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Voting started successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Voting started successfully"
+                                        },
+                                        "session": {
+                                            "type": "object"
+                                        },
+                                        "voting_state": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Voting is already active or event is archived"
+                    }
+                }
+            }
+        },
+        "/api/voting/stop": {
+            "post": {
+                "tags": [
+                    "Voting"
+                ],
+                "summary": "Stop voting session and mark event as completed",
+                "description": "Stops the active voting session, marks event as completed, and documents the session",
+                "operationId": "5b6406bffc0fc385c48990adda73365d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "event_id"
+                                ],
+                                "properties": {
+                                    "event_id": {
+                                        "description": "Event ID to stop",
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Event stopped and documented successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Event completed and documented successfully"
+                                        },
+                                        "voting_state": {
+                                            "type": "object"
+                                        },
+                                        "event_status": {
+                                            "type": "string",
+                                            "example": "completed"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "No active voting session"
+                    }
+                }
+            }
+        },
+        "/api/voting/activate-round": {
+            "post": {
+                "tags": [
+                    "Voting"
+                ],
+                "summary": "Activate a specific round for judging",
+                "description": "Sets the active round for judges to score. Must have an active voting session.",
+                "operationId": "2a25f0d901b19547461f2f4083cc4503",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "event_id",
+                                    "round_id"
+                                ],
+                                "properties": {
+                                    "event_id": {
+                                        "description": "Event ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "round_id": {
+                                        "description": "Round ID to activate",
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Round activated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Round activated successfully"
+                                        },
+                                        "voting_state": {
+                                            "type": "object"
+                                        },
+                                        "round": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "No active voting session"
+                    }
+                }
+            }
+        },
+        "/api/voting/lock": {
+            "post": {
+                "tags": [
+                    "Voting"
+                ],
+                "summary": "Lock all judge screens",
+                "description": "Locks all judge screens preventing them from viewing or submitting scores",
+                "operationId": "f97a6c5a6b386bfab476cfd3f25b1a01",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "event_id"
+                                ],
+                                "properties": {
+                                    "event_id": {
+                                        "description": "Event ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Screens locked successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Screens locked successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/voting/unlock": {
+            "post": {
+                "tags": [
+                    "Voting"
+                ],
+                "summary": "Unlock all judge screens",
+                "description": "Unlocks all judge screens allowing them to view and submit scores",
+                "operationId": "983da419ec2681ea67e31ced0e4dfe07",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "event_id"
+                                ],
+                                "properties": {
+                                    "event_id": {
+                                        "description": "Event ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Screens unlocked successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Screen unlocked successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/voting/start-first-round": {
+            "post": {
+                "tags": [
+                    "Voting"
+                ],
+                "summary": "Auto-activate the first round",
+                "description": "Automatically activates the first round from event sequence",
+                "operationId": "6f99d3495b164faf924b4916acfb8a9e",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "event_id"
+                                ],
+                                "properties": {
+                                    "event_id": {
+                                        "description": "Event ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "First round activated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "round": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/voting/history": {
+            "get": {
+                "tags": [
+                    "Voting"
+                ],
+                "summary": "Get voting session history",
+                "description": "Returns all past voting sessions for an event",
+                "operationId": "4f9b3241b79a4aca1d210c19c0be18db",
+                "parameters": [
+                    {
+                        "name": "event_id",
+                        "in": "query",
+                        "description": "Event ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "sessions": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/occupied-judges": {
+            "get": {
+                "tags": [
+                    "Judge Management"
+                ],
+                "summary": "Get list of occupied judge slots",
+                "description": "Returns array of judge IDs that are currently occupied",
+                "operationId": "6892d1ba0e1dda957a1956367dbd5e01",
+                "parameters": [
+                    {
+                        "name": "event_id",
+                        "in": "query",
+                        "description": "Event ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "occupied": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "integer"
+                                            },
+                                            "example": [
+                                                1,
+                                                3,
+                                                5
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/occupy-judge": {
+            "post": {
+                "tags": [
+                    "Judge Management"
+                ],
+                "summary": "Occupy a judge slot",
+                "description": "Marks a judge ID as occupied to prevent duplicate logins",
+                "operationId": "67136fef99cdd9db9180fd9ac3c6c305",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "judge_id"
+                                ],
+                                "properties": {
+                                    "judge_id": {
+                                        "description": "Judge ID to occupy",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "event_id": {
+                                        "description": "Event ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Judge slot occupied successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Judge occupied successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Judge already occupied"
+                    }
+                }
+            }
+        },
+        "/api/clear-occupied-judges": {
+            "post": {
+                "tags": [
+                    "Judge Management"
+                ],
+                "summary": "Clear all occupied judge slots",
+                "description": "Clears all occupied judge slots (admin function)",
+                "operationId": "0ab8ff02ae61fde9b54dfbda7b064c9c",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "event_id": {
+                                        "description": "Event ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Occupied judges cleared successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "All judges cleared"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/clear-event-scores": {
+            "post": {
+                "tags": [
+                    "Event Management"
+                ],
+                "summary": "Clear all scores and event sequence",
+                "description": "Clears all scores and event sequence for an event (keeps candidates and judges)",
+                "operationId": "fc859695827306012cb76efa91bbd669",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "event_id": {
+                                        "description": "Event ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Scores and sequence cleared successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "All scores and event sequence cleared"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/judge/screen-status": {
+            "get": {
+                "tags": [
+                    "Judge Management"
+                ],
+                "summary": "Get screen registration status",
+                "description": "Returns current assignment for a device or null if not registered",
+                "operationId": "458fce9149304ed099563176fef555b4",
+                "parameters": [
+                    {
+                        "name": "device_id",
+                        "in": "query",
+                        "description": "Unique device identifier",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "uuid-abc123"
+                        }
+                    },
+                    {
+                        "name": "event_id",
+                        "in": "query",
+                        "description": "Event ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Screen status retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "registered": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "screen_number": {
+                                            "type": "integer",
+                                            "example": 1,
+                                            "nullable": true
+                                        },
+                                        "judge_id": {
+                                            "type": "integer",
+                                            "example": 1,
+                                            "nullable": true
+                                        },
+                                        "chair_number": {
+                                            "type": "integer",
+                                            "example": 1,
+                                            "nullable": true
+                                        },
+                                        "connected_at": {
+                                            "type": "string",
+                                            "example": "2025-12-14T10:30:00Z",
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing required parameters"
+                    }
+                }
+            }
+        },
+        "/api/judge/swap-screens": {
+            "post": {
+                "tags": [
+                    "Judge Management"
+                ],
+                "summary": "Swap judge assignments between two screens",
+                "description": "Swaps the judge assignments between two registered screens. Scores remain tied to judge_id.",
+                "operationId": "b20249de8fbf62d5c6a11627d77e7575",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "event_id",
+                                    "screen_number_1",
+                                    "screen_number_2"
+                                ],
+                                "properties": {
+                                    "event_id": {
+                                        "description": "Event ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "screen_number_1": {
+                                        "description": "First screen number",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "screen_number_2": {
+                                        "description": "Second screen number",
+                                        "type": "integer",
+                                        "example": 2
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Screens swapped successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Judge assignments swapped between Screen 1 and Screen 2"
+                                        },
+                                        "screen_1": {
+                                            "type": "object"
+                                        },
+                                        "screen_2": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing required parameters"
+                    },
+                    "404": {
+                        "description": "Screen not found"
+                    }
+                }
+            }
+        },
+        "/api/voting/show-judge-numbers": {
+            "post": {
+                "tags": [
+                    "Judge Management"
+                ],
+                "summary": "Show judge numbers on screens",
+                "description": "Broadcasts to judge screens to display their assigned number. Can target all judges or specific ones.",
+                "operationId": "d165b79ac27e6d6a57298d4dd1939d1d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "event_id"
+                                ],
+                                "properties": {
+                                    "event_id": {
+                                        "description": "Event ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "judge_ids": {
+                                        "description": "Specific judge IDs to show (empty for all)",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            1,
+                                            2,
+                                            3
+                                        ]
+                                    },
+                                    "duration": {
+                                        "description": "Duration in milliseconds to show the number (default 5000)",
+                                        "type": "integer",
+                                        "example": 5000
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Broadcast sent successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Show judge numbers broadcast sent"
+                                        },
+                                        "target": {
+                                            "type": "string",
+                                            "example": "all"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing required parameters"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Event": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "title": {
+                        "type": "string",
+                        "example": "Miss Universe 2024"
+                    },
+                    "year": {
+                        "type": "integer",
+                        "example": 2024
+                    },
+                    "date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2024-11-21"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "draft",
+                            "active",
+                            "completed",
+                            "archived"
+                        ],
+                        "example": "active"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Candidate": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "event_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "number": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Maria Santos"
+                    },
+                    "gender": {
+                        "type": "string",
+                        "example": "Female"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Round": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "event_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Preliminary"
+                    },
+                    "spot": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Criteria": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "round_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Presentation"
+                    },
+                    "max_points": {
+                        "type": "integer",
+                        "example": 100
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "VotingState": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "event_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "is_locked": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "active_round_id": {
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
+                    "active_round_name": {
+                        "type": "string",
+                        "example": "Preliminary",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Point": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "judge_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "candidate_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "round_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "criteria_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "points": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 85.5
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "EventSequence": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "event_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "round_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "order": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            }
         }
     },
     "tags": [
         {
             "name": "Candidates",
-            "description": "API Endpoints for managing candidates"
+            "description": "Candidate management"
+        },
+        {
+            "name": "Voting",
+            "description": "Voting state, round control, and display settings"
+        },
+        {
+            "name": "Event Sequence",
+            "description": "Event Sequence"
+        },
+        {
+            "name": "Judge Management",
+            "description": "Judge Management"
+        },
+        {
+            "name": "Event Management",
+            "description": "Event Management"
         }
     ]
 }

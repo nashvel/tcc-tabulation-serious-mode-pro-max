@@ -544,9 +544,9 @@ const switchToInfoMode = (judge) => {
 const showJudgeInfoModal = (judge) => {
   Swal.fire({
     html: `
-      <div style="position: relative; width: 100%; max-width: 650px; margin: 0 auto;">
+      <div style="position: relative; width: 100%; max-width: 900px; margin: 0 auto;">
         <img src="/assets/macbook(white).png" alt="Judge Station" style="width: 100%; height: auto; filter: drop-shadow(0 25px 40px rgba(0,0,0,0.2));" />
-        <div id="modal-content" style="position: absolute; top: 6%; left: 12%; width: 76%; height: 58%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 12px; box-sizing: border-box;">
+        <div id="modal-content" style="position: absolute; top: 4%; left: 12%; width: 76%; height: 82%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 12px; box-sizing: border-box; overflow: hidden;">
           ${getInfoContent(judge)}
         </div>
       </div>
@@ -554,7 +554,7 @@ const showJudgeInfoModal = (judge) => {
     showConfirmButton: false,
     showCancelButton: false,
     showDenyButton: false,
-    width: 720,
+    width: 960,
     padding: '1rem',
     background: 'transparent',
     customClass: {
@@ -585,15 +585,17 @@ const switchToLiveMode = (judge) => {
   const contentEl = document.getElementById('modal-content');
   if (!contentEl) return;
   
+  // NOTE: To enable iframe interaction (edit mode), remove "pointer-events: none;" from the iframe style below
+  // To disable iframe interaction (view-only mode), add "pointer-events: none;" to the iframe style
   contentEl.innerHTML = `
-    <div style="width: 100%; height: 100%; display: flex; flex-direction: column;">
-      <div style="flex: 1; overflow: hidden; border-radius: 4px; background: #f9fafb; position: relative;">
+    <div style="width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+      <div style="flex: 1; overflow: hidden; border-radius: 4px; background: #f9fafb; position: relative; min-height: 0;">
         <iframe 
           src="/judge?event_id=${eventId.value}&judge_id=${judge.id}&preview=true"
-          style="width: 200%; height: 200%; border: none; transform: scale(0.5); transform-origin: top left;"
+          style="width: 250%; height: 250%; border: none; transform: scale(0.4); transform-origin: top left;
         ></iframe>
       </div>
-      <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 8px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 4px; flex-shrink: 0;">
         <div style="display: flex; align-items: center; gap: 6px;">
           <span style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite;"></span>
           <span style="font-size: 12px; color: #6b7280;">Live - Judge ${judge.chair_number}</span>
@@ -617,7 +619,7 @@ const switchToLiveMode = (judge) => {
 const showDeleteConfirmModal = (judge) => {
   Swal.fire({
     html: `
-      <div style="position: relative; width: 100%; max-width: 650px; margin: 0 auto;">
+      <div style="position: relative; width: 100%; max-width: 900px; margin: 0 auto;">
         <img src="/assets/macbook(white).png" alt="Delete Confirmation" style="width: 100%; height: auto; filter: drop-shadow(0 25px 40px rgba(0,0,0,0.2));" />
         <div style="position: absolute; top: 6%; left: 12%; width: 76%; height: 58%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 12px; box-sizing: border-box;">
           <div style="width: 60px; height: 60px; border-radius: 50%; background: #fef2f2; display: flex; align-items: center; justify-content: center; margin-bottom: 12px;">
@@ -643,7 +645,7 @@ const showDeleteConfirmModal = (judge) => {
     `,
     showConfirmButton: false,
     showCancelButton: false,
-    width: 720,
+    width: 960,
     padding: '1rem',
     background: 'transparent',
     customClass: {
