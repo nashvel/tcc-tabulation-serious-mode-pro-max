@@ -92,6 +92,9 @@ Route::delete('event-templates/{id}', [EventTemplateController::class, 'destroy'
 Route::post('event-templates/{id}/create-event', [EventTemplateController::class, 'createFromTemplate']);
 Route::get('event-themes', [EventThemeController::class, 'index']);
 Route::get('event-themes/{id}', [EventThemeController::class, 'show']);
+Route::post('event-themes', [EventThemeController::class, 'store']);
+Route::put('event-themes/{id}', [EventThemeController::class, 'update']);
+Route::delete('event-themes/{id}', [EventThemeController::class, 'destroy']);
 
 // Assets (public read - for image selection, upload for drag-drop)
 Route::get('assets/images', [AssetsController::class, 'listImages']);

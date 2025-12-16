@@ -452,9 +452,19 @@ const filteredCriteria = computed(() =>
 const totalInputsCount = computed(() => candidates.value.length * filteredCriteria.value.length);
 
 const filledInputsCount = computed(() => {
+  // Only count scores for the current round's criteria
+  const currentCriteriaIds = filteredCriteria.value.map(c => c.id);
+  const candidateIds = candidates.value.map(c => c.id);
+  
   return Object.keys(scores.value).filter(key => {
     const value = scores.value[key];
-    return value !== '' && value !== null && value !== undefined;
+    if (value === '' || value === null || value === undefined) return false;
+    
+    // Parse the key to get candidateId and criteriaId
+    const [candidateId, criteriaId] = key.split('-').map(Number);
+    
+    // Only count if this criteria belongs to the current round AND candidate exists
+    return currentCriteriaIds.includes(criteriaId) && candidateIds.includes(candidateId);
   }).length;
 });
 
@@ -657,9 +667,18 @@ const loadData = async (eid) => {
   }
 };
 
-const loadJudgeScores = async (jid) => {
+const loadJudgeScores = async (jid, roundId = null) => {
   try {
-    const response = await fetch(`/api/points?event_id=${eventId.value}&judge_id=${jid}`);
+    // Use provided roundId or current selectedRound
+    const currentRoundId = roundId || selectedRound.value;
+    
+    // Build URL with optional round filter
+    let url = `/api/points?event_id=${eventId.value}&judge_id=${jid}`;
+    if (currentRoundId) {
+      url += `&round_id=${currentRoundId}`;
+    }
+    
+    const response = await fetch(url);
     const points = await response.json();
     
     const loadedScores = {};

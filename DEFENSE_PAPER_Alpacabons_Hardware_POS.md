@@ -154,7 +154,7 @@ Figure XX. Conceptual Framework using IPO Model
 
 System Architecture
 
-The system follows a Layered Client–Server Architecture where the presentation layer (users accessing through web browsers) interacts with a centralized backend responsible for processing business logic, managing data, and handling system operations. The backend is structured into modular components including user authentication, sales processing, inventory management, and reporting services, enabling clear separation of responsibilities and efficient system scalability.
+The system follows a Layered Client–Server Architecture where the presentation layer (users accessing through web browsers) interacts with a centralized backend responsible for processing business logic, managing data, and handling system operations. The backend is structured into modular components including user authentication, sales processing, inventory management, and reporting    services, enabling clear separation of responsibilities and efficient system scalability.
 
 Figure XX. Layered Client-Server Architecture
 
