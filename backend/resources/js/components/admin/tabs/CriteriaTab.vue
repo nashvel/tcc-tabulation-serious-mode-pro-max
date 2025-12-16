@@ -99,20 +99,23 @@
       </div>
     </div>
 
-    <!-- Tour Tooltip -->
+  </div>
+
+  <!-- Tour Tooltip (teleported to body) -->
+  <Teleport to="body">
     <TourTooltip
       :isActive="tour.isActive.value"
       :currentStep="tour.currentStep.value"
       :totalSteps="tourSteps.length"
       :step="tourSteps[tour.currentStep.value] || {}"
-      :tooltipStyle="tour.tooltipStyle"
-      :arrowStyle="tour.arrowStyle"
+      :tooltipStyle="tour.tooltipStyle.value"
+      :arrowStyle="tour.arrowStyle.value"
       :placement="tour.placement.value"
       @next="tour.nextStep"
       @prev="tour.prevStep"
       @skip="tour.endTour(false)"
     />
-  </div>
+  </Teleport>
 </template>
 
 <script setup>

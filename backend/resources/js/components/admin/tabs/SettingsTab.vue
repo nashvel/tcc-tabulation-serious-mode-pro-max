@@ -1,11 +1,14 @@
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-lg font-semibold text-gray-900">Settings</h2>
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-semibold text-gray-900">Settings</h2>
+        <HelpButton @click="startTour" />
+      </div>
     </div>
 
     <!-- Judge Screen Display -->
-    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
+    <div id="display-settings" class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
       <div class="bg-gray-50 border-b border-gray-200 px-4 py-3">
         <h3 class="text-xs font-semibold text-gray-600 uppercase">Judge Screen Display</h3>
       </div>
@@ -72,7 +75,7 @@
     </div>
 
     <!-- Registered Screens -->
-    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
+    <div id="registered-screens" class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
       <div class="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <h3 class="text-xs font-semibold text-gray-600 uppercase">Registered Screens</h3>
@@ -261,6 +264,22 @@
         </div>
       </div>
     </div>
+
+    <!-- Tour Tooltip (teleported to body) -->
+    <Teleport to="body">
+      <TourTooltip
+        :isActive="tour.isActive.value"
+        :currentStep="tour.currentStep.value"
+        :totalSteps="tourSteps.length"
+        :step="tourSteps[tour.currentStep.value] || {}"
+        :tooltipStyle="tour.tooltipStyle.value"
+        :arrowStyle="tour.arrowStyle.value"
+        :placement="tour.placement.value"
+        @next="tour.nextStep"
+        @prev="tour.prevStep"
+        @skip="tour.endTour(false)"
+      />
+    </Teleport>
   </div>
 </template>
 
@@ -268,10 +287,35 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Check, CheckCircle, Info, Monitor, Trash2, UserX, ArrowLeftRight, X } from 'lucide-vue-next';
 import { showError, showSuccess } from '../../../utils/alerts';
+import { useTour } from '../../../composables/useTour';
+import TourTooltip from '../../shared/TourTooltip.vue';
+import HelpButton from '../../shared/HelpButton.vue';
 
 const props = defineProps({
   eventId: [String, Number]
 });
+
+// Tour steps for Settings tab
+const tourSteps = [
+  {
+    target: '#display-settings',
+    title: 'Display Settings',
+    content: 'Control what information judges see on their screens. Toggle candidate names and team/department visibility.',
+    placement: 'bottom'
+  },
+  {
+    target: '#registered-screens',
+    title: 'Registered Screens',
+    content: 'View all connected judge screens. You can swap judge assignments, kick individual screens, or reset all connections.',
+    placement: 'top'
+  }
+];
+
+const tour = useTour('settings-tab', tourSteps);
+
+const startTour = () => {
+  tour.startTour();
+};
 
 const displaySettings = ref({
   show_candidate_name: true,

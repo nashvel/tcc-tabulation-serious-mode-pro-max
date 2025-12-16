@@ -9,7 +9,7 @@
           </button>
           <div>
             <h1 class="text-xl font-bold text-gray-900">Create New Event</h1>
-            <p class="text-sm text-gray-500">{{ selectedTemplate ? 'Using template' : 'Step ' + currentStep + ' of 4' }}</p>
+            <p class="text-sm text-gray-500">{{ selectedTemplate ? 'Using template' : 'Step ' + currentStep + ' of 5' }}</p>
           </div>
         </div>
       </div>
@@ -69,7 +69,7 @@
                 {{ step.label }}
               </span>
             </div>
-            <div v-if="step.id < 4" :class="['h-0.5 flex-1 transition-colors', currentStep > step.id ? 'bg-indigo-600' : 'bg-gray-200']"></div>
+            <div v-if="step.id < 5" :class="['h-0.5 flex-1 transition-colors', currentStep > step.id ? 'bg-indigo-600' : 'bg-gray-200']"></div>
           </template>
         </div>
       </div>
@@ -158,6 +158,34 @@
             <p class="text-xs text-gray-500">{{ eventTypeInfo.message }}</p>
           </div>
         </div>
+
+        <!-- Important People -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-lg font-semibold text-gray-900">Important People</h2>
+              <p class="text-xs text-gray-500">Add key people like Director, Coordinator, etc.</p>
+            </div>
+            <button @click="addImportantPerson" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+              <Plus :size="16" /> Add
+            </button>
+          </div>
+          
+          <div class="space-y-2">
+            <div v-if="!formData.important_people.length" class="py-6 text-center text-sm text-gray-400">
+              No important people added (optional)
+            </div>
+            <div v-for="(person, i) in formData.important_people" :key="i" class="flex items-center gap-3">
+              <input v-model="person.position" type="text" placeholder="Position (e.g. Director)"
+                class="w-40 px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-1 focus:ring-indigo-500" />
+              <input v-model="person.name" type="text" placeholder="Name"
+                class="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-1 focus:ring-indigo-500" />
+              <button @click="removeImportantPerson(i)" class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                <Trash2 :size="16" />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Step 2: Participants -->
@@ -244,8 +272,62 @@
         </div>
       </div>
 
-      <!-- Step 4: Review -->
+      <!-- Step 4: Criteria -->
       <div v-if="currentStep === 4" class="space-y-6">
+        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">Scoring Criteria</h2>
+            <p class="text-sm text-gray-500 mt-1">Add criteria with percentage (%) for each round. Total should equal 100%.</p>
+          </div>
+
+          <div class="p-6 space-y-6">
+            <div v-if="formData.rounds.length === 0" class="py-12 text-center">
+              <Layers :size="32" class="text-gray-300 mx-auto mb-2" />
+              <p class="text-sm text-gray-500">No rounds added. Go back to add rounds first.</p>
+            </div>
+            
+            <div v-for="(round, ri) in formData.rounds" :key="ri" class="border border-gray-200 rounded-xl overflow-hidden">
+              <div class="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <div class="flex items-center gap-2">
+                  <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-semibold text-indigo-600">
+                    {{ ri + 1 }}
+                  </div>
+                  <span class="font-medium text-gray-900">{{ round.name }}</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span :class="['text-sm font-medium', getTotalPercentage(ri) === 100 ? 'text-green-600' : 'text-orange-500']">
+                    Total: {{ getTotalPercentage(ri) }}%
+                  </span>
+                  <button @click="addCriteria(ri)" class="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
+                    + Add Criteria
+                  </button>
+                </div>
+              </div>
+              
+              <div class="p-4 space-y-2">
+                <div v-if="!round.criteria?.length" class="py-6 text-center text-sm text-gray-400">
+                  No criteria added for this round
+                </div>
+                <div v-for="(c, ci) in round.criteria" :key="ci" class="flex items-center gap-3">
+                  <input v-model="c.name" type="text" placeholder="Criteria name (e.g. Beauty, Talent)"
+                    class="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-1 focus:ring-indigo-500" />
+                  <div class="flex items-center gap-1">
+                    <input v-model.number="c.points" type="number" min="0" max="100" placeholder="0"
+                      class="w-20 px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-1 focus:ring-indigo-500 text-center" />
+                    <span class="text-sm text-gray-500">%</span>
+                  </div>
+                  <button @click="removeCriteria(ri, ci)" class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                    <Trash2 :size="16" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5: Review -->
+      <div v-if="currentStep === 5" class="space-y-6">
         <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div class="px-6 py-4 border-b border-gray-200">
             <h2 class="text-lg font-semibold text-gray-900">Review & Create</h2>
@@ -320,7 +402,7 @@
         </button>
         <div v-else></div>
         
-        <button v-if="currentStep < 4" @click="nextStep"
+        <button v-if="currentStep < 5" @click="nextStep"
           class="flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm">
           Next <ArrowRight :size="16" />
         </button>
@@ -392,7 +474,8 @@ const steps = [
   { id: 1, label: 'Basic Info' },
   { id: 2, label: 'Participants' },
   { id: 3, label: 'Rounds' },
-  { id: 4, label: 'Review' }
+  { id: 4, label: 'Criteria' },
+  { id: 5, label: 'Review' }
 ];
 
 const formData = ref({
@@ -403,7 +486,8 @@ const formData = ref({
   description: '',
   theme_id: null,
   participants: [],
-  rounds: []
+  rounds: [],
+  important_people: []
 });
 
 // Update URL when step changes
@@ -523,7 +607,7 @@ const getTypeBadgeClass = (type) => {
 const goBack = () => router.push('/setup');
 
 const goToStep = (step) => {
-  if (step >= 1 && step <= 4) {
+  if (step >= 1 && step <= 5) {
     currentStep.value = step;
     updateStepUrl(step);
   }
@@ -537,7 +621,7 @@ const prevStep = () => {
 };
 
 const nextStep = () => { 
-  if (currentStep.value < 4) {
+  if (currentStep.value < 5) {
     currentStep.value++;
     updateStepUrl(currentStep.value);
   }
@@ -552,10 +636,36 @@ const removeParticipant = (index) => formData.value.participants.splice(index, 1
 
 const addRound = () => {
   const nextSpot = formData.value.rounds.length + 1;
-  formData.value.rounds.push({ name: `Round ${nextSpot}`, spot: nextSpot });
+  formData.value.rounds.push({ name: `Round ${nextSpot}`, spot: nextSpot, criteria: [] });
 };
 
 const removeRound = (index) => formData.value.rounds.splice(index, 1);
+
+// Criteria management
+const addCriteria = (roundIndex) => {
+  if (!formData.value.rounds[roundIndex].criteria) {
+    formData.value.rounds[roundIndex].criteria = [];
+  }
+  formData.value.rounds[roundIndex].criteria.push({ name: '', points: 0 });
+};
+
+const removeCriteria = (roundIndex, criteriaIndex) => {
+  formData.value.rounds[roundIndex].criteria.splice(criteriaIndex, 1);
+};
+
+const getTotalPercentage = (roundIndex) => {
+  const criteria = formData.value.rounds[roundIndex]?.criteria || [];
+  return criteria.reduce((sum, c) => sum + (parseInt(c.points) || 0), 0);
+};
+
+// Important people management
+const addImportantPerson = () => {
+  formData.value.important_people.push({ position: '', name: '' });
+};
+
+const removeImportantPerson = (index) => {
+  formData.value.important_people.splice(index, 1);
+};
 
 const createEvent = async () => {
   if (!formData.value.title || !formData.value.event_date) {
@@ -567,7 +677,7 @@ const createEvent = async () => {
   try {
     const eventRes = await fetch('/api/events', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({
         title: formData.value.title,
         event_date: formData.value.event_date,
@@ -581,14 +691,17 @@ const createEvent = async () => {
       })
     });
     
-    if (!eventRes.ok) throw new Error('Failed to create event');
+    if (!eventRes.ok) {
+      const errData = await eventRes.json().catch(() => ({}));
+      throw new Error(errData.message || 'Failed to create event');
+    }
     const event = await eventRes.json();
 
     for (const p of formData.value.participants) {
       if (p.name) {
         await fetch('/api/candidates', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify({
             event_id: event.id,
             number: p.number,
@@ -602,21 +715,57 @@ const createEvent = async () => {
     }
     
     for (const r of formData.value.rounds) {
-      await fetch('/api/rounds', {
+      const roundRes = await fetch('/api/rounds', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({
           event_id: event.id,
           name: r.name,
           spot: r.spot
         })
       });
+      
+      if (roundRes.ok && r.criteria?.length > 0) {
+        const round = await roundRes.json();
+        for (const c of r.criteria) {
+          if (c.name) {
+            await fetch('/api/criteria', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              body: JSON.stringify({
+                round_id: round.id,
+                name: c.name,
+                points: c.points || 0
+              })
+            });
+          }
+        }
+      }
+    }
+    
+    // Save important people (if any were added)
+    if (formData.value.important_people.length > 0) {
+      const validPeople = formData.value.important_people.filter(p => p.position || p.name);
+      if (validPeople.length > 0) {
+        const draftRes = await fetch('/api/events/save-draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({
+            event_id: event.id,
+            title: formData.value.title,
+            important_people: validPeople
+          })
+        });
+        if (!draftRes.ok) {
+          console.warn('Failed to save important people:', await draftRes.text());
+        }
+      }
     }
     
     for (let i = 1; i <= formData.value.number_of_judges; i++) {
       await fetch('/api/judges', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({
           event_id: event.id,
           name: `Judge ${i}`,
@@ -629,7 +778,7 @@ const createEvent = async () => {
     showSuccess('Event created successfully!');
     router.push(`/admin?event_id=${event.id}`);
   } catch (error) {
-    showError('Failed to create event');
+    showError(error.message || 'Failed to create event');
   } finally {
     creating.value = false;
   }

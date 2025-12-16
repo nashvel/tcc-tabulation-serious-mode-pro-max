@@ -58,9 +58,14 @@ class CandidateController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'event_id' => 'required|integer|exists:events,id',
             'number' => 'required|integer',
             'name' => 'required|string|max:120',
-            'gender' => 'required|string|max:6'
+            'gender' => 'nullable|string|max:20',
+            'participant_type' => 'nullable|string|max:20',
+            'order' => 'nullable|integer',
+            'department' => 'nullable|string|max:255',
+            'team_name' => 'nullable|string|max:255',
         ]);
 
         $candidate = Candidate::create($validated);

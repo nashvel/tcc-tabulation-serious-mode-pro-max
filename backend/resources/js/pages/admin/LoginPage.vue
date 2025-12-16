@@ -158,20 +158,6 @@ onMounted(() => {
   }
 });
 
-// Get CSRF token from cookie
-const getCsrfToken = () => {
-  const name = 'XSRF-TOKEN=';
-  const decodedCookie = decodeURIComponent(document.cookie);
-  const cookies = decodedCookie.split(';');
-  for (let cookie of cookies) {
-    cookie = cookie.trim();
-    if (cookie.indexOf(name) === 0) {
-      return cookie.substring(name.length);
-    }
-  }
-  return '';
-};
-
 const goToJudge = () => {
   router.push('/judge');
 };
@@ -189,23 +175,19 @@ const handleSubmit = async () => {
   loading.value = true;
 
   try {
-    // First, get CSRF cookie
-    await fetch('/sanctum/csrf-cookie', { credentials: 'same-origin' });
-    
+    // Simple POST request - no CSRF needed for API routes
     const response = await fetch('/api/admin/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-XSRF-TOKEN': getCsrfToken()
+        'Accept': 'application/json'
       },
-      credentials: 'same-origin',
       body: JSON.stringify({ pin: pin.value })
     });
 
     const data = await response.json();
 
-    if (data.token) {
+    if (response.ok && data.token) {
       // Store authentication data
       localStorage.setItem('adminToken', data.token);
       localStorage.setItem('adminPin', pin.value);
@@ -222,8 +204,8 @@ const handleSubmit = async () => {
     if (message.includes('connect') || message.includes('network') || message.includes('fetch')) {
       showServerHintTooltip();
     }
-    showError('Invalid PIN or connection error');
-    error.value = 'Invalid PIN or connection error';
+    showError('Connection error. Is the server running?');
+    error.value = 'Connection error';
   } finally {
     loading.value = false;
   }

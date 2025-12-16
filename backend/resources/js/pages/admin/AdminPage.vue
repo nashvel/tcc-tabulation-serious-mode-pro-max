@@ -220,6 +220,19 @@
       @close="closeGlobalContextMenu"
       @category-change="handleCategoryChange"
     />
+
+    <!-- Right Side Panel -->
+    <RightSidePanel
+      v-if="!focusMode"
+      :event="continuingEvent"
+      :judges="judges"
+      :candidates="candidates"
+      :rounds="rounds"
+      :criteria="criteria"
+      :activeRound="activeCategory"
+      @action="handleQuickAction"
+      @activate-round="handleActivateRound"
+    />
   </div>
 </template>
 
@@ -245,6 +258,7 @@ import ThemesTab from '../../components/admin/tabs/ThemesTab.vue';
 import ConfigureJudgesModal from '../../components/admin/modals/ConfigureJudgesModal.vue';
 import EventDetailsModal from '../../components/admin/modals/EventDetailsModal.vue';
 import { useGlobalContextMenu } from '../../composables/useGlobalContextMenu';
+import RightSidePanel from '../../components/admin/RightSidePanel.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -337,6 +351,50 @@ const setTabAccentColor = (color) => {
 // Handle category change from context menu
 const handleCategoryChange = (category) => {
   activeCategory.value = category;
+};
+
+// Handle quick actions from right side panel
+const handleQuickAction = async (action) => {
+  if (!continuingEvent.value?.id) return;
+  
+  try {
+    switch (action) {
+      case 'lock':
+        await fetch(`/api/voting/lock?event_id=${continuingEvent.value.id}`, { method: 'POST' });
+        break;
+      case 'unlock':
+        await fetch(`/api/voting/unlock?event_id=${continuingEvent.value.id}`, { method: 'POST' });
+        break;
+      case 'show-numbers':
+        await fetch(`/api/voting/show-judge-numbers?event_id=${continuingEvent.value.id}`, { method: 'POST' });
+        break;
+      case 'refresh':
+        await loadData();
+        await loadVotingState();
+        break;
+    }
+  } catch (error) {
+    showError('Action failed');
+  }
+};
+
+// Handle round activation from right side panel
+const handleActivateRound = async (round) => {
+  if (!continuingEvent.value?.id) return;
+  
+  try {
+    await fetch('/api/voting/activate-round', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_id: continuingEvent.value.id,
+        round_id: round.id
+      })
+    });
+    activeCategory.value = round;
+  } catch (error) {
+    showError('Failed to activate round');
+  }
 };
 
 // Data

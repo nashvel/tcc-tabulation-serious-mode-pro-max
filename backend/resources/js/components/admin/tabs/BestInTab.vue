@@ -2,8 +2,9 @@
   <div>
     <template v-if="!loading">
       <!-- Category Tabs -->
-      <div class="px-4 py-3 border-b-2 border-gray-200 bg-gray-50 overflow-x-auto">
-        <div class="flex gap-1 min-w-max">
+      <div id="category-tabs" class="px-4 py-3 border-b-2 border-gray-200 bg-gray-50 overflow-x-auto">
+        <div class="flex items-center gap-2 min-w-max">
+          <HelpButton @click="startTour" />
           <button
             v-for="cat in criteria"
             :key="cat.id"
@@ -33,7 +34,7 @@
       <div v-else class="p-8">
         <div class="flex gap-6 max-w-7xl mx-auto">
           <!-- Main Winner Card -->
-          <div class="flex-1">
+          <div id="winner-card" class="flex-1">
             <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">
               Best in {{ currentResult.category.name }}
             </h2>
@@ -99,7 +100,7 @@
           </div>
 
           <!-- Rankings List - Right Side -->
-          <div class="w-64">
+          <div id="rankings-list" class="w-64">
             <h3 class="text-sm font-bold text-gray-900 mb-3">All Rankings</h3>
             <div class="space-y-1.5">
               <div
@@ -147,13 +148,33 @@
         </div>
       </div>
     </template>
+
   </div>
+
+  <!-- Tour Tooltip (teleported to body) -->
+  <Teleport to="body">
+    <TourTooltip
+      :isActive="tour.isActive.value"
+      :currentStep="tour.currentStep.value"
+      :totalSteps="tourSteps.length"
+      :step="tourSteps[tour.currentStep.value] || {}"
+      :tooltipStyle="tour.tooltipStyle.value"
+      :arrowStyle="tour.arrowStyle.value"
+      :placement="tour.placement.value"
+      @next="tour.nextStep"
+      @prev="tour.prevStep"
+      @skip="tour.endTour(false)"
+    />
+  </Teleport>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Star, Trophy, BarChart3, User } from 'lucide-vue-next';
 import { showError } from '../../../utils/alerts';
+import { useTour } from '../../../composables/useTour';
+import TourTooltip from '../../shared/TourTooltip.vue';
+import HelpButton from '../../shared/HelpButton.vue';
 
 const props = defineProps({
   eventId: [String, Number],
@@ -166,6 +187,34 @@ const scores = ref({});
 const selectedCategory = ref(null);
 const selectedRank = ref(0);
 let refreshInterval = null;
+
+// Tour steps for Best In tab
+const tourSteps = [
+  {
+    target: '#category-tabs',
+    title: 'Category Selection',
+    content: 'Click on a category/criteria to see who scored highest in that specific area.',
+    placement: 'bottom'
+  },
+  {
+    target: '#winner-card',
+    title: 'Winner Display',
+    content: 'Shows the top scorer for the selected category with their score and performance in other categories.',
+    placement: 'right'
+  },
+  {
+    target: '#rankings-list',
+    title: 'All Rankings',
+    content: 'Click on any candidate to see their detailed scores. Rankings update in real-time.',
+    placement: 'left'
+  }
+];
+
+const tour = useTour('best-in-tab', tourSteps);
+
+const startTour = () => {
+  tour.startTour();
+};
 
 // Calculate best in category results
 const bestInResults = computed(() => {

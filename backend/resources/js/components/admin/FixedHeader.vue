@@ -81,11 +81,11 @@
           </button>
         </div>
 
-        <!-- Right: Currently Active Category -->
+        <!-- Right: Currently Active Category + Time -->
         <div class="flex flex-col items-center md:items-end justify-center gap-2 flex-1 min-w-[200px]">
-          <h2 class="text-2xl font-light text-slate-900 tracking-tight uppercase leading-none">
-            {{ activeCategory?.name || 'Loading...' }}
-          </h2>
+          <div class="text-sm font-medium text-slate-500 tracking-wide tabular-nums">
+            {{ currentTime }}
+          </div>
         </div>
       </div>
     </div>
@@ -93,7 +93,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
 const props = defineProps({
@@ -108,6 +108,29 @@ const router = useRouter();
 const route = useRoute();
 
 const isHoveringTitle = ref(false);
+
+// Real-time clock
+const currentTime = ref('');
+let clockInterval = null;
+
+const updateClock = () => {
+  const now = new Date();
+  currentTime.value = now.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+};
+
+onMounted(() => {
+  updateClock();
+  clockInterval = setInterval(updateClock, 1000);
+});
+
+onUnmounted(() => {
+  if (clockInterval) clearInterval(clockInterval);
+});
 
 const isAdminPath = computed(() => route.path === '/admin');
 

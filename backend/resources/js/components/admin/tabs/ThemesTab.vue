@@ -1,8 +1,12 @@
 <template>
   <div class="p-4">
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-lg font-semibold text-gray-900">Event Themes</h2>
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-semibold text-gray-900">Event Themes</h2>
+        <HelpButton @click="startTour" />
+      </div>
       <button
+        id="new-theme-btn"
         @click="openCreateModal"
         class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
       >
@@ -19,7 +23,7 @@
     </div>
 
     <!-- Themes Grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div v-else id="themes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div
         v-for="theme in themes"
         :key="theme.id"
@@ -93,17 +97,58 @@
       </div>
     </div>
   </div>
+
+  <!-- Tour Tooltip (teleported to body) -->
+  <Teleport to="body">
+    <TourTooltip
+      :isActive="tour.isActive.value"
+      :currentStep="tour.currentStep.value"
+      :totalSteps="tourSteps.length"
+      :step="tourSteps[tour.currentStep.value] || {}"
+      :tooltipStyle="tour.tooltipStyle.value"
+      :arrowStyle="tour.arrowStyle.value"
+      :placement="tour.placement.value"
+      @next="tour.nextStep"
+      @prev="tour.prevStep"
+      @skip="tour.endTour(false)"
+    />
+  </Teleport>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import { Plus, Palette, Edit2, Trash2 } from 'lucide-vue-next';
 import { showError, showSuccess, showConfirm } from '../../../utils/alerts';
+import { useTour } from '../../../composables/useTour';
+import TourTooltip from '../../shared/TourTooltip.vue';
+import HelpButton from '../../shared/HelpButton.vue';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
   eventId: [String, Number]
 });
+
+// Tour steps for Themes tab
+const tourSteps = [
+  {
+    target: '#new-theme-btn',
+    title: 'Create Theme',
+    content: 'Create custom color themes with primary, secondary, and accent colors for your events.',
+    placement: 'bottom'
+  },
+  {
+    target: '#themes-grid',
+    title: 'Theme Library',
+    content: 'View and manage all your themes. Each theme shows a color preview. System themes cannot be modified.',
+    placement: 'top'
+  }
+];
+
+const tour = useTour('themes-tab', tourSteps);
+
+const startTour = () => {
+  tour.startTour();
+};
 
 const loading = ref(true);
 const themes = ref([]);

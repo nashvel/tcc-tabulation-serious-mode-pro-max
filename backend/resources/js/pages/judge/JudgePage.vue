@@ -997,11 +997,12 @@ const setupVotingWebSocket = () => {
 const handleActiveEventChange = (data) => {
   console.log('[WebSocket] Active event changed:', data);
   
-  // If the new active event is different from current, reload the page
+  // If the new active event is different from current, redirect to the new event
   if (data.event_id && data.event_id !== parseInt(eventId.value)) {
     console.log(`🔄 Switching from event ${eventId.value} to event ${data.event_id}`);
-    // Reload the page to get the new event
-    window.location.reload();
+    // Redirect to /judge without parameters - it will fetch the active event
+    // This ensures we don't stay on the old event_id from URL params
+    window.location.href = '/judge';
   }
 };
 

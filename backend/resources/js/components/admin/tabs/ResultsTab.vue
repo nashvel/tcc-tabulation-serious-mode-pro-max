@@ -1,13 +1,17 @@
 <template>
   <div>
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-gray-900">Results</h2>
-      <div class="flex gap-2">
-        <select v-model="selectedRound" class="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-semibold text-gray-900">Results</h2>
+        <HelpButton @click="startTour" />
+      </div>
+      <div id="results-controls" class="flex gap-2">
+        <select id="round-filter" v-model="selectedRound" class="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm">
           <option value="">All Rounds</option>
           <option v-for="round in rounds" :key="round.id" :value="round.id">{{ round.name }}</option>
         </select>
         <button
+          id="hide-scores-btn"
           @click="showScores = !showScores"
           class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
         >
@@ -16,6 +20,7 @@
           {{ showScores ? 'Hide' : 'Show' }}
         </button>
         <button
+          id="export-btn"
           @click="exportResults"
           class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
         >
@@ -154,13 +159,33 @@
       <Trophy class="w-6 h-6 text-gray-300 mx-auto mb-2" />
       <p class="text-gray-400 text-sm">No results available</p>
     </div>
+
   </div>
+
+  <!-- Tour Tooltip (teleported to body) -->
+  <Teleport to="body">
+    <TourTooltip
+      :isActive="tour.isActive.value"
+      :currentStep="tour.currentStep.value"
+      :totalSteps="tourSteps.length"
+      :step="tourSteps[tour.currentStep.value] || {}"
+      :tooltipStyle="tour.tooltipStyle.value"
+      :arrowStyle="tour.arrowStyle.value"
+      :placement="tour.placement.value"
+      @next="tour.nextStep"
+      @prev="tour.prevStep"
+      @skip="tour.endTour(false)"
+    />
+  </Teleport>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Download, Trophy, Eye, EyeOff } from 'lucide-vue-next';
 import { showError, showSuccess } from '../../../utils/alerts';
+import { useTour } from '../../../composables/useTour';
+import TourTooltip from '../../shared/TourTooltip.vue';
+import HelpButton from '../../shared/HelpButton.vue';
 
 const props = defineProps({
   eventId: [String, Number],
@@ -174,6 +199,34 @@ const scores = ref([]);
 const loading = ref(true);
 const showScores = ref(false);
 let refreshInterval = null;
+
+// Tour steps for Results tab
+const tourSteps = [
+  {
+    target: '#round-filter',
+    title: 'Filter by Round',
+    content: 'Select a specific round to view results for that round only, or view all rounds combined.',
+    placement: 'bottom'
+  },
+  {
+    target: '#hide-scores-btn',
+    title: 'Hide/Show Scores',
+    content: 'Toggle score visibility. Useful when presenting results without revealing exact scores.',
+    placement: 'bottom'
+  },
+  {
+    target: '#export-btn',
+    title: 'Export Results',
+    content: 'Download results as a CSV file for printing or further analysis.',
+    placement: 'bottom'
+  }
+];
+
+const tour = useTour('results-tab', tourSteps);
+
+const startTour = () => {
+  tour.startTour();
+};
 
 const calculateResult = (candidate) => {
   const candidateScores = scores.value.filter(s => s.candidate_id == candidate.id);

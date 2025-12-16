@@ -11,6 +11,16 @@ import JudgesConfigurePage from '../pages/admin/JudgesConfigurePage.vue';
 import CreateEventPage from '../pages/admin/CreateEventPage.vue';
 import PrintJudgeScoresPage from '../pages/admin/PrintJudgeScoresPage.vue';
 
+// Auth check helper
+const requireAuth = (to, from, next) => {
+  const isAdmin = localStorage.getItem('isAdmin');
+  if (!isAdmin) {
+    next('/admin/login');
+  } else {
+    next();
+  }
+};
+
 const routes = [
   {
     path: '/judge',
@@ -21,11 +31,13 @@ const routes = [
     path: '/admin',
     name: 'admin',
     component: AdminPage,
+    beforeEnter: requireAuth,
   },
   {
     path: '/setup',
     name: 'setup',
     component: SetupPage,
+    beforeEnter: requireAuth,
   },
   {
     path: '/admin/login',
@@ -36,26 +48,31 @@ const routes = [
     path: '/admin/documentation',
     name: 'documentation',
     component: DocumentationPage,
+    beforeEnter: requireAuth,
   },
   {
     path: '/admin/certificates',
     name: 'certificates',
     component: CertificatesPage,
+    beforeEnter: requireAuth,
   },
   {
     path: '/judges/configure',
     name: 'judges-configure',
     component: JudgesConfigurePage,
+    beforeEnter: requireAuth,
   },
   {
     path: '/create-event',
     name: 'create-event',
     component: CreateEventPage,
+    beforeEnter: requireAuth,
   },
   {
     path: '/admin/print-judge-scores',
     name: 'print-judge-scores',
     component: PrintJudgeScoresPage,
+    beforeEnter: requireAuth,
   },
   // Redirect old vue paths
   {

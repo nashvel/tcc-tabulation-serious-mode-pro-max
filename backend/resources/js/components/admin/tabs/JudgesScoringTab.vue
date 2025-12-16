@@ -9,7 +9,7 @@
     <!-- Main Content -->
     <template v-else-if="judges.length && (femaleCandidates.length || maleCandidates.length || groupCandidates.length || soloCandidates.length)">
       <!-- Round Header -->
-      <div class="bg-white border-b border-gray-200 px-6 py-3">
+      <div id="judges-round-header" class="bg-white border-b border-gray-200 px-6 py-3">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-xs text-gray-400 uppercase tracking-widest mb-1">Currently Scoring</p>
@@ -17,8 +17,9 @@
               {{ activeRound?.name || 'No Active Round' }}
             </h2>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="flex items-center gap-1 text-xs text-green-600">
+          <div class="flex items-center gap-3">
+            <HelpButton @click="startTour" />
+            <span id="judges-live-indicator" class="flex items-center gap-1 text-xs text-green-600">
               <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
               Live
             </span>
@@ -277,12 +278,31 @@
       </div>
     </template>
   </div>
+
+  <!-- Tour Tooltip (teleported to body) -->
+  <Teleport to="body">
+    <TourTooltip
+      :isActive="tour.isActive.value"
+      :currentStep="tour.currentStep.value"
+      :totalSteps="tourSteps.length"
+      :step="tourSteps[tour.currentStep.value] || {}"
+      :tooltipStyle="tour.tooltipStyle.value"
+      :arrowStyle="tour.arrowStyle.value"
+      :placement="tour.placement.value"
+      @next="tour.nextStep"
+      @prev="tour.prevStep"
+      @skip="tour.endTour(false)"
+    />
+  </Teleport>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Eye, EyeOff, Users, Printer } from 'lucide-vue-next';
 import { showError } from '../../../utils/alerts';
+import { useTour } from '../../../composables/useTour';
+import TourTooltip from '../../shared/TourTooltip.vue';
+import HelpButton from '../../shared/HelpButton.vue';
 
 const props = defineProps({
   eventId: [String, Number],
@@ -297,6 +317,28 @@ const scoresHidden = ref(true);
 const scores = ref({});
 const activeRound = ref(null);
 const isLive = ref(false);
+
+// Tour steps for Judges Scoring tab
+const tourSteps = [
+  {
+    target: '#judges-round-header',
+    title: 'Active Round Display',
+    content: 'Shows the currently active round being scored. Judges can only submit scores for the active round.',
+    placement: 'bottom'
+  },
+  {
+    target: '#judges-live-indicator',
+    title: 'Live Updates Indicator',
+    content: 'When green, scores update in real-time via WebSocket. You\'ll see judge scores appear instantly as judges submit them.',
+    placement: 'left'
+  }
+];
+
+const tour = useTour('judges-scoring-tab', tourSteps);
+
+const startTour = () => {
+  tour.startTour();
+};
 
 // Pending updates buffer for batching WebSocket updates
 let pendingUpdates = [];

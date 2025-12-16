@@ -47,7 +47,7 @@ class ActivityLog extends Model
     // Helper to create log entry
     public static function log($eventId, $action, $details = [], $judgeId = null, $request = null)
     {
-        return self::create([
+        $log = self::create([
             'event_id' => $eventId,
             'judge_id' => $judgeId,
             'action' => $action,
@@ -57,6 +57,25 @@ class ActivityLog extends Model
             'ip_address' => $request ? $request->ip() : null,
             'user_agent' => $request ? $request->userAgent() : null,
         ]);
+
+        // Broadcast the new log entry
+        try {
+            $logData = [
+                'id' => $log->id,
+                'action' => $log->action,
+                'description' => $log->description,
+                'details' => $log->details,
+                'judge_number' => $log->judge ? $log->judge->chair_number : null,
+                'ip_address' => $log->ip_address,
+                'time_ago' => 'just now',
+                'created_at' => $log->created_at->toISOString(),
+            ];
+            broadcast(new \App\Events\ActivityLogCreated($logData, $eventId))->toOthers();
+        } catch (\Exception $e) {
+            \Log::warning('Failed to broadcast activity log: ' . $e->getMessage());
+        }
+
+        return $log;
     }
 
     // Get human-readable action description

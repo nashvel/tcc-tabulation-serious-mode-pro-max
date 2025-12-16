@@ -80,23 +80,47 @@ class EventController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'year' => 'required|integer',
-            'days' => 'required|array|min:1',
-            'days.*.day_number' => 'required|integer',
-            'days.*.title' => 'required|string|max:255',
+            'year' => 'nullable|integer',
+            'event_date' => 'nullable|date',
+            'event_type' => 'nullable|string',
+            'number_of_judges' => 'nullable|integer|min:1|max:20',
+            'description' => 'nullable|string',
+            'theme_id' => 'nullable|integer',
+            'template_id' => 'nullable|integer',
+            'status' => 'nullable|string',
+            'header_image' => 'nullable|string|max:255',
+            'lock_screen_image' => 'nullable|string|max:255',
+            // Legacy support for days array
+            'days' => 'nullable|array',
+            'days.*.day_number' => 'required_with:days|integer',
+            'days.*.title' => 'required_with:days|string|max:255',
         ]);
+
+        // Determine year from event_date or use provided year
+        $year = $validated['year'] ?? ($validated['event_date'] ? date('Y', strtotime($validated['event_date'])) : date('Y'));
 
         $event = Event::create([
+            'unique_id' => uniqid('evt_'),
             'title' => $validated['title'],
-            'year' => $validated['year'],
+            'year' => $year,
+            'event_date' => $validated['event_date'] ?? null,
+            'event_type' => $validated['event_type'] ?? 'pageant',
+            'number_of_judges' => $validated['number_of_judges'] ?? 5,
+            'description' => $validated['description'] ?? null,
+            'status' => $validated['status'] ?? 'active',
+            'header_image' => $validated['header_image'] ?? null,
+            'lock_screen_image' => $validated['lock_screen_image'] ?? null,
         ]);
 
-        foreach ($validated['days'] as $day) {
-            EventDay::create([
-                'event_id' => $event->id,
-                'day_number' => $day['day_number'],
-                'title' => $day['title'],
-            ]);
+        // Create days if provided (legacy support)
+        if (!empty($validated['days'])) {
+            foreach ($validated['days'] as $day) {
+                EventDay::create([
+                    'event_id' => $event->id,
+                    'day_number' => $day['day_number'],
+                    'title' => $day['title'],
+                ]);
+            }
         }
 
         return response()->json($event->load('days'), 201);

@@ -82,10 +82,9 @@ Route::get('occupied-judges', [VotingController::class, 'getOccupiedJudges']);
 Route::post('occupy-judge', [VotingController::class, 'occupyJudge']);
 Route::post('clear-occupied-judges', [VotingController::class, 'clearOccupiedJudges']);
 
-// Event Templates & Themes (public read, protected write)
+// Event Templates & Themes (public read only)
 Route::get('event-templates', [EventTemplateController::class, 'index']);
 Route::get('event-templates/{id}', [EventTemplateController::class, 'show']);
-Route::post('event-templates/{id}/create-event', [EventTemplateController::class, 'createFromTemplate']);
 Route::get('event-themes', [EventThemeController::class, 'index']);
 Route::get('event-themes/{id}', [EventThemeController::class, 'show']);
 
@@ -118,71 +117,32 @@ Route::post('criteria', [CriteriaController::class, 'store']);
 Route::put('criteria/{criteria}', [CriteriaController::class, 'update']);
 Route::delete('criteria/{criteria}', [CriteriaController::class, 'destroy']);
 
-// Protected Admin Routes
-Route::middleware('auth:sanctum')->group(function () {
-    // Events Management
-    Route::post('events', [EventController::class, 'store']);
-    Route::put('events/{event}', [EventController::class, 'update']);
-    Route::delete('events/{event}', [EventController::class, 'destroy']);
-    Route::post('events/{id}/complete', [EventController::class, 'complete']);
-    Route::post('events/{id}/archive', [EventController::class, 'archive']);
-    Route::post('events/{id}/activate', [EventController::class, 'activate']);
+// Admin Routes (frontend checks isAdmin in localStorage)
+// Events Management
+Route::post('events', [EventController::class, 'store']);
+Route::put('events/{event}', [EventController::class, 'update']);
+Route::delete('events/{event}', [EventController::class, 'destroy']);
+Route::post('events/{id}/complete', [EventController::class, 'complete']);
+Route::post('events/{id}/archive', [EventController::class, 'archive']);
 
-    // Templates (global, reusable event templates)
-    Route::get('templates', [TemplateController::class, 'index']);
-    Route::get('templates/{id}', [TemplateController::class, 'show']);
-    Route::post('templates/{id}/apply', [TemplateController::class, 'applyToEvent']);
+// Candidates Management
+Route::post('candidates', [CandidateController::class, 'store']);
+Route::put('candidates/{candidate}', [CandidateController::class, 'update']);
+Route::delete('candidates/{candidate}', [CandidateController::class, 'destroy']);
 
-    // Candidate Templates (global, reusable candidate lists)
-    Route::get('candidate-templates', [CandidateTemplateController::class, 'index']);
-    Route::get('candidate-templates/{id}', [CandidateTemplateController::class, 'show']);
-    
-    // Protected CRUD operations (POST, PUT, DELETE only - GET is public)
-    Route::post('candidates', [CandidateController::class, 'store']);
-    Route::put('candidates/{candidate}', [CandidateController::class, 'update']);
-    Route::delete('candidates/{candidate}', [CandidateController::class, 'destroy']);
-    
-    Route::post('rounds', [RoundController::class, 'store']);
-    Route::put('rounds/{round}', [RoundController::class, 'update']);
-    Route::delete('rounds/{round}', [RoundController::class, 'destroy']);
-    
-    Route::post('criteria', [CriteriaController::class, 'store']);
-    Route::put('criteria/{criteria}', [CriteriaController::class, 'update']);
-    Route::delete('criteria/{criteria}', [CriteriaController::class, 'destroy']);
-    
-    // Points: POST is public (judges), PUT/DELETE are protected (admin)
-    Route::put('points/{point}', [PointController::class, 'update']);
-    Route::delete('points/{point}', [PointController::class, 'destroy']);
-});
+// Points Management
+Route::put('points/{point}', [PointController::class, 'update']);
+Route::delete('points/{point}', [PointController::class, 'destroy']);
 
-// Setup & Debug Routes (Admin Only)
-Route::prefix('setup')->middleware('auth:sanctum')->group(function () {
-    // Debug template data
-    Route::get('templates', function() {
-        $template = \App\Models\EventTemplate::with(['categories.criteria'])->first();
-        return response()->json([
-            'template' => $template,
-            'categories_count' => $template ? $template->categories->count() : 0,
-            'raw_categories' => \DB::table('template_categories')->where('template_id', $template->id ?? 0)->get()
-        ]);
-    });
-    
-    // Clear template data
-    Route::delete('clear-templates', function() {
-        try {
-            \DB::table('template_criteria')->delete();
-            \DB::table('template_categories')->delete();
-            \DB::table('event_templates')->delete();
-            
-            return response()->json([
-                'message' => 'All template data cleared successfully'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error clearing templates',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    });
-});
+// Templates (global, reusable event templates)
+Route::get('templates', [TemplateController::class, 'index']);
+Route::get('templates/{id}', [TemplateController::class, 'show']);
+Route::post('templates/{id}/apply', [TemplateController::class, 'applyToEvent']);
+
+// Candidate Templates (global, reusable candidate lists)
+Route::get('candidate-templates', [CandidateTemplateController::class, 'index']);
+Route::get('candidate-templates/{id}', [CandidateTemplateController::class, 'show']);
+
+// Event Templates - create from template
+Route::post('event-templates/{id}/create-event', [EventTemplateController::class, 'createFromTemplate']);
 

@@ -2,11 +2,14 @@
   <div class="p-3">
     <!-- Header -->
     <div class="flex items-center justify-between mb-3">
-      <div>
-        <h2 class="text-sm font-semibold text-gray-900">Activity Logs</h2>
-        <p class="text-xs text-gray-500">Monitor judge scoring activity</p>
-      </div>
       <div class="flex items-center gap-2">
+        <div>
+          <h2 class="text-sm font-semibold text-gray-900">Activity Logs</h2>
+          <p class="text-xs text-gray-500">Monitor judge scoring activity</p>
+        </div>
+        <HelpButton @click="startTour" />
+      </div>
+      <div id="log-controls" class="flex items-center gap-2">
         <button 
           @click="fetchLogs" 
           :disabled="loading"
@@ -29,7 +32,7 @@
     </div>
 
     <!-- Stats Cards - Compact -->
-    <div class="grid grid-cols-4 gap-2 mb-3">
+    <div id="stats-cards" class="grid grid-cols-4 gap-2 mb-3">
       <div class="bg-white rounded-lg border border-gray-200 px-3 py-2">
         <div class="flex items-center gap-2">
           <div class="w-7 h-7 rounded bg-blue-100 flex items-center justify-center">
@@ -77,7 +80,7 @@
     </div>
 
     <!-- Filters -->
-    <div class="flex items-center gap-2 mb-2">
+    <div id="log-filters" class="flex items-center gap-2 mb-2">
       <select 
         v-model="filterJudge" 
         @change="fetchLogs"
@@ -143,16 +146,72 @@
         </div>
       </div>
     </div>
+
   </div>
+
+  <!-- Tour Tooltip (teleported to body) -->
+  <Teleport to="body">
+    <TourTooltip
+      :isActive="tour.isActive.value"
+      :currentStep="tour.currentStep.value"
+      :totalSteps="tourSteps.length"
+      :step="tourSteps[tour.currentStep.value] || {}"
+      :tooltipStyle="tour.tooltipStyle.value"
+      :arrowStyle="tour.arrowStyle.value"
+      :placement="tour.placement.value"
+      @next="tour.nextStep"
+      @prev="tour.prevStep"
+      @skip="tour.endTour(false)"
+    />
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { RefreshCw, Radio, Activity, CheckCircle, Edit, Users, LogIn, LogOut, Play, Lock, Unlock, Trash2 } from 'lucide-vue-next';
+import { useTour } from '../../../composables/useTour';
+import TourTooltip from '../../shared/TourTooltip.vue';
+import HelpButton from '../../shared/HelpButton.vue';
 
 const props = defineProps({
   eventId: [String, Number]
 });
+
+// Watch for eventId changes and refresh data
+watch(() => props.eventId, (newId) => {
+  if (newId) {
+    fetchLogs();
+    fetchJudges();
+  }
+});
+
+// Tour steps for Activity Logs tab
+const tourSteps = [
+  {
+    target: '#log-controls',
+    title: 'Refresh & Auto-Update',
+    content: 'Manually refresh logs or enable auto-refresh to see live updates every 3 seconds.',
+    placement: 'bottom'
+  },
+  {
+    target: '#stats-cards',
+    title: 'Activity Statistics',
+    content: 'Quick overview of total actions, scores entered, scores updated, and judge logins.',
+    placement: 'bottom'
+  },
+  {
+    target: '#log-filters',
+    title: 'Filter Logs',
+    content: 'Filter logs by specific judge or action type to find what you\'re looking for.',
+    placement: 'bottom'
+  }
+];
+
+const tour = useTour('activity-logs-tab', tourSteps);
+
+const startTour = () => {
+  tour.startTour();
+};
 
 const logs = ref([]);
 const stats = ref({});

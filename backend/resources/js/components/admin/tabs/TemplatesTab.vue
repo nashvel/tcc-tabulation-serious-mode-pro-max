@@ -1,8 +1,12 @@
 <template>
   <div class="p-4">
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-lg font-semibold text-gray-900">Event Templates</h2>
+      <div class="flex items-center gap-2">
+        <h2 class="text-lg font-semibold text-gray-900">Event Templates</h2>
+        <HelpButton @click="startTour" />
+      </div>
       <button
+        id="new-template-btn"
         @click="openTypeSelector"
         :disabled="buttonLoading"
         class="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-70"
@@ -21,7 +25,7 @@
     </div>
 
     <!-- Templates Grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div v-else id="templates-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div
         v-for="template in templates"
         :key="template.id"
@@ -79,15 +83,56 @@
       </div>
     </div>
   </div>
+
+  <!-- Tour Tooltip (teleported to body) -->
+  <Teleport to="body">
+    <TourTooltip
+      :isActive="tour.isActive.value"
+      :currentStep="tour.currentStep.value"
+      :totalSteps="tourSteps.length"
+      :step="tourSteps[tour.currentStep.value] || {}"
+      :tooltipStyle="tour.tooltipStyle.value"
+      :arrowStyle="tour.arrowStyle.value"
+      :placement="tour.placement.value"
+      @next="tour.nextStep"
+      @prev="tour.prevStep"
+      @skip="tour.endTour(false)"
+    />
+  </Teleport>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import { Plus, FileText, Edit2, Trash2 } from 'lucide-vue-next';
 import { showError, showSuccess, showConfirm } from '../../../utils/alerts';
+import { useTour } from '../../../composables/useTour';
+import TourTooltip from '../../shared/TourTooltip.vue';
+import HelpButton from '../../shared/HelpButton.vue';
 import Swal from 'sweetalert2';
 
 const props = defineProps({ eventId: [String, Number] });
+
+// Tour steps for Templates tab
+const tourSteps = [
+  {
+    target: '#new-template-btn',
+    title: 'Create Template',
+    content: 'Create new templates for headers, lock screens, candidates, or categories. Templates can be reused across events.',
+    placement: 'bottom'
+  },
+  {
+    target: '#templates-grid',
+    title: 'Template Library',
+    content: 'View and manage all your templates. System templates cannot be edited or deleted.',
+    placement: 'top'
+  }
+];
+
+const tour = useTour('templates-tab', tourSteps);
+
+const startTour = () => {
+  tour.startTour();
+};
 
 const loading = ref(true);
 const buttonLoading = ref(false);

@@ -27,10 +27,10 @@
         <div class="space-y-4">
           <div
             @click="goToCreateEvent"
-            class="group p-6 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-indigo-400 hover:bg-indigo-50 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[140px]"
+            class="group p-6 rounded-2xl border-2 border-dashed border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[140px]"
           >
-            <div class="w-12 h-12 rounded-full bg-indigo-100 group-hover:bg-indigo-200 flex items-center justify-center mb-3 transition-colors">
-              <Plus :size="24" class="text-indigo-600" />
+            <div class="w-12 h-12 rounded-full bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center mb-3 transition-colors">
+              <Plus :size="24" class="text-gray-600" />
             </div>
             <h3 class="text-base font-semibold text-gray-900 mb-1">Create from Scratch</h3>
             <p class="text-xs text-gray-500 text-center">Set up a new competition manually</p>
@@ -39,10 +39,10 @@
           <!-- Quick Create from Template -->
           <div v-if="templates.length > 0"
             @click="openTemplateModal"
-            class="group p-4 rounded-2xl border-2 border-dashed border-green-300 bg-green-50 hover:border-green-400 hover:bg-green-100 transition-all cursor-pointer flex items-center gap-4"
+            class="group p-4 rounded-2xl border-2 border-dashed border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50 transition-all cursor-pointer flex items-center gap-4"
           >
-            <div class="w-10 h-10 rounded-full bg-green-100 group-hover:bg-green-200 flex items-center justify-center transition-colors">
-              <FileText :size="20" class="text-green-600" />
+            <div class="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center transition-colors">
+              <FileText :size="20" class="text-gray-600" />
             </div>
             <div>
               <h3 class="text-sm font-semibold text-gray-900">Quick Create from Template</h3>
@@ -67,8 +67,7 @@
                   <div class="flex items-center gap-2 mt-1">
                     <span class="text-xs text-gray-500">{{ event.year }}</span>
                     <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
-                    <span :class="['inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium', 
-                      event.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600']">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-white border border-gray-300 text-gray-600">
                       <span :class="['w-1.5 h-1.5 rounded-full', event.status === 'active' ? 'bg-green-500' : 'bg-gray-400']"></span>
                       {{ event.status || 'draft' }}
                     </span>
@@ -77,13 +76,13 @@
                 <div class="flex items-center gap-2 ml-4">
                   <button
                     @click="continueEvent(event)"
-                    class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+                    class="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
                   >
                     Continue
                   </button>
                   <button
                     @click="openDeleteModal(event)"
-                    class="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    class="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                   >
                     <Trash2 :size="18" />
                   </button>
@@ -119,7 +118,7 @@
           <input
             v-model="deleteModal.confirmText"
             type="text"
-            class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500/50 focus:border-red-500"
+            class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400"
             placeholder="Type event title to confirm"
           />
         </div>
@@ -136,7 +135,7 @@
             :class="[
               'flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors',
               deleteModal.confirmText === deleteModal.event?.title
-                ? 'bg-red-600 text-white hover:bg-red-700'
+                ? 'bg-gray-900 text-white hover:bg-gray-800'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             ]"
           >
@@ -164,7 +163,7 @@
             <div v-for="template in templates" :key="template.id"
               @click="selectTemplate(template)"
               :class="['p-4 rounded-xl border-2 cursor-pointer transition-all',
-                templateModal.selected?.id === template.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300']">
+                templateModal.selected?.id === template.id ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300']">
               <h4 class="font-semibold text-gray-900 mb-1">{{ template.name }}</h4>
               <p class="text-xs text-gray-500 mb-3">{{ template.description }}</p>
               <div class="flex items-center gap-3 text-xs text-gray-600">
@@ -174,22 +173,22 @@
             </div>
           </div>
         </div>
-        <div v-if="templateModal.selected" class="p-6 border-t border-gray-200 bg-gray-50">
+        <div v-if="templateModal.selected" class="p-6 border-t border-gray-200 bg-white">
           <div class="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Event Title *</label>
               <input v-model="templateModal.title" type="text" 
-                class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500/50 text-sm"
+                class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400 text-sm"
                 placeholder="e.g. Mr. & Ms. TCC 2025" />
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Event Date *</label>
               <input v-model="templateModal.date" type="date"
-                class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500/50 text-sm" />
+                class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400 text-sm" />
             </div>
           </div>
           <button @click="createFromTemplate" :disabled="templateModal.creating || !templateModal.title || !templateModal.date"
-            class="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+            class="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 transition-colors">
             <Loader2 v-if="templateModal.creating" :size="16" class="inline animate-spin mr-2" />
             {{ templateModal.creating ? 'Creating...' : 'Create Event' }}
           </button>
@@ -204,6 +203,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Plus, Trash2, Calendar, BookOpen, LogOut, X, FileText, Users, Layers, Loader2 } from 'lucide-vue-next';
 import { showError, showSuccess } from '../../utils/alerts';
+import { apiGet, apiPost, apiDelete } from '../../utils/api';
 
 const router = useRouter();
 const events = ref([]);
@@ -213,7 +213,7 @@ const templateModal = ref({ show: false, selected: null, title: '', date: '', cr
 
 const fetchEvents = async () => {
   try {
-    const response = await fetch('/api/events');
+    const response = await apiGet('/api/events', false); // Public route
     if (!response.ok) {
       showError('Failed to fetch events');
       return;
@@ -227,7 +227,7 @@ const fetchEvents = async () => {
 
 const fetchTemplates = async () => {
   try {
-    const res = await fetch('/api/event-templates');
+    const res = await apiGet('/api/event-templates', false); // Public route
     if (res.ok) templates.value = await res.json();
   } catch (e) { console.error('Failed to fetch templates', e); }
 };
@@ -246,13 +246,14 @@ const closeDeleteModal = () => { deleteModal.value = { show: false, event: null,
 const confirmDelete = async () => {
   if (deleteModal.value.confirmText !== deleteModal.value.event?.title) return;
   try {
-    const response = await fetch(`/api/events/${deleteModal.value.event.id}`, { method: 'DELETE' });
+    const response = await apiDelete(`/api/events/${deleteModal.value.event.id}`);
     if (response.ok) {
       closeDeleteModal();
       fetchEvents();
       showSuccess('Event deleted successfully');
     } else {
-      showError('Failed to delete event');
+      const data = await response.json();
+      showError(data.message || 'Failed to delete event');
     }
   } catch (error) {
     showError('Error deleting event');
@@ -268,20 +269,17 @@ const createFromTemplate = async () => {
   if (!templateModal.value.selected || !templateModal.value.title || !templateModal.value.date) return;
   templateModal.value.creating = true;
   try {
-    const res = await fetch(`/api/event-templates/${templateModal.value.selected.id}/create-event`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: templateModal.value.title,
-        event_date: templateModal.value.date,
-      })
+    const res = await apiPost(`/api/event-templates/${templateModal.value.selected.id}/create-event`, {
+      title: templateModal.value.title,
+      event_date: templateModal.value.date,
     });
     if (res.ok) {
       const event = await res.json();
       showSuccess('Event created from template!');
       router.push(`/admin?event_id=${event.id}`);
     } else {
-      showError('Failed to create event');
+      const data = await res.json();
+      showError(data.message || 'Failed to create event');
     }
   } catch (e) {
     showError('Error creating event');
