@@ -190,6 +190,56 @@
 
       <!-- Step 2: Participants -->
       <div v-if="currentStep === 2" class="space-y-6">
+        <!-- Custom Categories Manager -->
+        <div class="bg-white rounded-xl border border-gray-200 p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="text-sm font-semibold text-gray-900">Participant Categories</h3>
+              <p class="text-xs text-gray-500">Add categories beyond Male/Female (e.g., Gay, Transgender, Mixed)</p>
+            </div>
+          </div>
+          
+          <!-- Quick Add Presets -->
+          <div class="mb-3">
+            <p class="text-xs text-gray-500 mb-2">Quick add:</p>
+            <div class="flex flex-wrap gap-1.5">
+              <button v-for="preset in categoryPresets" :key="preset"
+                @click="addPresetCategory(preset)"
+                :disabled="customCategories.includes(preset) || participantTypeOptions.includes(preset)"
+                :class="['px-2 py-1 text-xs rounded-lg border transition-colors',
+                  customCategories.includes(preset) || participantTypeOptions.includes(preset)
+                    ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100']">
+                + {{ preset }}
+              </button>
+            </div>
+          </div>
+          
+          <!-- Custom Input -->
+          <div class="flex gap-2 mb-3">
+            <input v-model="newCustomCategory" type="text" placeholder="Type custom category name..."
+              @keyup.enter="addCustomCategoryFromInput"
+              class="flex-1 px-3 py-1.5 text-sm rounded-lg border border-gray-300 focus:ring-1 focus:ring-indigo-500 bg-white" />
+            <button @click="addCustomCategoryFromInput" 
+              :disabled="!newCustomCategory.trim()"
+              class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50">
+              <Plus :size="14" />
+            </button>
+          </div>
+          
+          <!-- Active Categories -->
+          <div class="flex flex-wrap gap-2">
+            <span v-for="cat in customCategories" :key="cat" 
+              class="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
+              {{ cat }}
+              <button @click="removeCustomCategory(cat)" class="hover:text-red-600">
+                <X :size="12" />
+              </button>
+            </span>
+            <span v-if="!customCategories.length" class="text-xs text-gray-500 italic">No custom categories added</span>
+          </div>
+        </div>
+
         <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
             <h2 class="text-lg font-semibold text-gray-900">Participants</h2>
@@ -203,7 +253,7 @@
               <tr>
                 <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase w-20">#</th>
                 <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Name</th>
-                <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase w-32">Type</th>
+                <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase w-44">Category</th>
                 <th class="py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase w-16"></th>
               </tr>
             </thead>
@@ -218,10 +268,15 @@
                     class="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 focus:ring-1 focus:ring-indigo-500" />
                 </td>
                 <td class="py-2 px-4">
-                  <select v-model="p.gender"
-                    class="w-full px-2 py-1.5 text-sm rounded-lg border border-gray-300 focus:ring-1 focus:ring-indigo-500">
-                    <option v-for="opt in participantTypeOptions" :key="opt" :value="opt">{{ opt }}</option>
-                  </select>
+                  <div class="flex items-center gap-1">
+                    <select v-model="p.gender"
+                      class="flex-1 px-2 py-1.5 text-sm rounded-lg border border-gray-300 focus:ring-1 focus:ring-indigo-500">
+                      <option v-for="opt in participantTypeOptions" :key="opt" :value="opt">{{ opt }}</option>
+                    </select>
+                    <input v-model="p.gender" type="text" placeholder="Custom"
+                      class="w-20 px-2 py-1.5 text-sm rounded-lg border border-gray-300 focus:ring-1 focus:ring-indigo-500"
+                      title="Type custom category" />
+                  </div>
                 </td>
                 <td class="py-2 px-4 text-center">
                   <button @click="removeParticipant(i)" class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
@@ -557,17 +612,54 @@ onMounted(() => {
   fetchThemes();
 });
 
-// Dynamic participant type options based on event type
+// Custom categories for flexible event types
+const customCategories = ref([]);
+const newCustomCategory = ref('');
+
+// Category presets for quick add - actual gender/participant types
+const categoryPresets = [
+  'Gay', 'Transgender', 'Non-Binary', 'LGBTQ+',
+  'Mixed', 'Open', 'Junior', 'Senior', 'Kids'
+];
+
+// Dynamic participant type options based on event type + custom categories
 const participantTypeOptions = computed(() => {
+  let baseOptions = [];
   switch (formData.value.event_type) {
-    case 'solo_contest': return ['Solo'];
-    case 'group_contest': return ['Group'];
-    case 'pageant': return ['Female', 'Male'];
+    case 'solo_contest': baseOptions = ['Solo']; break;
+    case 'group_contest': baseOptions = ['Group']; break;
+    case 'pageant': baseOptions = ['Female', 'Male']; break;
     case 'talent_show':
-    case 'competition': return ['Female', 'Male', 'Solo', 'Group'];
-    default: return ['Female', 'Male', 'Solo', 'Group'];
+    case 'competition': baseOptions = ['Female', 'Male', 'Solo', 'Group']; break;
+    default: baseOptions = ['Female', 'Male', 'Solo', 'Group'];
   }
+  // Add custom categories
+  return [...baseOptions, ...customCategories.value];
 });
+
+// Add a custom category from input
+const addCustomCategoryFromInput = () => {
+  const name = newCustomCategory.value.trim();
+  if (name && !customCategories.value.includes(name)) {
+    customCategories.value.push(name);
+    newCustomCategory.value = '';
+  }
+};
+
+// Add a preset category
+const addPresetCategory = (preset) => {
+  if (!customCategories.value.includes(preset)) {
+    customCategories.value.push(preset);
+  }
+};
+
+// Remove a custom category
+const removeCustomCategory = (category) => {
+  const index = customCategories.value.indexOf(category);
+  if (index > -1) {
+    customCategories.value.splice(index, 1);
+  }
+};
 
 const defaultParticipantType = computed(() => {
   switch (formData.value.event_type) {
@@ -595,12 +687,20 @@ const selectedTheme = computed(() => {
 });
 
 const getTypeBadgeClass = (type) => {
-  switch (type?.toLowerCase()) {
+  const lowerType = type?.toLowerCase() || '';
+  switch (lowerType) {
     case 'female': return 'bg-pink-100 text-pink-700';
     case 'male': return 'bg-blue-100 text-blue-700';
     case 'solo': return 'bg-indigo-100 text-indigo-700';
     case 'group': return 'bg-purple-100 text-purple-700';
-    default: return 'bg-gray-100 text-gray-700';
+    default:
+      // Custom categories get different colors based on name
+      if (lowerType.includes('gay')) return 'bg-rainbow-100 text-purple-700 bg-gradient-to-r from-pink-100 to-purple-100';
+      if (lowerType.includes('miss') || lowerType.includes('ms.')) return 'bg-rose-100 text-rose-700';
+      if (lowerType.includes('mr.') || lowerType.includes('mister')) return 'bg-sky-100 text-sky-700';
+      if (lowerType.includes('best')) return 'bg-amber-100 text-amber-700';
+      if (lowerType.includes('special')) return 'bg-emerald-100 text-emerald-700';
+      return 'bg-gray-100 text-gray-700';
   }
 };
 
