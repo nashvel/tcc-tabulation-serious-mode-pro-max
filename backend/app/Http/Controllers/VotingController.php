@@ -1595,6 +1595,46 @@ class VotingController extends Controller
     }
 
     /**
+     * Refresh all judge screens
+     */
+    public function refreshJudgeScreens(Request $request)
+    {
+        try {
+            $eventId = $request->input('event_id');
+            $judgeIds = $request->input('judge_ids', []); // Empty array means all judges
+            
+            if (!$eventId) {
+                return response()->json(['error' => 'event_id is required'], 400);
+            }
+            
+            $eventId = (int) $eventId;
+            
+            // Determine target
+            $target = empty($judgeIds) ? 'all' : 'specific';
+            
+            // Broadcast refresh command to all judge screens
+            broadcast(new VotingStateChanged($eventId, [
+                'judge_ids' => $judgeIds,
+                'target' => $target,
+            ], 'refresh_screens'));
+            
+            Log::info("Refresh screens broadcast for event {$eventId}", [
+                'target' => $target,
+                'judge_ids' => $judgeIds
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Refresh broadcast sent',
+                'target' => $target
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error broadcasting refresh screens: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to broadcast'], 500);
+        }
+    }
+
+    /**
      * Hide judge numbers on all screens
      */
     public function hideJudgeNumbers(Request $request)

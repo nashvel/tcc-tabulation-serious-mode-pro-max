@@ -62,6 +62,7 @@ Route::get('voting/display-settings', [VotingController::class, 'getDisplaySetti
 Route::post('voting/display-settings', [VotingController::class, 'updateDisplaySettings']);
 Route::post('voting/show-judge-numbers', [VotingController::class, 'showJudgeNumbers']);
 Route::post('voting/hide-judge-numbers', [VotingController::class, 'hideJudgeNumbers']);
+Route::post('voting/refresh-screens', [VotingController::class, 'refreshJudgeScreens']);
 
 // Screen Registration Routes (for auto-assigning judge screens)
 Route::post('voting/register-screen', [VotingController::class, 'registerScreen']);

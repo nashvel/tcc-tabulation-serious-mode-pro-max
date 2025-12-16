@@ -150,10 +150,13 @@ const goToAdmin = () => {
 const goToJudges = () => {
   const eventId = props.continuingEvent?.id;
   if (eventId) {
-    router.push(`/judges/configure?event_id=${eventId}`);
-  } else {
-    router.push('/setup');
+    window.open(`/judges/configure?event_id=${eventId}`, '_blank');
   }
 };
-const goToCertificates = () => router.push('/admin/certificates');
+const goToCertificates = () => {
+  const eventId = props.continuingEvent?.id;
+  if (eventId) {
+    window.open(`/admin/certificates?event_id=${eventId}`, '_blank');
+  }
+};
 </script>

@@ -1,34 +1,35 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+  <div class="min-h-screen bg-gray-50" data-global-context-menu="true">
     <!-- Header -->
     <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
-      <div class="max-w-5xl mx-auto px-6 py-4">
+      <div class="w-full px-6 py-4">
         <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <button @click="goBack" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-              <ArrowLeft :size="20" class="text-gray-600" />
-            </button>
-            <div>
-              <h1 class="text-xl font-bold text-gray-900">Configure Judges</h1>
-              <p class="text-sm text-gray-500">{{ eventTitle || 'Loading...' }}</p>
-            </div>
+          <div>
+            <h1 class="text-xl font-bold text-gray-900">Configure Judges</h1>
+            <p class="text-sm text-gray-500">{{ eventTitle || 'Loading...' }}</p>
           </div>
           <div class="flex items-center gap-2">
+            <HelpButton @click="startTour" />
             <button 
+              id="refresh-screens-btn"
+              @click="refreshAllScreens"
+              class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              <RefreshCw :size="16" />
+              Refresh All
+            </button>
+            <button 
+              id="show-numbers-btn"
               @click="showJudgeNumbersModal"
-              class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all bg-gray-900 text-white hover:bg-gray-800"
+              class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               <Eye :size="16" />
               Show Numbers
             </button>
             <button 
+              id="swap-chairs-btn"
               @click="isSwapMode = !isSwapMode"
-              :class="[
-                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                isSwapMode 
-                  ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              ]"
+              class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               <ArrowLeftRight :size="16" />
               {{ isSwapMode ? 'Swapping Mode' : 'Swap Chairs' }}
@@ -39,21 +40,21 @@
     </header>
 
     <!-- Swap Mode Banner -->
-    <div v-if="isSwapMode" class="bg-amber-50 border-b border-amber-200">
-      <div class="max-w-5xl mx-auto px-6 py-3">
+    <div v-if="isSwapMode" class="bg-gray-100 border-b border-gray-200">
+      <div class="w-full px-6 py-3">
         <div class="flex items-center gap-3">
-          <div class="p-2 bg-amber-100 rounded-full">
-            <ArrowLeftRight :size="16" class="text-amber-600" />
+          <div class="p-2 bg-gray-200 rounded-full">
+            <ArrowLeftRight :size="16" class="text-gray-600" />
           </div>
           <div class="flex-1">
-            <p class="text-sm font-medium text-amber-800">
+            <p class="text-sm font-medium text-gray-700">
               {{ swapSelection.first ? `Selected: Judge ${swapSelection.first.chair_number} (${swapSelection.first.name}) - Click another judge to swap` : 'Click on a judge to select for swapping' }}
             </p>
           </div>
           <button 
             v-if="swapSelection.first"
             @click="cancelSwap"
-            class="text-sm text-amber-700 hover:text-amber-900 underline"
+            class="text-sm text-gray-600 hover:text-gray-900 underline"
           >
             Cancel
           </button>
@@ -62,16 +63,16 @@
     </div>
 
     <!-- Main Content -->
-    <main class="max-w-6xl mx-auto px-6 py-8">
+    <main class="w-full px-6 py-8">
       <!-- Loading State -->
       <div v-if="loading" class="flex items-center justify-center py-20">
-        <Loader2 :size="32" class="text-indigo-500 animate-spin" />
+        <Loader2 :size="32" class="text-gray-500 animate-spin" />
       </div>
 
       <!-- Judges Visual Display -->
       <div v-else>
         <!-- Judge Login Mode Card -->
-        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-8">
+        <div id="login-mode-card" class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-8">
           <div class="bg-gray-50 border-b border-gray-200 px-4 py-3">
             <h3 class="text-xs font-semibold text-gray-600 uppercase">Judge Login Mode</h3>
           </div>
@@ -83,24 +84,24 @@
                 :class="[
                   'flex-1 flex items-center gap-3 p-4 rounded-lg border text-left transition-all',
                   displaySettings.judge_login_mode === 'auto' 
-                    ? 'border-gray-300 bg-white shadow-sm' 
+                    ? 'border-gray-400 bg-white shadow-sm' 
                     : 'border-gray-200 hover:border-gray-300 bg-white'
                 ]"
               >
                 <div :class="[
                   'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0',
-                  displaySettings.judge_login_mode === 'auto' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'
+                  displaySettings.judge_login_mode === 'auto' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500'
                 ]">
                   <Zap :size="20" />
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
                     <p class="font-medium text-gray-900">Auto-Assign</p>
-                    <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">Recommended</span>
+                    <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full border border-gray-200">Recommended</span>
                   </div>
                   <p class="text-sm text-gray-500 mt-0.5">Judges automatically get a number when they connect</p>
                 </div>
-                <CheckCircle v-if="displaySettings.judge_login_mode === 'auto'" :size="20" class="text-indigo-600 flex-shrink-0" />
+                <CheckCircle v-if="displaySettings.judge_login_mode === 'auto'" :size="20" class="text-gray-700 flex-shrink-0" />
               </button>
 
               <!-- Manual Mode -->
@@ -109,13 +110,13 @@
                 :class="[
                   'flex-1 flex items-center gap-3 p-4 rounded-lg border text-left transition-all',
                   displaySettings.judge_login_mode === 'manual' 
-                    ? 'border-gray-300 bg-white shadow-sm' 
+                    ? 'border-gray-400 bg-white shadow-sm' 
                     : 'border-gray-200 hover:border-gray-300 bg-white'
                 ]"
               >
                 <div :class="[
                   'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0',
-                  displaySettings.judge_login_mode === 'manual' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'
+                  displaySettings.judge_login_mode === 'manual' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500'
                 ]">
                   <UserCheck :size="20" />
                 </div>
@@ -123,7 +124,7 @@
                   <p class="font-medium text-gray-900">Manual Selection</p>
                   <p class="text-sm text-gray-500 mt-0.5">Judges select their number from a list</p>
                 </div>
-                <CheckCircle v-if="displaySettings.judge_login_mode === 'manual'" :size="20" class="text-indigo-600 flex-shrink-0" />
+                <CheckCircle v-if="displaySettings.judge_login_mode === 'manual'" :size="20" class="text-gray-700 flex-shrink-0" />
               </button>
             </div>
           </div>
@@ -136,14 +137,22 @@
           </div>
           
           <!-- Macbook Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
+          <div id="judge-stations-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
             <div 
               v-for="judge in sortedJudges" 
               :key="'mac-' + judge.id"
               @click="handleJudgeClick(judge)"
-              class="relative group transition-all duration-300 cursor-pointer"
+              draggable="true"
+              @dragstart="onDragStart(judge, $event)"
+              @dragover="onDragOver(judge, $event)"
+              @dragleave="onDragLeave"
+              @dragend="onDragEnd"
+              @drop="onDrop(judge, $event)"
+              class="relative group transition-all duration-300 cursor-grab active:cursor-grabbing"
               :class="[
-                isSwapMode && swapSelection.first?.id === judge.id ? 'scale-105' : 'hover:scale-105'
+                isSwapMode && swapSelection.first?.id === judge.id ? 'scale-105' : 'hover:scale-105',
+                draggedJudge?.id === judge.id ? 'opacity-50 scale-95' : '',
+                dragOverJudge?.id === judge.id && draggedJudge?.id !== judge.id ? 'scale-110 ring-4 ring-gray-400 ring-offset-2 rounded-lg' : ''
               ]"
               :style="{ width: getMacbookSize + 'px' }"
             >
@@ -154,7 +163,7 @@
                 class="w-full h-auto transition-all"
                 :class="[
                   isSwapMode && swapSelection.first?.id === judge.id 
-                    ? 'drop-shadow-[0_0_20px_rgba(245,158,11,0.5)]' 
+                    ? 'drop-shadow-[0_0_20px_rgba(107,114,128,0.5)]' 
                     : 'drop-shadow-lg group-hover:drop-shadow-xl'
                 ]"
               />
@@ -191,8 +200,18 @@
               <!-- Selection Ring for Swap Mode -->
               <div 
                 v-if="isSwapMode && swapSelection.first?.id === judge.id"
-                class="absolute inset-0 border-4 border-amber-500 rounded-lg pointer-events-none"
+                class="absolute inset-0 border-4 border-gray-500 rounded-lg pointer-events-none"
               ></div>
+              
+              <!-- Debug Info Below Laptop -->
+              <div class="mt-2 text-center">
+                <p class="text-[10px] text-gray-400 font-mono">
+                  judge_id={{ judge.id }} | chair={{ judge.chair_number }}
+                </p>
+                <p class="text-[10px] text-blue-500 font-mono truncate max-w-full">
+                  /judge?event_id={{ eventId }}&judge_id={{ judge.id }}
+                </p>
+              </div>
             </div>
             
             <!-- Add New Judge Macbook -->
@@ -225,14 +244,95 @@
     </main>
 
   </div>
+
+  <!-- Tour Tooltip (teleported to body) -->
+  <Teleport to="body">
+    <TourTooltip
+      :isActive="tour.isActive.value"
+      :currentStep="tour.currentStep.value"
+      :totalSteps="tourSteps.length"
+      :step="tourSteps[tour.currentStep.value] || {}"
+      :tooltipStyle="tour.tooltipStyle.value"
+      :arrowStyle="tour.arrowStyle.value"
+      :placement="tour.placement.value"
+      @next="tour.nextStep"
+      @prev="tour.prevStep"
+      @skip="tour.endTour(false)"
+    />
+  </Teleport>
+
+  <!-- Global Context Menu -->
+  <GlobalContextMenu
+    :visible="globalContextMenu.visible"
+    :x="globalContextMenu.x"
+    :y="globalContextMenu.y"
+    :eventId="eventId"
+    :eventSequence="[]"
+    :activeRound="null"
+    @close="closeGlobalContextMenu"
+  />
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ArrowLeft, ArrowLeftRight, Plus, Pencil, Trash2, Loader2, Zap, UserCheck, CheckCircle, Eye } from 'lucide-vue-next';
+import { ArrowLeftRight, Plus, Pencil, Trash2, Loader2, Zap, UserCheck, CheckCircle, Eye, RefreshCw } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import { showSuccess, showError, showConfirm, showFormModal } from '../../utils/alerts';
+import { useTour } from '../../composables/useTour';
+import { useGlobalContextMenu } from '../../composables/useGlobalContextMenu';
+import TourTooltip from '../../components/shared/TourTooltip.vue';
+import HelpButton from '../../components/shared/HelpButton.vue';
+import GlobalContextMenu from '../../components/shared/GlobalContextMenu.vue';
+
+// Global Context Menu
+const { contextMenu: globalContextMenu, closeContextMenu: closeGlobalContextMenu, setupGlobalContextMenu, cleanupGlobalContextMenu } = useGlobalContextMenu();
+
+// Tour steps for Configure Judges page
+const tourSteps = [
+  {
+    target: '#login-mode-card',
+    title: 'Judge Login Mode',
+    content: 'Choose how judges connect: Auto-Assign gives them a number automatically, or Manual lets them pick their own.',
+    placement: 'bottom'
+  },
+  {
+    target: '#judge-stations-grid',
+    title: 'Judge Stations',
+    content: 'Each laptop represents a judge station. Click on any laptop to view details, edit, or see their live scoring screen.',
+    placement: 'top'
+  },
+  {
+    target: '#judge-stations-grid',
+    title: 'Drag to Reorder',
+    content: 'Drag any laptop and drop it on another to swap their chair numbers. The positions will update automatically.',
+    placement: 'top'
+  },
+  {
+    target: '#refresh-screens-btn',
+    title: 'Refresh All Screens',
+    content: 'Force all judge screens to refresh. Useful when you need to sync all judges or fix display issues.',
+    placement: 'bottom'
+  },
+  {
+    target: '#show-numbers-btn',
+    title: 'Show Numbers',
+    content: 'Display the assigned chair number on judge screens. Useful for helping judges identify their station.',
+    placement: 'bottom'
+  },
+  {
+    target: '#swap-chairs-btn',
+    title: 'Swap Mode',
+    content: 'Alternatively, click "Swap Chairs" to enter swap mode. Then click two judges to swap their positions.',
+    placement: 'bottom'
+  }
+];
+
+const tour = useTour('judges-configure-page', tourSteps);
+
+const startTour = () => {
+  tour.startTour();
+};
 
 const route = useRoute();
 const router = useRouter();
@@ -243,6 +343,10 @@ const eventId = ref(null);
 const eventTitle = ref('');
 const isSwapMode = ref(false);
 const swapSelection = ref({ first: null, second: null });
+
+// Drag and drop state
+const draggedJudge = ref(null);
+const dragOverJudge = ref(null);
 
 // Display settings for judge login mode
 const displaySettings = ref({
@@ -276,14 +380,6 @@ const getScreenPosition = computed(() => {
     height: `${height}px`
   };
 });
-
-const goBack = () => {
-  if (eventId.value) {
-    router.push(`/admin?event_id=${eventId.value}`);
-  } else {
-    router.push('/setup');
-  }
-};
 
 const fetchJudges = async () => {
   if (!eventId.value) return;
@@ -589,7 +685,16 @@ const performSwap = async (judge1, judge2) => {
     
     if (!response.ok) throw new Error('Swap failed');
     
-    showSuccess(`Swapped chairs: ${judge1.name} (now Chair ${chair2}) ↔ ${judge2.name} (now Chair ${chair1})`);
+    // Show toast notification
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: `Swapped: Chair ${chair1} ↔ Chair ${chair2}`,
+      showConfirmButton: false,
+      timer: 2000,
+      timerProgressBar: true
+    });
     
     // Reset and refresh
     swapSelection.value = { first: null, second: null };
@@ -602,6 +707,44 @@ const performSwap = async (judge1, judge2) => {
 
 const cancelSwap = () => {
   swapSelection.value = { first: null, second: null };
+};
+
+// Drag and drop handlers
+const onDragStart = (judge, event) => {
+  if (isSwapMode.value) return;
+  draggedJudge.value = judge;
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', judge.id);
+};
+
+const onDragOver = (judge, event) => {
+  if (isSwapMode.value || !draggedJudge.value) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  dragOverJudge.value = judge;
+};
+
+const onDragLeave = () => {
+  dragOverJudge.value = null;
+};
+
+const onDragEnd = () => {
+  draggedJudge.value = null;
+  dragOverJudge.value = null;
+};
+
+const onDrop = async (targetJudge, event) => {
+  event.preventDefault();
+  if (isSwapMode.value || !draggedJudge.value || draggedJudge.value.id === targetJudge.id) {
+    draggedJudge.value = null;
+    dragOverJudge.value = null;
+    return;
+  }
+  
+  // Perform the swap
+  await performSwap(draggedJudge.value, targetJudge);
+  draggedJudge.value = null;
+  dragOverJudge.value = null;
 };
 
 const openJudgeModal = async (judge = null) => {
@@ -703,6 +846,49 @@ const loadDisplaySettings = async () => {
 // Set login mode
 const setLoginMode = async (mode) => {
   if (displaySettings.value.judge_login_mode === mode) return;
+  
+  const currentMode = displaySettings.value.judge_login_mode;
+  const currentModeLabel = currentMode === 'auto' ? 'Auto-Assign' : 'Manual Selection';
+  const newModeLabel = mode === 'auto' ? 'Auto-Assign' : 'Manual Selection';
+  
+  // Show confirmation dialog
+  const result = await Swal.fire({
+    title: 'Switch Login Mode?',
+    html: `
+      <div class="text-left">
+        <p class="mb-3">You are about to change the judge login mode:</p>
+        <div class="flex items-center justify-center gap-4 mb-4">
+          <div class="text-center px-4 py-2 bg-gray-100 rounded-lg">
+            <div class="text-sm font-medium text-gray-700">${currentModeLabel}</div>
+            <div class="text-xs text-gray-500">Current</div>
+          </div>
+          <div class="text-xl text-gray-400">→</div>
+          <div class="text-center px-4 py-2 bg-indigo-100 rounded-lg">
+            <div class="text-sm font-medium text-indigo-700">${newModeLabel}</div>
+            <div class="text-xs text-indigo-500">New</div>
+          </div>
+        </div>
+        <div class="text-sm text-gray-600 bg-gray-100 p-3 rounded-lg">
+          <p class="font-medium mb-1">Note:</p>
+          <ul class="list-disc list-inside text-xs space-y-1">
+            ${mode === 'manual' 
+              ? '<li>Judges will need to manually select their position</li><li>Existing screen registrations will be cleared</li>' 
+              : '<li>Judges will be randomly assigned when they connect</li><li>Each device gets a unique judge number</li>'}
+          </ul>
+        </div>
+      </div>
+    `,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, Switch Mode',
+    cancelButtonText: 'Cancel',
+    confirmButtonColor: '#4f46e5',
+    cancelButtonColor: '#6b7280',
+    reverseButtons: true
+  });
+  
+  if (!result.isConfirmed) return;
+  
   displaySettings.value.judge_login_mode = mode;
   
   try {
@@ -716,7 +902,7 @@ const setLoginMode = async (mode) => {
     });
     
     if (response.ok) {
-      showSuccess(`Login mode set to ${mode === 'auto' ? 'Auto-Assign' : 'Manual Selection'}`);
+      showSuccess(`Login mode set to ${newModeLabel}`);
     } else {
       showError('Failed to save settings');
     }
@@ -808,7 +994,40 @@ const triggerShowJudgeNumbers = async (judgeIds, duration) => {
   }
 };
 
+// Refresh all judge screens
+const refreshAllScreens = async () => {
+  try {
+    const response = await fetch('/api/voting/refresh-screens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_id: eventId.value,
+        judge_ids: [] // Empty means all
+      })
+    });
+    
+    if (response.ok) {
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Refreshing all judge screens',
+        showConfirmButton: false,
+        timer: 2000,
+        timerProgressBar: true
+      });
+    } else {
+      showError('Failed to refresh screens');
+    }
+  } catch (error) {
+    showError('Failed to refresh screens');
+  }
+};
+
 onMounted(async () => {
+  // Setup global context menu
+  setupGlobalContextMenu();
+  
   eventId.value = route.query.event_id;
   
   if (!eventId.value) {
@@ -818,5 +1037,9 @@ onMounted(async () => {
   
   await Promise.all([fetchEvent(), fetchJudges(), loadDisplaySettings()]);
   loading.value = false;
+});
+
+onUnmounted(() => {
+  cleanupGlobalContextMenu();
 });
 </script>

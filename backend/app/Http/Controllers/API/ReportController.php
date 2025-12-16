@@ -12,16 +12,25 @@ use Illuminate\Http\JsonResponse;
 class ReportController extends Controller
 {
     /**
-     * Get all scores entered by a specific judge, grouped by round and candidate.
+     * Get all scores for printing - grouped by candidate with each judge's weighted score.
      * 
-     * GET /api/reports/judge-scores?event_id=xxx&judge_id=xxx
+     * GET /api/reports/judge-scores?event_id=xxx&round_id=xxx
+     * 
+     * If judge_id is provided, returns scores for that specific judge only (legacy behavior).
+     * If round_id is provided without judge_id, returns all judges' scores for that round.
      */
     public function getJudgeScores(Request $request): JsonResponse
     {
         $request->validate([
             'event_id' => 'required|integer|exists:events,id',
-            'judge_id' => 'required|integer|exists:judges,id',
+            'judge_id' => 'nullable|integer|exists:judges,id',
+            'round_id' => 'nullable|integer|exists:rounds,id',
         ]);
+
+        // If round_id is provided without judge_id, return printing format
+        if ($request->has('round_id') && !$request->has('judge_id')) {
+            return $this->getPrintingScores($request);
+        }
 
         $eventId = $request->input('event_id');
         $judgeId = $request->input('judge_id');
@@ -113,6 +122,60 @@ class ReportController extends Controller
             ],
             'rounds' => $result,
             'generated_at' => now()->toIso8601String(),
+        ]);
+    }
+
+    /**
+     * Get scores for printing - all judges' weighted scores per candidate for a round.
+     */
+    private function getPrintingScores(Request $request): JsonResponse
+    {
+        $eventId = $request->input('event_id');
+        $roundId = $request->input('round_id');
+
+        // Get all points for this event and round
+        $points = Point::with(['candidate', 'criteria'])
+            ->where('round_id', $roundId)
+            ->whereHas('candidate', function ($query) use ($eventId) {
+                $query->where('event_id', $eventId);
+            })
+            ->get();
+
+        // Group by candidate and judge, calculate weighted scores
+        $candidateScores = [];
+        
+        foreach ($points as $point) {
+            $candidateId = $point->candidate_id;
+            $judgeId = $point->judge_id;
+            
+            if (!isset($candidateScores[$candidateId])) {
+                $candidateScores[$candidateId] = [
+                    'judges' => [],
+                ];
+            }
+            
+            if (!isset($candidateScores[$candidateId]['judges'][$judgeId])) {
+                $candidateScores[$candidateId]['judges'][$judgeId] = 0;
+            }
+            
+            // Add points (weighted by criteria percentage if applicable)
+            $candidateScores[$candidateId]['judges'][$judgeId] += $point->points;
+        }
+
+        // Build scores array for frontend
+        $scores = [];
+        foreach ($candidateScores as $candidateId => $data) {
+            foreach ($data['judges'] as $judgeId => $totalPoints) {
+                $scores[] = [
+                    'candidate_id' => $candidateId,
+                    'judge_id' => $judgeId,
+                    'weighted_score' => $totalPoints,
+                ];
+            }
+        }
+
+        return response()->json([
+            'scores' => $scores,
         ]);
     }
 }

@@ -41,14 +41,14 @@
               <div class="flex items-center justify-center gap-1">
                 <button 
                   @click="editCandidate(candidate)" 
-                  class="p-1.5 rounded-md text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                  class="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
                   title="Edit"
                 >
                   <Pencil :size="16" />
                 </button>
                 <button 
                   @click="deleteCandidate(candidate.id)" 
-                  class="p-1.5 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  class="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
                   title="Delete"
                 >
                   <Trash2 :size="16" />
@@ -78,7 +78,7 @@
                 type="number" 
                 required 
                 min="1"
-                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400"
                 placeholder="e.g. 1"
               />
             </div>
@@ -86,7 +86,7 @@
               <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
               <select 
                 v-model="formData.gender"
-                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400"
               >
                 <option value="Female">Female</option>
                 <option value="Male">Male</option>
@@ -101,7 +101,7 @@
               v-model="formData.name" 
               type="text" 
               required 
-              class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+              class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400"
               placeholder="Enter candidate name"
             />
           </div>
@@ -110,7 +110,7 @@
             <input 
               v-model="formData.department" 
               type="text" 
-              class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500"
+              class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400"
               placeholder="Optional"
             />
           </div>
@@ -205,23 +205,9 @@ const showAddModal = ref(false);
 const editingCandidate = ref(null);
 const formData = ref({ number: '', name: '', gender: 'Female', department: '' });
 
-// Type badge styling - white background for all
+// Type badge styling - white background with gray border for all
 const getTypeBadgeClass = (type) => {
-  const baseClass = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border';
-  switch (type?.toLowerCase()) {
-    case 'female':
-      return `${baseClass} bg-white border-pink-300 text-pink-600`;
-    case 'male':
-      return `${baseClass} bg-white border-blue-300 text-blue-600`;
-    case 'solo':
-    case 'individual':
-      return `${baseClass} bg-white border-indigo-300 text-indigo-600`;
-    case 'group':
-    case 'team':
-      return `${baseClass} bg-white border-purple-300 text-purple-600`;
-    default:
-      return `${baseClass} bg-white border-gray-300 text-gray-600`;
-  }
+  return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-white border-gray-300 text-gray-700';
 };
 
 const formatType = (type) => {

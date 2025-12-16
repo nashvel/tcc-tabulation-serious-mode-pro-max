@@ -20,10 +20,7 @@
         </button>
         <button 
           @click="toggleAutoRefresh"
-          :class="[
-            'flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded transition-colors',
-            autoRefresh ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-          ]"
+          class="flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded transition-colors bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
         >
           <Radio :size="12" />
           {{ autoRefresh ? 'Live' : 'Auto' }}
@@ -35,8 +32,8 @@
     <div id="stats-cards" class="grid grid-cols-4 gap-2 mb-3">
       <div class="bg-white rounded-lg border border-gray-200 px-3 py-2">
         <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded bg-blue-100 flex items-center justify-center">
-            <Activity :size="14" class="text-blue-600" />
+          <div class="w-7 h-7 rounded bg-gray-100 flex items-center justify-center">
+            <Activity :size="14" class="text-gray-600" />
           </div>
           <div>
             <p class="text-lg font-bold text-gray-900 leading-none">{{ stats.total_logs || 0 }}</p>
@@ -46,8 +43,8 @@
       </div>
       <div class="bg-white rounded-lg border border-gray-200 px-3 py-2">
         <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded bg-green-100 flex items-center justify-center">
-            <CheckCircle :size="14" class="text-green-600" />
+          <div class="w-7 h-7 rounded bg-gray-100 flex items-center justify-center">
+            <CheckCircle :size="14" class="text-gray-600" />
           </div>
           <div>
             <p class="text-lg font-bold text-gray-900 leading-none">{{ stats.scores_entered || 0 }}</p>
@@ -57,8 +54,8 @@
       </div>
       <div class="bg-white rounded-lg border border-gray-200 px-3 py-2">
         <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded bg-amber-100 flex items-center justify-center">
-            <Edit :size="14" class="text-amber-600" />
+          <div class="w-7 h-7 rounded bg-gray-100 flex items-center justify-center">
+            <Edit :size="14" class="text-gray-600" />
           </div>
           <div>
             <p class="text-lg font-bold text-gray-900 leading-none">{{ stats.scores_updated || 0 }}</p>
@@ -68,8 +65,8 @@
       </div>
       <div class="bg-white rounded-lg border border-gray-200 px-3 py-2">
         <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded bg-purple-100 flex items-center justify-center">
-            <Users :size="14" class="text-purple-600" />
+          <div class="w-7 h-7 rounded bg-gray-100 flex items-center justify-center">
+            <Users :size="14" class="text-gray-600" />
           </div>
           <div>
             <p class="text-lg font-bold text-gray-900 leading-none">{{ stats.judge_logins || 0 }}</p>
@@ -118,8 +115,8 @@
             class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 transition-colors"
           >
             <!-- Icon -->
-            <div :class="['w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0', getActionIconClass(log.action)]">
-              <component :is="getActionIcon(log.action)" :size="10" class="text-white" />
+            <div class="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-200">
+              <component :is="getActionIcon(log.action)" :size="10" class="text-gray-600" />
             </div>
             
             <!-- Content -->
@@ -138,7 +135,7 @@
 
             <!-- Score Badge -->
             <div v-if="log.details?.points !== undefined" class="flex-shrink-0">
-              <span class="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded">
+              <span class="px-1.5 py-0.5 bg-gray-100 text-gray-700 text-[10px] font-bold rounded border border-gray-200">
                 {{ log.details.points }} pts
               </span>
             </div>
@@ -279,19 +276,7 @@ const getActionIcon = (action) => {
   }
 };
 
-const getActionIconClass = (action) => {
-  switch (action) {
-    case 'score_entered': return 'bg-green-500';
-    case 'score_updated': return 'bg-amber-500';
-    case 'judge_login': return 'bg-blue-500';
-    case 'judge_logout': return 'bg-gray-500';
-    case 'round_activated': return 'bg-purple-500';
-    case 'voting_locked': return 'bg-red-500';
-    case 'voting_unlocked': return 'bg-green-500';
-    case 'scores_cleared': return 'bg-red-500';
-    default: return 'bg-gray-500';
-  }
-};
+
 
 onMounted(() => {
   fetchLogs();

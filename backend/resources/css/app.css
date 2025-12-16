@@ -42,3 +42,56 @@
 .judge-active-input {
     animation: cursor-pulse 1s ease-in-out infinite;
 }
+
+/* Print Styles - Hide everything except print area */
+@media print {
+    /* Hide specific admin elements */
+    header,
+    nav,
+    .admin-sidebar,
+    .fixed-header,
+    .tab-navigation,
+    .no-print,
+    [data-global-context-menu],
+    .right-side-panel {
+        display: none !important;
+    }
+    
+    /* Hide everything except print area */
+    body * {
+        visibility: hidden;
+    }
+    
+    /* Show only the print area and all its children */
+    .print-area {
+        visibility: visible !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        background: white !important;
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        padding: 20px !important;
+    }
+    
+    .print-area * {
+        visibility: visible !important;
+    }
+    
+    /* Ensure proper page breaks */
+    table {
+        page-break-inside: auto;
+    }
+    
+    tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+    
+    /* Page margins */
+    @page {
+        margin: 1cm;
+    }
+}

@@ -98,11 +98,6 @@
 
           <!-- Tab Content - Full Width -->
           <div class="bg-white relative">
-              <!-- Tab Loading Overlay -->
-              <div v-if="tabLoading" class="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
-                <div class="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
-              </div>
-
               <!-- Judges Tab -->
               <div v-if="activeTab === 'judges'">
                 <JudgesScoringTab
@@ -149,6 +144,19 @@
                   :candidates="candidates"
                   :rounds="rounds"
                   :criteria="criteria"
+                />
+              </div>
+
+              <!-- Printing Zone Tab -->
+              <div v-else-if="activeTab === 'printing'">
+                <PrintingZoneTab
+                  :eventId="continuingEvent?.id"
+                  :event="continuingEvent"
+                  :candidates="candidates"
+                  :rounds="rounds"
+                  :judges="judges"
+                  :criteria="criteria"
+                  :activeRound="activeCategory"
                 />
               </div>
 
@@ -255,6 +263,7 @@ import ActivityLogsTab from '../../components/admin/tabs/ActivityLogsTab.vue';
 import SettingsTab from '../../components/admin/tabs/SettingsTab.vue';
 import TemplatesTab from '../../components/admin/tabs/TemplatesTab.vue';
 import ThemesTab from '../../components/admin/tabs/ThemesTab.vue';
+import PrintingZoneTab from '../../components/admin/tabs/PrintingZoneTab.vue';
 import ConfigureJudgesModal from '../../components/admin/modals/ConfigureJudgesModal.vue';
 import EventDetailsModal from '../../components/admin/modals/EventDetailsModal.vue';
 import { useGlobalContextMenu } from '../../composables/useGlobalContextMenu';
@@ -268,7 +277,6 @@ const { contextMenu: globalContextMenu, closeContextMenu: closeGlobalContextMenu
 
 // State
 const loading = ref(true);
-const tabLoading = ref(false);
 const isSidebarOpen = ref(false);
 const activeTab = ref('judges');
 const continuingEvent = ref(null);
@@ -305,14 +313,10 @@ const tabColors = {
   gray: '#4b5563'
 };
 
-// Switch tab with loading indicator
-const switchTab = async (tabId) => {
+// Switch tab
+const switchTab = (tabId) => {
   if (activeTab.value === tabId) return;
-  tabLoading.value = true;
   activeTab.value = tabId;
-  // Small delay for visual feedback
-  await new Promise(resolve => setTimeout(resolve, 150));
-  tabLoading.value = false;
 };
 
 // Tab Context Menu Methods
@@ -410,6 +414,7 @@ const tabs = [
   { id: 'rounds', label: 'Rounds' },
   { id: 'categories', label: 'Criteria' },
   { id: 'results', label: 'Results' },
+  { id: 'printing', label: 'Printing Zone' },
   { id: 'bestin', label: 'Best In' },
   { id: 'templates', label: 'Templates' },
   { id: 'themes', label: 'Themes' },

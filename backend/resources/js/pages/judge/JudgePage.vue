@@ -75,9 +75,6 @@
       <div class="assigned-number text-[12rem] text-gray-800 leading-none">
         {{ String(assignedChairNumber).padStart(2, '0') }}
       </div>
-      <div class="flex items-center justify-center gap-2 text-gray-400 mt-8">
-        <Loader2 class="w-4 h-4 animate-spin" />
-      </div>
     </div>
   </div>
 
@@ -312,6 +309,7 @@ import Preloader from '../../components/shared/Preloader.vue';
 import JudgePreloader from '../../components/judge/JudgePreloader.vue';
 import ScoreTable from '../../components/judge/ScoreTable.vue';
 import { showError, showSuccess } from '../../utils/alerts';
+import Swal from 'sweetalert2';
 import PodiumLedgerFooter from '../../components/admin/PodiumLedgerFooter.vue';
 import { CalendarX, RefreshCw, Users, Gavel, ArrowRight, Lock, Ban, Loader2, HelpCircle, X } from 'lucide-vue-next';
 
@@ -465,17 +463,72 @@ const progressPercent = computed(() => {
 });
 
 // Methods
-const handleJudgeSelect = (id) => {
-  judgeId.value = id.toString();
-  loadJudgeScores(id.toString());
+const handleJudgeSelect = async (id) => {
+  const newId = id.toString();
+  
+  // If already selected the same judge, do nothing
+  if (judgeId.value === newId) return;
+  
+  // If switching from another judge, show confirmation
+  if (judgeId.value && judgeId.value !== newId) {
+    const currentJudge = judges.value.find(j => j.id === parseInt(judgeId.value));
+    const newJudge = judges.value.find(j => j.id === parseInt(newId));
+    
+    const result = await Swal.fire({
+      title: 'Switch Judge?',
+      html: `
+        <div class="text-left">
+          <p class="mb-3">You are about to switch from:</p>
+          <div class="flex items-center justify-center gap-4 mb-3">
+            <div class="text-center">
+              <div class="text-3xl font-bold text-gray-700">#${String(currentJudge?.chair_number || judgeId.value).padStart(2, '0')}</div>
+              <div class="text-xs text-gray-500">Current</div>
+            </div>
+            <div class="text-2xl text-gray-400">→</div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-indigo-600">#${String(newJudge?.chair_number || newId).padStart(2, '0')}</div>
+              <div class="text-xs text-gray-500">New</div>
+            </div>
+          </div>
+          <p class="text-sm text-amber-600 bg-amber-50 p-2 rounded">
+            ⚠️ Your scores are saved per judge. Switching will load the new judge's scores.
+          </p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, Switch',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#4f46e5',
+      cancelButtonColor: '#6b7280',
+      reverseButtons: true
+    });
+    
+    if (!result.isConfirmed) return;
+  }
+  
+  judgeId.value = newId;
+  loadJudgeScores(newId);
 };
 
 const handleProceed = async () => {
   if (judgeId.value) {
-    // Skip selection screen and show scoring interface directly
-    showJudgeSelection.value = false;
+    // Load scores first
     await loadJudgeScores(judgeId.value);
-    // Update URL without reloading
+    
+    // Set assignedChairNumber for show judge numbers feature
+    const currentJudge = judges.value.find(j => j.id === parseInt(judgeId.value));
+    if (currentJudge) {
+      assignedChairNumber.value = currentJudge.chair_number;
+    }
+    
+    // Skip selection screen - if there's an active round, show scoring interface
+    showJudgeSelection.value = false;
+    if (selectedRound.value) {
+      showScoringInterface.value = true;
+    }
+    
+    // Update URL without reloading (use replace to avoid back button issues)
     router.replace(`/judge?event_id=${eventId.value}&judge_id=${judgeId.value}`);
   }
 };
@@ -635,6 +688,9 @@ const applyTheme = (theme) => {
   console.log('[Theme] Applied:', theme.name);
 };
 
+// Track server-side show_judge_numbers state
+const serverShowJudgeNumbers = ref(false);
+
 const loadVotingState = async (eid) => {
   try {
     const response = await fetch(`/api/voting/state?event_id=${eid}`);
@@ -642,6 +698,10 @@ const loadVotingState = async (eid) => {
 
     if (data) {
       isLocked.value = data.is_locked ?? false;
+      
+      // Store the show_judge_numbers state from server
+      serverShowJudgeNumbers.value = data.show_judge_numbers ?? false;
+      console.log('[JudgePage] Server show_judge_numbers state:', serverShowJudgeNumbers.value);
       
       if (data.active_round?.id) {
         selectedRound.value = data.active_round.id.toString();
@@ -657,6 +717,14 @@ const loadVotingState = async (eid) => {
     await loadDisplaySettings(eid);
   } catch (error) {
     showError('Failed to load voting state');
+  }
+};
+
+// Apply show_judge_numbers state after judge is assigned
+const applyShowJudgeNumbersState = () => {
+  if (serverShowJudgeNumbers.value && judgeId.value && assignedChairNumber.value) {
+    showAssignedNumber.value = true;
+    console.log('[JudgePage] Applying show_judge_numbers state, displaying number:', assignedChairNumber.value);
   }
 };
 
@@ -789,9 +857,12 @@ const checkActiveEvent = async () => {
         loading.value = false;
         await loadJudgeScores(judgeId.value);
         
-        // Show assigned number for 3 seconds, then update URL and proceed to scoring
+        // Show assigned number for 3 seconds, then hide UNLESS server says to keep showing
         setTimeout(() => {
-          showAssignedNumber.value = false;
+          // Only hide if server doesn't have show_judge_numbers enabled
+          if (!serverShowJudgeNumbers.value) {
+            showAssignedNumber.value = false;
+          }
           showJudgeSelection.value = false;
           // Update URL with event_id and judge_id parameters
           router.replace(`/judge?event_id=${activeEventId}&judge_id=${judgeId.value}`);
@@ -835,13 +906,10 @@ const handleVotingStateChange = async (data) => {
     if (data.voting_state.display_settings.judge_login_mode) {
       const newMode = data.voting_state.display_settings.judge_login_mode;
       if (newMode !== judgeLoginMode.value) {
-        console.log('[Settings] Judge login mode changed to:', newMode);
-        judgeLoginMode.value = newMode;
-        // If switching to manual mode and we're in auto-assign flow, reload
-        if (newMode === 'manual' && showAssignedNumber.value) {
-          showAssignedNumber.value = false;
-          showJudgeSelection.value = true;
-        }
+        console.log('[Settings] Judge login mode changed to:', newMode, '- reloading page');
+        // Reload the page to properly handle the mode change
+        window.location.href = `/judge?event_id=${eventId.value}`;
+        return;
       }
     }
   }
@@ -917,6 +985,22 @@ const handleVotingStateChange = async (data) => {
     console.log('[JudgeNumbers] Hide event received');
     showAssignedNumber.value = false;
   }
+  // Handle refresh screens broadcast from admin
+  else if (data.action === 'refresh_screens') {
+    const targetJudgeIds = data.voting_state?.judge_ids || [];
+    const target = data.voting_state?.target || 'all';
+    const currentJudgeId = parseInt(judgeId.value);
+    
+    // Check if this judge should refresh
+    const shouldRefresh = target === 'all' || targetJudgeIds.includes(currentJudgeId);
+    
+    console.log('[Refresh] Refresh event:', { target, targetJudgeIds, currentJudgeId, shouldRefresh });
+    
+    if (shouldRefresh) {
+      console.log('[Refresh] Refreshing page...');
+      window.location.reload();
+    }
+  }
 };
 
 // WebSocket handler for screen registration changes
@@ -965,29 +1049,41 @@ const handleScreenRegistrationChange = (data) => {
     
     // Check if this device is screen_1
     if (screen1 && (screen1.device_id === deviceId.value || screen1.screen_number === screenNumber.value)) {
-      console.log('[Screen] This screen was swapped - new judge:', screen1.new_judge_id, 'chair:', screen1.new_chair_number);
-      judgeId.value = screen1.new_judge_id.toString();
-      assignedChairNumber.value = screen1.new_chair_number;
+      const newJudgeId = screen1.new_judge_id || screen1.judge_id;
+      const newChairNumber = screen1.new_chair_number || screen1.chair_number;
+      console.log('[Screen] This screen was swapped - new judge:', newJudgeId, 'chair:', newChairNumber);
+      judgeId.value = newJudgeId.toString();
+      assignedChairNumber.value = newChairNumber;
       // Reload scores for the new judge assignment
       loadJudgeScores(judgeId.value);
-      // Show brief notification of the swap
-      showAssignedNumber.value = true;
-      setTimeout(() => {
-        showAssignedNumber.value = false;
-      }, 3000);
+      // Update URL to reflect new judge
+      router.replace(`/judge?event_id=${eventId.value}&judge_id=${judgeId.value}`);
+      // Show brief notification of the swap (unless show_judge_numbers is on)
+      if (!serverShowJudgeNumbers.value) {
+        showAssignedNumber.value = true;
+        setTimeout(() => {
+          showAssignedNumber.value = false;
+        }, 3000);
+      }
     }
     // Check if this device is screen_2
     else if (screen2 && (screen2.device_id === deviceId.value || screen2.screen_number === screenNumber.value)) {
-      console.log('[Screen] This screen was swapped - new judge:', screen2.new_judge_id, 'chair:', screen2.new_chair_number);
-      judgeId.value = screen2.new_judge_id.toString();
-      assignedChairNumber.value = screen2.new_chair_number;
+      const newJudgeId = screen2.new_judge_id || screen2.judge_id;
+      const newChairNumber = screen2.new_chair_number || screen2.chair_number;
+      console.log('[Screen] This screen was swapped - new judge:', newJudgeId, 'chair:', newChairNumber);
+      judgeId.value = newJudgeId.toString();
+      assignedChairNumber.value = newChairNumber;
       // Reload scores for the new judge assignment
       loadJudgeScores(judgeId.value);
-      // Show brief notification of the swap
-      showAssignedNumber.value = true;
-      setTimeout(() => {
-        showAssignedNumber.value = false;
-      }, 3000);
+      // Update URL to reflect new judge
+      router.replace(`/judge?event_id=${eventId.value}&judge_id=${judgeId.value}`);
+      // Show brief notification of the swap (unless show_judge_numbers is on)
+      if (!serverShowJudgeNumbers.value) {
+        showAssignedNumber.value = true;
+        setTimeout(() => {
+          showAssignedNumber.value = false;
+        }, 3000);
+      }
     }
   }
 };
@@ -1073,6 +1169,9 @@ onMounted(async () => {
   const urlEventId = route.query.event_id;
   const urlJudgeId = route.query.judge_id;
 
+  // Always initialize deviceId for swap detection
+  deviceId.value = getDeviceId();
+
   // If event_id is in URL, use it directly
   if (urlEventId) {
     eventId.value = urlEventId;
@@ -1083,8 +1182,8 @@ onMounted(async () => {
     await loadData(eventId.value);
     await loadVotingState(eventId.value);
 
-    // If judge_id is in URL, use it directly (skip auto-assign)
-    if (urlJudgeId) {
+    // If judge_id is in URL and NOT in manual mode, use it directly
+    if (urlJudgeId && judgeLoginMode.value !== 'manual') {
       judgeId.value = urlJudgeId;
       showJudgeSelection.value = false;
       await loadJudgeScores(urlJudgeId);
@@ -1095,6 +1194,29 @@ onMounted(async () => {
         assignedChairNumber.value = currentJudge.chair_number;
       }
       
+      // Try to find this device's screen number from registered screens (for swap detection)
+      try {
+        const regResponse = await fetch(`/api/voting/registered-screens?event_id=${urlEventId}`);
+        const regData = await regResponse.json();
+        const myScreen = regData.registered_screens?.find(s => s.device_id === deviceId.value);
+        if (myScreen) {
+          screenNumber.value = myScreen.screen_number;
+          console.log('[Screen] Found registered screen:', screenNumber.value);
+        }
+      } catch (e) {
+        console.log('[Screen] Could not fetch registered screens');
+      }
+      
+      // Check if show_judge_numbers is enabled on server and apply it
+      applyShowJudgeNumbersState();
+      
+      loading.value = false;
+    } else if (judgeLoginMode.value === 'manual') {
+      // Manual mode: always show judge selection screen, clear judge_id from URL
+      if (urlJudgeId) {
+        router.replace(`/judge?event_id=${urlEventId}`);
+      }
+      showJudgeSelection.value = true;
       loading.value = false;
     } else if (judgeLoginMode.value === 'auto') {
       // Auto-assign mode: register screen and get assigned judge
@@ -1111,9 +1233,12 @@ onMounted(async () => {
         loading.value = false;
         await loadJudgeScores(judgeId.value);
         
-        // Show assigned number for 3 seconds, then update URL and proceed to scoring
+        // Show assigned number for 3 seconds, then hide UNLESS server says to keep showing
         setTimeout(() => {
-          showAssignedNumber.value = false;
+          // Only hide if server doesn't have show_judge_numbers enabled
+          if (!serverShowJudgeNumbers.value) {
+            showAssignedNumber.value = false;
+          }
           showJudgeSelection.value = false;
           // Update URL with event_id and judge_id parameters
           router.replace(`/judge?event_id=${urlEventId}&judge_id=${judgeId.value}`);
@@ -1123,10 +1248,6 @@ onMounted(async () => {
         showJudgeSelection.value = true;
         loading.value = false;
       }
-    } else {
-      // Manual mode: show judge selection screen
-      showJudgeSelection.value = true;
-      loading.value = false;
     }
     
     // Setup WebSocket for voting state updates

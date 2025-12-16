@@ -35,12 +35,11 @@
             <h3 class="text-sm font-semibold uppercase tracking-wide text-pink-600">Female Candidates</h3>
             <button
               @click="scoresHidden = !scoresHidden"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-all"
-              :class="scoresHidden ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 border border-slate-300'"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-all"
             >
               <EyeOff v-if="scoresHidden" :size="14" />
               <Eye v-else :size="14" />
-              {{ scoresHidden ? 'Hidden' : 'Hide' }}
+              {{ scoresHidden ? 'Show' : 'Hide' }}
             </button>
           </div>
           
@@ -76,13 +75,23 @@
                       {{ candidate.number }} - {{ candidate.name }}
                     </span>
                   </td>
-                  <td v-for="judge in judges" :key="judge.id" class="py-3 px-4 text-center border-r border-gray-200">
-                    <span :class="['font-mono text-sm', scoresHidden ? 'blur-md' : '']">
+                  <td 
+                    v-for="judge in judges" 
+                    :key="judge.id" 
+                    class="py-3 px-4 text-center border-r border-gray-200"
+                    :class="scoresHidden ? 'cursor-pointer hover:bg-gray-100' : ''"
+                    @click="peekScore('judge', judge.id, candidate.id)"
+                  >
+                    <span :class="['font-mono text-sm transition-all duration-200', !isScoreVisible('judge', judge.id, candidate.id) ? 'blur-md' : '']">
                       {{ getJudgeTotal(judge.id, candidate.id) || '-' }}
                     </span>
                   </td>
-                  <td class="py-3 px-4 text-center">
-                    <span :class="['font-mono text-sm font-bold text-blue-600', scoresHidden ? 'blur-md' : '']">
+                  <td 
+                    class="py-3 px-4 text-center"
+                    :class="scoresHidden ? 'cursor-pointer hover:bg-gray-100' : ''"
+                    @click="peekScore('total', null, candidate.id)"
+                  >
+                    <span :class="['font-mono text-sm font-bold text-blue-600 transition-all duration-200', !isScoreVisible('total', null, candidate.id) ? 'blur-md' : '']">
                       {{ getCandidateTotal(candidate.id) || '-' }}
                     </span>
                   </td>
@@ -130,13 +139,23 @@
                       {{ candidate.number }} - {{ candidate.name }}
                     </span>
                   </td>
-                  <td v-for="judge in judges" :key="judge.id" class="py-3 px-4 text-center border-r border-gray-200">
-                    <span :class="['font-mono text-sm', scoresHidden ? 'blur-md' : '']">
+                  <td 
+                    v-for="judge in judges" 
+                    :key="judge.id" 
+                    class="py-3 px-4 text-center border-r border-gray-200"
+                    :class="scoresHidden ? 'cursor-pointer hover:bg-gray-100' : ''"
+                    @click="peekScore('judge', judge.id, candidate.id)"
+                  >
+                    <span :class="['font-mono text-sm transition-all duration-200', !isScoreVisible('judge', judge.id, candidate.id) ? 'blur-md' : '']">
                       {{ getJudgeTotal(judge.id, candidate.id) || '-' }}
                     </span>
                   </td>
-                  <td class="py-3 px-4 text-center">
-                    <span :class="['font-mono text-sm font-bold text-blue-600', scoresHidden ? 'blur-md' : '']">
+                  <td 
+                    class="py-3 px-4 text-center"
+                    :class="scoresHidden ? 'cursor-pointer hover:bg-gray-100' : ''"
+                    @click="peekScore('total', null, candidate.id)"
+                  >
+                    <span :class="['font-mono text-sm font-bold text-blue-600 transition-all duration-200', !isScoreVisible('total', null, candidate.id) ? 'blur-md' : '']">
                       {{ getCandidateTotal(candidate.id) || '-' }}
                     </span>
                   </td>
@@ -153,12 +172,11 @@
             <button
               v-if="!femaleCandidates.length && !maleCandidates.length"
               @click="scoresHidden = !scoresHidden"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-all"
-              :class="scoresHidden ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 border border-slate-300'"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-all"
             >
               <EyeOff v-if="scoresHidden" :size="14" />
               <Eye v-else :size="14" />
-              {{ scoresHidden ? 'Hidden' : 'Hide' }}
+              {{ scoresHidden ? 'Show' : 'Hide' }}
             </button>
           </div>
           
@@ -195,13 +213,23 @@
                     </span>
                     <span v-if="candidate.department" class="block text-xs text-gray-500">{{ candidate.department }}</span>
                   </td>
-                  <td v-for="judge in judges" :key="judge.id" class="py-3 px-4 text-center border-r border-gray-200">
-                    <span :class="['font-mono text-sm', scoresHidden ? 'blur-md' : '']">
+                  <td 
+                    v-for="judge in judges" 
+                    :key="judge.id" 
+                    class="py-3 px-4 text-center border-r border-gray-200"
+                    :class="scoresHidden ? 'cursor-pointer hover:bg-gray-100' : ''"
+                    @click="peekScore('judge', judge.id, candidate.id)"
+                  >
+                    <span :class="['font-mono text-sm transition-all duration-200', !isScoreVisible('judge', judge.id, candidate.id) ? 'blur-md' : '']">
                       {{ getJudgeTotal(judge.id, candidate.id) || '-' }}
                     </span>
                   </td>
-                  <td class="py-3 px-4 text-center">
-                    <span :class="['font-mono text-sm font-bold text-blue-600', scoresHidden ? 'blur-md' : '']">
+                  <td 
+                    class="py-3 px-4 text-center"
+                    :class="scoresHidden ? 'cursor-pointer hover:bg-gray-100' : ''"
+                    @click="peekScore('total', null, candidate.id)"
+                  >
+                    <span :class="['font-mono text-sm font-bold text-blue-600 transition-all duration-200', !isScoreVisible('total', null, candidate.id) ? 'blur-md' : '']">
                       {{ getCandidateTotal(candidate.id) || '-' }}
                     </span>
                   </td>
@@ -218,12 +246,11 @@
             <button
               v-if="!femaleCandidates.length && !maleCandidates.length && !groupCandidates.length"
               @click="scoresHidden = !scoresHidden"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-all"
-              :class="scoresHidden ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 border border-slate-300'"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-all"
             >
               <EyeOff v-if="scoresHidden" :size="14" />
               <Eye v-else :size="14" />
-              {{ scoresHidden ? 'Hidden' : 'Hide' }}
+              {{ scoresHidden ? 'Show' : 'Hide' }}
             </button>
           </div>
           
@@ -260,13 +287,23 @@
                     </span>
                     <span v-if="candidate.department" class="block text-xs text-gray-500">{{ candidate.department }}</span>
                   </td>
-                  <td v-for="judge in judges" :key="judge.id" class="py-3 px-4 text-center border-r border-gray-200">
-                    <span :class="['font-mono text-sm', scoresHidden ? 'blur-md' : '']">
+                  <td 
+                    v-for="judge in judges" 
+                    :key="judge.id" 
+                    class="py-3 px-4 text-center border-r border-gray-200"
+                    :class="scoresHidden ? 'cursor-pointer hover:bg-gray-100' : ''"
+                    @click="peekScore('judge', judge.id, candidate.id)"
+                  >
+                    <span :class="['font-mono text-sm transition-all duration-200', !isScoreVisible('judge', judge.id, candidate.id) ? 'blur-md' : '']">
                       {{ getJudgeTotal(judge.id, candidate.id) || '-' }}
                     </span>
                   </td>
-                  <td class="py-3 px-4 text-center">
-                    <span :class="['font-mono text-sm font-bold text-blue-600', scoresHidden ? 'blur-md' : '']">
+                  <td 
+                    class="py-3 px-4 text-center"
+                    :class="scoresHidden ? 'cursor-pointer hover:bg-gray-100' : ''"
+                    @click="peekScore('total', null, candidate.id)"
+                  >
+                    <span :class="['font-mono text-sm font-bold text-blue-600 transition-all duration-200', !isScoreVisible('total', null, candidate.id) ? 'blur-md' : '']">
                       {{ getCandidateTotal(candidate.id) || '-' }}
                     </span>
                   </td>
@@ -317,6 +354,26 @@ const scoresHidden = ref(true);
 const scores = ref({});
 const activeRound = ref(null);
 const isLive = ref(false);
+const peekingScore = ref(null); // Track which score is being peeked: 'judge-candidate' or 'total-candidate'
+
+// Peek at a hidden score for 1 second
+const peekScore = (type, judgeId, candidateId) => {
+  if (!scoresHidden.value) return; // Only works when hidden
+  const key = type === 'total' ? `total-${candidateId}` : `${judgeId}-${candidateId}`;
+  peekingScore.value = key;
+  setTimeout(() => {
+    if (peekingScore.value === key) {
+      peekingScore.value = null;
+    }
+  }, 1000);
+};
+
+// Check if a score should be visible (either not hidden or being peeked)
+const isScoreVisible = (type, judgeId, candidateId) => {
+  if (!scoresHidden.value) return true;
+  const key = type === 'total' ? `total-${candidateId}` : `${judgeId}-${candidateId}`;
+  return peekingScore.value === key;
+};
 
 // Tour steps for Judges Scoring tab
 const tourSteps = [

@@ -35,6 +35,20 @@
         {{ isShowingNumbers ? 'Toggling...' : judgeNumbersVisible ? 'Hide Judge Numbers' : 'Show Judge Numbers' }}
       </button>
 
+      <!-- Refresh All Screens -->
+      <button
+        @click="handleRefreshAllScreens"
+        :disabled="isRefreshing"
+        :class="[
+          'w-full px-4 py-2 text-left text-sm flex items-center gap-3 border-b border-gray-200 transition-colors',
+          isRefreshing ? 'opacity-50 cursor-not-allowed text-gray-500' : 'text-gray-700 hover:bg-gray-100'
+        ]"
+      >
+        <span v-if="isRefreshing" class="animate-spin">⟳</span>
+        <RefreshCw v-else class="w-4 h-4" />
+        {{ isRefreshing ? 'Refreshing...' : 'Refresh All Screens' }}
+      </button>
+
       <!-- Switch Category with Submenu -->
       <div
         v-if="eventSequence.length > 0"
@@ -103,7 +117,7 @@
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue';
-import { Lock, LockOpen, SkipForward, ChevronRight, Copy, Hash, EyeOff as HashOff } from 'lucide-vue-next';
+import { Lock, LockOpen, SkipForward, ChevronRight, Copy, Hash, EyeOff as HashOff, RefreshCw } from 'lucide-vue-next';
 import { showSuccess, showError } from '../../utils/alerts';
 
 const props = defineProps({
@@ -123,6 +137,7 @@ const isLocked = ref(false);
 const isTogglingLock = ref(false);
 const isShowingNumbers = ref(false);
 const judgeNumbersVisible = ref(false); // Track if judge numbers are currently shown
+const isRefreshing = ref(false);
 const isSwitchingCategory = ref(false);
 const selectedCategoryIndex = ref(0);
 const categorySubmenu = ref({ visible: false, position: 'right' });
@@ -211,6 +226,38 @@ const handleShowJudgeNumbers = async () => {
     showError('Failed to toggle judge numbers');
   } finally {
     isShowingNumbers.value = false;
+    emit('close');
+  }
+};
+
+// Refresh All Screens handler
+const handleRefreshAllScreens = async () => {
+  if (!props.eventId) {
+    showError('Event not loaded yet');
+    emit('close');
+    return;
+  }
+  
+  isRefreshing.value = true;
+  try {
+    const response = await fetch('/api/voting/refresh-screens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_id: props.eventId,
+        judge_ids: [] // Empty means all
+      })
+    });
+
+    if (response.ok) {
+      showSuccess('Refreshing all judge screens');
+    } else {
+      showError('Failed to refresh screens');
+    }
+  } catch (error) {
+    showError('Failed to refresh screens');
+  } finally {
+    isRefreshing.value = false;
     emit('close');
   }
 };

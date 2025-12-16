@@ -9,9 +9,9 @@
         id="new-template-btn"
         @click="openTypeSelector"
         :disabled="buttonLoading"
-        class="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-70"
+        class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-70"
       >
-        <div v-if="buttonLoading" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        <div v-if="buttonLoading" class="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
         <Plus v-else :size="16" />
         New Template
       </button>
