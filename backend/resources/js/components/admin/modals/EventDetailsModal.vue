@@ -89,6 +89,38 @@
             <div class="pt-4 border-t border-gray-200">
               <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Visual Settings</div>
               
+              <!-- Event Theme -->
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Event Theme</label>
+                <div class="grid grid-cols-4 gap-2">
+                  <button 
+                    @click="formData.theme_id = null"
+                    :class="['p-2 rounded-lg border-2 text-center transition-all', !formData.theme_id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300']"
+                  >
+                    <div class="flex justify-center gap-1 mb-1">
+                      <div class="w-3 h-3 rounded-full bg-gray-400"></div>
+                      <div class="w-3 h-3 rounded-full bg-gray-300"></div>
+                      <div class="w-3 h-3 rounded-full bg-gray-200"></div>
+                    </div>
+                    <span class="text-[10px] text-gray-600">Default</span>
+                  </button>
+                  <button 
+                    v-for="theme in themes" 
+                    :key="theme.id"
+                    @click="formData.theme_id = theme.id"
+                    :class="['p-2 rounded-lg border-2 text-center transition-all', formData.theme_id === theme.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300']"
+                  >
+                    <div class="flex justify-center gap-1 mb-1">
+                      <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: theme.primary_color }"></div>
+                      <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: theme.secondary_color }"></div>
+                      <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: theme.accent_color }"></div>
+                    </div>
+                    <span class="text-[10px] text-gray-600 truncate block">{{ theme.name }}</span>
+                  </button>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">Theme colors apply to judge screens</p>
+              </div>
+              
               <!-- Header Logos (Multiple) -->
               <div class="mb-4">
                 <div class="flex items-center justify-between mb-2">
@@ -278,12 +310,13 @@ const emit = defineEmits(['close']);
 
 const event = ref(null);
 const loading = ref(true);
-const formData = ref({ title: '', event_date: '', description: '', event_type: 'pageant', number_of_judges: '', header_image: '', header_logos: [], lock_screen_image: '' });
+const formData = ref({ title: '', event_date: '', description: '', event_type: 'pageant', number_of_judges: '', header_image: '', header_logos: [], lock_screen_image: '', theme_id: null });
 const showLogoSelector = ref(false);
 const showHeaderTemplateSelector = ref(false);
 const showLockScreenTemplateSelector = ref(false);
 const availableImages = ref([]);
 const templates = ref([]);
+const themes = ref([]);
 let draggedIdx = null;
 
 // Computed: Header templates (has header_logos or header_image)
@@ -318,6 +351,18 @@ const loadTemplates = async () => {
     }
   } catch (error) {
     console.error('Failed to load templates');
+  }
+};
+
+// Load themes
+const loadThemes = async () => {
+  try {
+    const response = await fetch('/api/event-themes');
+    if (response.ok) {
+      themes.value = await response.json();
+    }
+  } catch (error) {
+    console.error('Failed to load themes');
   }
 };
 
@@ -367,6 +412,7 @@ const drop = (idx) => {
 onMounted(() => { 
   loadImages(); 
   loadTemplates();
+  loadThemes();
 });
 
 const loadEventDetails = async () => {
@@ -401,7 +447,8 @@ const loadEventDetails = async () => {
         number_of_judges: judgesCount || data.number_of_judges || '',
         header_image: data.header_image || '',
         header_logos: data.header_logos || [],
-        lock_screen_image: data.lock_screen_image || ''
+        lock_screen_image: data.lock_screen_image || '',
+        theme_id: data.theme_id || null
       };
     } else {
       showError('Failed to load event details');
@@ -428,7 +475,8 @@ const handleSave = async () => {
         number_of_judges: parseInt(formData.value.number_of_judges),
         header_image: formData.value.header_logos?.[0]?.path || formData.value.header_image,
         header_logos: formData.value.header_logos,
-        lock_screen_image: formData.value.lock_screen_image
+        lock_screen_image: formData.value.lock_screen_image,
+        theme_id: formData.value.theme_id
       })
     });
 

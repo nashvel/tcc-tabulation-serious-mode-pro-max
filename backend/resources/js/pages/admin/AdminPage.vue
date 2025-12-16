@@ -160,15 +160,6 @@
                 />
               </div>
 
-              <!-- Best In Tab -->
-              <div v-else-if="activeTab === 'bestin'">
-                <BestInTab
-                  :eventId="continuingEvent?.id"
-                  :candidates="candidates"
-                  :criteria="criteria"
-                />
-              </div>
-
               <!-- Templates Tab -->
               <div v-else-if="activeTab === 'templates'">
                 <TemplatesTab
@@ -258,7 +249,6 @@ import CandidatesTab from '../../components/admin/tabs/CandidatesTab.vue';
 import RoundsTab from '../../components/admin/tabs/RoundsTab.vue';
 import CriteriaTab from '../../components/admin/tabs/CriteriaTab.vue';
 import ResultsTab from '../../components/admin/tabs/ResultsTab.vue';
-import BestInTab from '../../components/admin/tabs/BestInTab.vue';
 import ActivityLogsTab from '../../components/admin/tabs/ActivityLogsTab.vue';
 import SettingsTab from '../../components/admin/tabs/SettingsTab.vue';
 import TemplatesTab from '../../components/admin/tabs/TemplatesTab.vue';
@@ -415,7 +405,6 @@ const tabs = [
   { id: 'categories', label: 'Criteria' },
   { id: 'results', label: 'Results' },
   { id: 'printing', label: 'Printing Zone' },
-  { id: 'bestin', label: 'Best In' },
   { id: 'templates', label: 'Templates' },
   { id: 'themes', label: 'Themes' },
   { id: 'logs', label: 'Activity Logs' },

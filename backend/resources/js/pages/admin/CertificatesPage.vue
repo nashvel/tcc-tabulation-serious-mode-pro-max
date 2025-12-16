@@ -176,6 +176,86 @@
             </div>
           </div>
 
+          <!-- Color Customization -->
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Color Customization</h3>
+            
+            <!-- Primary Color (Wave/Border) -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Primary Color (Side Wave)</label>
+              <div class="flex items-center gap-3">
+                <input
+                  v-model="primaryColor"
+                  type="color"
+                  class="w-12 h-10 rounded cursor-pointer border border-gray-300"
+                />
+                <input
+                  v-model="primaryColor"
+                  type="text"
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="#9f1239"
+                />
+              </div>
+            </div>
+
+            <!-- Accent Color (Gold Seal) -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Accent Color (Seal & Corner)</label>
+              <div class="flex items-center gap-3">
+                <input
+                  v-model="accentColor"
+                  type="color"
+                  class="w-12 h-10 rounded cursor-pointer border border-gray-300"
+                />
+                <input
+                  v-model="accentColor"
+                  type="text"
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="#f59e0b"
+                />
+              </div>
+            </div>
+
+            <!-- Quick Presets -->
+            <div class="mt-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Quick Presets</label>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  @click="applyPreset('maroon-gold')"
+                  class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  <span class="inline-block w-3 h-3 rounded-full mr-1" style="background: #9f1239;"></span>
+                  <span class="inline-block w-3 h-3 rounded-full mr-1" style="background: #f59e0b;"></span>
+                  Maroon & Gold
+                </button>
+                <button
+                  @click="applyPreset('blue-silver')"
+                  class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  <span class="inline-block w-3 h-3 rounded-full mr-1" style="background: #1e40af;"></span>
+                  <span class="inline-block w-3 h-3 rounded-full mr-1" style="background: #94a3b8;"></span>
+                  Blue & Silver
+                </button>
+                <button
+                  @click="applyPreset('green-gold')"
+                  class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  <span class="inline-block w-3 h-3 rounded-full mr-1" style="background: #166534;"></span>
+                  <span class="inline-block w-3 h-3 rounded-full mr-1" style="background: #f59e0b;"></span>
+                  Green & Gold
+                </button>
+                <button
+                  @click="applyPreset('purple-gold')"
+                  class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  <span class="inline-block w-3 h-3 rounded-full mr-1" style="background: #7c3aed;"></span>
+                  <span class="inline-block w-3 h-3 rounded-full mr-1" style="background: #f59e0b;"></span>
+                  Purple & Gold
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Quick Select from Results -->
           <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Select Winner</h3>
@@ -208,19 +288,28 @@
               >
               <!-- Decorative Corner - Top Left -->
               <div class="absolute top-0 left-0 w-24 h-24 overflow-hidden">
-                <div class="absolute -top-12 -left-12 w-36 h-36 bg-gradient-to-br from-amber-400 to-amber-600 transform rotate-45"></div>
+                <div 
+                  class="absolute -top-12 -left-12 w-36 h-36 transform rotate-45"
+                  :style="{ background: `linear-gradient(to bottom right, ${accentColorLight}, ${accentColor})` }"
+                ></div>
               </div>
               
               <!-- Decorative Wave - Left Side -->
               <div class="absolute left-0 top-0 bottom-0 w-20 overflow-hidden">
-                <div class="absolute inset-0 bg-gradient-to-r from-rose-800 to-rose-700" style="clip-path: ellipse(100% 50% at 0% 50%);"></div>
+                <div 
+                  class="absolute inset-0" 
+                  :style="{ background: `linear-gradient(to right, ${primaryColor}, ${primaryColorLight})`, clipPath: 'ellipse(100% 50% at 0% 50%)' }"
+                ></div>
               </div>
 
               <!-- Gold Seal -->
               <div class="absolute bottom-12 left-8 w-16 h-16">
-                <div class="w-full h-full rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 shadow-lg flex items-center justify-center border-3 border-amber-500">
+                <div 
+                  class="w-full h-full rounded-full shadow-lg flex items-center justify-center"
+                  :style="{ background: `linear-gradient(to bottom right, ${accentColorLight}, ${accentColor}, ${accentColorDark})`, border: `3px solid ${accentColor}` }"
+                >
                   <div class="text-center">
-                    <Award class="w-6 h-6 text-amber-800 mx-auto" />
+                    <Award class="w-6 h-6 mx-auto" :style="{ color: accentColorDark }" />
                   </div>
                 </div>
               </div>
@@ -243,7 +332,7 @@
 
                 <!-- Award Title -->
                 <div v-if="awardTitle" class="mb-4">
-                  <p class="text-base font-semibold text-rose-800 tracking-wide">{{ awardTitle }}</p>
+                  <p class="text-base font-semibold tracking-wide" :style="{ color: primaryColor }">{{ awardTitle }}</p>
                 </div>
 
                 <!-- Event Name -->
@@ -300,6 +389,39 @@ const selectedCategory = ref('');
 const certificateRef = ref(null);
 const selectedSignatoryPerson = ref('');
 const selectedSignatoryTitle = ref('');
+
+// Color customization
+const primaryColor = ref('#9f1239'); // Maroon (rose-800)
+const accentColor = ref('#f59e0b'); // Gold (amber-500)
+
+// Computed color variants
+const primaryColorLight = computed(() => adjustColor(primaryColor.value, 20));
+const accentColorLight = computed(() => adjustColor(accentColor.value, 30));
+const accentColorDark = computed(() => adjustColor(accentColor.value, -30));
+
+// Helper function to lighten/darken colors
+const adjustColor = (hex, percent) => {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+  const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
+  const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+  return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+};
+
+// Color presets
+const applyPreset = (preset) => {
+  const presets = {
+    'maroon-gold': { primary: '#9f1239', accent: '#f59e0b' },
+    'blue-silver': { primary: '#1e40af', accent: '#94a3b8' },
+    'green-gold': { primary: '#166534', accent: '#f59e0b' },
+    'purple-gold': { primary: '#7c3aed', accent: '#f59e0b' }
+  };
+  if (presets[preset]) {
+    primaryColor.value = presets[preset].primary;
+    accentColor.value = presets[preset].accent;
+  }
+};
 
 // Data
 const candidates = ref([]);

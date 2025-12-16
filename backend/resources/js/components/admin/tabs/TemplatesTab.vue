@@ -186,20 +186,6 @@ const openTypeSelector = async () => {
           <h3 class="font-semibold text-gray-900 text-sm mb-0.5">Lock Screen</h3>
           <p class="text-[10px] text-gray-500">Custom lock image</p>
         </button>
-        <button type="button" id="btn-candidate" class="p-5 rounded-xl border-2 border-gray-200 hover:border-gray-400 transition-all text-center">
-          <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          </div>
-          <h3 class="font-semibold text-gray-900 text-sm mb-0.5">Candidate</h3>
-          <p class="text-[10px] text-gray-500">Participant presets</p>
-        </button>
-        <button type="button" id="btn-category" class="p-5 rounded-xl border-2 border-gray-200 hover:border-gray-400 transition-all text-center">
-          <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          </div>
-          <h3 class="font-semibold text-gray-900 text-sm mb-0.5">Category</h3>
-          <p class="text-[10px] text-gray-500">Rounds & criteria</p>
-        </button>
       </div>
     `,
     showConfirmButton: false,
@@ -211,16 +197,12 @@ const openTypeSelector = async () => {
     didOpen: () => {
       document.getElementById('btn-header').addEventListener('click', () => Swal.close({ value: 'header' }));
       document.getElementById('btn-lock').addEventListener('click', () => Swal.close({ value: 'lock' }));
-      document.getElementById('btn-candidate').addEventListener('click', () => Swal.close({ value: 'candidate' }));
-      document.getElementById('btn-category').addEventListener('click', () => Swal.close({ value: 'category' }));
     },
     preConfirm: () => false
   });
 
   if (templateType === 'header') showHeaderModal(null);
   else if (templateType === 'lock') showLockModal(null);
-  else if (templateType === 'candidate') showCandidateModal(null);
-  else if (templateType === 'category') showCategoryModal(null);
 };
 
 // File validation constants
