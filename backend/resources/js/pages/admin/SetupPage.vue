@@ -32,22 +32,8 @@
             <div class="w-12 h-12 rounded-full bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center mb-3 transition-colors">
               <Plus :size="24" class="text-gray-600" />
             </div>
-            <h3 class="text-base font-semibold text-gray-900 mb-1">Create from Scratch</h3>
-            <p class="text-xs text-gray-500 text-center">Set up a new competition manually</p>
-          </div>
-
-          <!-- Quick Create from Template -->
-          <div v-if="templates.length > 0"
-            @click="openTemplateModal"
-            class="group p-4 rounded-2xl border-2 border-dashed border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50 transition-all cursor-pointer flex items-center gap-4"
-          >
-            <div class="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center transition-colors">
-              <FileText :size="20" class="text-gray-600" />
-            </div>
-            <div>
-              <h3 class="text-sm font-semibold text-gray-900">Quick Create from Template</h3>
-              <p class="text-xs text-gray-500">{{ templates.length }} templates available</p>
-            </div>
+            <h3 class="text-base font-semibold text-gray-900 mb-1">Create Event</h3>
+            <p class="text-xs text-gray-500 text-center">Set up a new event or competition</p>
           </div>
         </div>
 
@@ -145,56 +131,6 @@
       </div>
     </div>
 
-    <!-- Quick Create from Template Modal -->
-    <div v-if="templateModal.show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden">
-        <div class="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 class="text-lg font-semibold text-gray-900">Quick Create from Template</h2>
-          <button @click="closeTemplateModal" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-            <X :size="20" class="text-gray-500" />
-          </button>
-        </div>
-        <div class="p-6 max-h-[60vh] overflow-y-auto">
-          <div v-if="templates.length === 0" class="py-12 text-center">
-            <FileText :size="40" class="text-gray-300 mx-auto mb-3" />
-            <p class="text-sm text-gray-500">No templates available</p>
-          </div>
-          <div v-else class="grid grid-cols-2 gap-4">
-            <div v-for="template in templates" :key="template.id"
-              @click="selectTemplate(template)"
-              :class="['p-4 rounded-xl border-2 cursor-pointer transition-all',
-                templateModal.selected?.id === template.id ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300']">
-              <h4 class="font-semibold text-gray-900 mb-1">{{ template.name }}</h4>
-              <p class="text-xs text-gray-500 mb-3">{{ template.description }}</p>
-              <div class="flex items-center gap-3 text-xs text-gray-600">
-                <span class="flex items-center gap-1"><Users :size="12" /> {{ template.participants?.length || 0 }}</span>
-                <span class="flex items-center gap-1"><Layers :size="12" /> {{ template.rounds?.length || 0 }} rounds</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div v-if="templateModal.selected" class="p-6 border-t border-gray-200 bg-white">
-          <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Event Title *</label>
-              <input v-model="templateModal.title" type="text" 
-                class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400 text-sm"
-                placeholder="e.g. Mr. & Ms. TCC 2025" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Event Date *</label>
-              <input v-model="templateModal.date" type="date"
-                class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-400/50 focus:border-gray-400 text-sm" />
-            </div>
-          </div>
-          <button @click="createFromTemplate" :disabled="templateModal.creating || !templateModal.title || !templateModal.date"
-            class="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 transition-colors">
-            <Loader2 v-if="templateModal.creating" :size="16" class="inline animate-spin mr-2" />
-            {{ templateModal.creating ? 'Creating...' : 'Create Event' }}
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 

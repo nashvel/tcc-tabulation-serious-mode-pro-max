@@ -288,6 +288,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Check, CheckCircle, Info, Monitor, Trash2, UserX, ArrowLeftRight, X } from 'lucide-vue-next';
 import { showError, showSuccess } from '../../../utils/alerts';
 import { useTour } from '../../../composables/useTour';
+import Swal from 'sweetalert2';
 import TourTooltip from '../../shared/TourTooltip.vue';
 import HelpButton from '../../shared/HelpButton.vue';
 
@@ -410,6 +411,40 @@ const loadRegisteredScreens = async () => {
 const kickScreen = async (screen) => {
   if (!props.eventId) return;
   
+  // Fetch score count for this judge
+  let scoreCount = 0;
+  try {
+    const judgeId = screen.judge_id;
+    if (judgeId) {
+      const countRes = await fetch(`/api/points?event_id=${props.eventId}&judge_id=${judgeId}`);
+      if (countRes.ok) {
+        const scores = await countRes.json();
+        scoreCount = Array.isArray(scores) ? scores.length : 0;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to fetch score count', e);
+  }
+  
+  // Build confirmation message
+  const scoreWarning = scoreCount > 0 
+    ? `<p class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"><strong> Warning:</strong> This judge has entered <strong>${scoreCount}</strong> score(s) that will be permanently deleted.</p>`
+    : '<p class="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-500 text-sm">This judge has not entered any scores yet.</p>';
+  
+  // Show confirmation dialog using Swal directly for HTML support
+  const result = await Swal.fire({
+    title: 'Remove Judge Screen',
+    html: `<p>Are you sure you want to remove Screen ${screen.screen_number} (Judge #${screen.chair_number || screen.judge_id})?</p>${scoreWarning}`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: scoreCount > 0 ? `Remove & Delete ${scoreCount} Scores` : 'Remove Screen',
+    cancelButtonText: 'Cancel'
+  });
+  
+  if (!result.isConfirmed) return;
+  
   kickingScreen.value = screen.screen_number;
   
   try {
@@ -423,7 +458,9 @@ const kickScreen = async (screen) => {
     });
     
     if (response.ok) {
-      showSuccess(`Screen ${screen.screen_number} removed`);
+      const data = await response.json();
+      const scoresMsg = data.scores_cleared > 0 ? ` and ${data.scores_cleared} scores cleared` : '';
+      showSuccess(`Screen ${screen.screen_number} removed${scoresMsg}`);
       // The WebSocket will update the list, but we can also update locally
       registeredScreens.value = registeredScreens.value.filter(
         s => s.screen_number !== screen.screen_number
